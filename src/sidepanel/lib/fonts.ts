@@ -93,21 +93,19 @@ export async function loadPreviewFamily(alias: string, faces: FaceFile[], tabId:
   return p;
 }
 
-/** The faces worth loading for previews: those that cover basic Latin, one per weight/style. */
+/**
+ * The faces to load for previews: every subset file (so other alphabets show
+ * in the font when it has them), one set per weight and style, at most 48 files.
+ */
 export function previewFaces(files: FaceFile[]): FaceFile[] {
-  const covers = (r: string | null) => {
-    if (!r) return true;
-    return r.split(',').some((part) => {
-      const [a, b] = part.trim().replace(/^u\+/i, '').split('-');
-      const start = parseInt(a.replace(/\?/g, '0'), 16);
-      const end = b ? parseInt(b, 16) : parseInt(a.replace(/\?/g, 'F'), 16);
-      return start <= 0x61 && end >= 0x61;
-    });
-  };
-  const out = files.filter((f) => f.url && covers(f.unicodeRange));
-  // Also include extended Latin subsets so accented letters render (Yoruba, Hausa, Vietnamese).
-  const extra = files.filter((f) => f.url && !covers(f.unicodeRange) && /U\+01|U\+1E|U\+0300/i.test(f.unicodeRange ?? ''));
-  return [...out, ...extra].slice(0, 24);
+  const withUrl = files.filter((f) => f.url);
+  const seen = new Set<string>();
+  return withUrl.filter((f) => {
+    const k = `${f.url}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).slice(0, 48);
 }
 
 // ------------------------------------------------------------- parsing

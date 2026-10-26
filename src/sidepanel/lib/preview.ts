@@ -28,7 +28,9 @@ export function usePreviewFamily(src: PreviewSource | null, tabId: number | null
     let cancelled = false;
     loadPreviewFamily(alias, faces, tabId).then((ok) => {
       if (cancelled) return;
-      setState({ css: ok ? `"${alias}", ${fallback(src)}` : init.css, ready: true, failed: !ok });
+      // After the real font, NotDef draws boxes for missing characters, so a
+      // preview never borrows letters from another font.
+      setState({ css: ok ? `"${alias}", "FFP NotDef"` : init.css, ready: true, failed: !ok });
     });
     return () => {
       cancelled = true;

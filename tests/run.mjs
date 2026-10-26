@@ -170,6 +170,23 @@ try {
   check('detail shows designers from catalogue', detailText.includes('Undercase Type'));
   check('detail read the font file (format WOFF2)', detailText.includes('WOFF2'));
   check('detail shows variable axes', /opsz/i.test(detailText));
+  await panel.waitForFunction(() => /of \d+ supported/i.test(document.body.innerText), null, { timeout: 20000 }).catch(() => {});
+  await panel.waitForSelector('.glyphs button', { timeout: 20000 }).catch(() => {});
+  await panel.screenshot({ path: path.join(out, 'panel-detail-phase2.png'), fullPage: true });
+  const d2 = await panel.locator('body').innerText();
+  check('licence card in plain language', d2.includes('SIL Open Font License') && d2.includes('Websites') && d2.includes('This is a summary, not legal advice.'));
+  check('language coverage checked against Google Fonts', /\d+ of 13 supported/i.test(d2) && d2.includes('full family on Google Fonts'), (d2.match(/\d+ of 13 supported/i) || [''])[0]);
+  check('Fraunces supports Vietnamese, not Arabic', await panel.evaluate(() => {
+    const rows = [...document.querySelectorAll('.langhead')].map((r) => r.innerText.replace(/\s+/g, ' '));
+    return rows.some((r) => r.startsWith('Vietnamese') && r.includes('Supported')) && rows.some((r) => r.startsWith('Arabic') && r.includes('Not supported'));
+  }));
+  check('glyph grid shows the font\'s characters', (await panel.locator('.glyphs button').count()) > 100, String(await panel.locator('.glyphs button').count()));
+  await panel.fill('input[aria-label="Find a character"]', 'é');
+  await panel.waitForTimeout(100);
+  check('glyph search finds a letter', (await panel.locator('.glyphs button').count()) === 1);
+  await panel.locator('.glyphs button').first().click();
+  check('glyph detail shows the code point', (await panel.locator('.glyphsel').innerText()).includes('U+00E9'));
+  check('installed check answers', /Installed|Not installed/.test(d2));
   check('detail links to Google Fonts', (await panel.locator('a[href="https://fonts.google.com/specimen/Fraunces"]').count()) >= 1);
 
   // Save to library and create a collection

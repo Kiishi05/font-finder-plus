@@ -58,12 +58,13 @@ function parse(bytes: ArrayBuffer): ParsedFontFile {
     max: Number(a.max),
     default: Number(a.default),
   }));
-  let characterCount = 0;
+  let codepoints: number[] = [];
   try {
-    characterCount = f.characterSet?.length ?? 0;
+    codepoints = Array.from(new Set<number>(f.characterSet ?? [])).sort((a, b) => a - b);
   } catch {
-    characterCount = 0;
+    codepoints = [];
   }
+  const characterCount = codepoints.length;
   return {
     format,
     familyName: name(f, 'preferredFamily') ?? name(f, 'fontFamily') ?? f.familyName ?? null,
@@ -84,6 +85,7 @@ function parse(bytes: ArrayBuffer): ParsedFontFile {
     xHeight: Number.isFinite(f.xHeight) && f.xHeight > 0 ? f.xHeight : null,
     glyphCount: f.numGlyphs,
     characterCount,
+    codepoints,
     isFixedPitch,
     panose,
     familyClass,

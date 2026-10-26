@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CLASS_LABEL, LICENSE_LABEL, SOURCE_LABEL, googleFamily, googleFontsUrl, licenseBadge } from '../../shared/catalog';
+import { CLASS_LABEL, SOURCE_LABEL, googleFamily, googleFontsUrl, licenseBadge } from '../../shared/catalog';
 import { declarationCss, round } from '../../shared/css';
 import { db, saveFont } from '../../shared/db';
 import { Alert02Icon, ArrowLeft01Icon, ArrowUpRight01Icon, Bookmark02Icon, Copy01Icon, Delete02Icon, SourceCodeIcon } from '../../shared/icons';
@@ -14,6 +14,13 @@ import { copyToClipboard } from '../lib/hooks';
 import { usePreviewFamily, type PreviewSource } from '../lib/preview';
 import { parseFamilyList } from '../lib/stack';
 import { roleSummary } from './PageView';
+import { coverageFromFiles, coverageFromGoogle, type Coverage } from '../lib/coverage';
+import { parseFontBytes } from '../lib/fonts';
+import type { InstalledFace } from '../lib/installed';
+import { GlyphsCard } from './details/GlyphsCard';
+import { InstalledCard } from './details/InstalledCard';
+import { LanguagesCard } from './details/LanguagesCard';
+import { LicenceCard } from './details/LicenceCard';
 import { CollectionPicker } from '../components/CollectionPicker';
 
 interface Props {
@@ -40,7 +47,7 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
   useEffect(() => {
     if (!base || attempted.current || record === undefined) return;
     const fileUrl = base.fileUrl ?? record?.fileUrl;
-    if (!fileUrl || record?.parsed) return;
+    if (!fileUrl || record?.parsed?.codepoints) return;
     attempted.current = true;
     setBusy('reading');
     analyzeFont({ ...base, fileUrl }, tabId).finally(() => setBusy(null));
@@ -85,6 +92,47 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
     toast(`Saved ${name}`);
   };
 
+
+  // Characters: from the files this site loads, from Google Fonts (whole
+  // family), or from the copy installed on this computer.
+  const files = previewSrc?.files ?? [];
+  const filesKey = files.map((f) => f.url).join('|');
+  const [fileCov, setFileCov] = useState<Coverage | null>(null);
+  const [gfCov, setGfCov] = useState<Coverage | null>(null);
+  const [localCov, setLocalCov] = useState<Coverage | null>(null);
+  const [covLoading, setCovLoading] = useState(false);
+  useEffect(() => {
+    let off = false;
+    setFileCov(null);
+    if (kind !== 'web' || !files.length) return;
+    setCovLoading(true);
+    coverageFromFiles(files, tabId, sample?.fontWeight, sample?.fontStyle)
+      .then((c) => !off && setFileCov(c))
+      .catch(() => undefined)
+      .finally(() => !off && setCovLoading(false));
+    return () => { off = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filesKey, kind, tabId]);
+  useEffect(() => {
+    let off = false;
+    setGfCov(null);
+    if (!gf) return;
+    coverageFromGoogle(gf.family).then((c) => !off && setGfCov(c)).catch(() => undefined);
+    return () => { off = true; };
+  }, [gf?.family]);
+  const onInstalled = async (faces: InstalledFace[]) => {
+    const face = faces.find((f) => /^(regular|book|roman|normal)$/i.test(f.style)) ?? faces[0];
+    if (!face) return;
+    try {
+      const parsedLocal = await parseFontBytes(await (await face.blob()).arrayBuffer());
+      setLocalCov({ codepoints: new Set(parsedLocal.codepoints ?? []), from: 'installed', fileCount: 1 });
+    } catch {
+      toast('The installed font file could not be read');
+    }
+  };
+  const langCoverage = gfCov ?? localCov ?? fileCov;
+  const glyphSet = fileCov?.codepoints ?? localCov?.codepoints ?? null;
+  const glyphCss = kind === 'web' ? preview.css : `"${parsed?.familyName ?? family}", "FFP NotDef"`;
 
   const designerText = gf?.d.length ? gf.d.join(', ') : parsed?.designer ?? null;
   const foundryText = parsed?.manufacturer ?? null;
@@ -161,6 +209,15 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
         {preview.failed && <p className="muted" style={{ margin: 0, padding: '0 14px 12px', fontSize: 11.5 }}>The font file could not be loaded in the panel, so a fallback font is shown.</p>}
       </section>
 
+      <LicenceCard name={name} licenseType={data.licenseType ?? 'unknown'} source={data.source ?? 'unknown'} parsed={parsed} fromCatalogue={!!gf?.l} />
+
+      <LanguagesCard
+        coverage={langCoverage}
+        loading={covLoading || (!!gf && !gfCov)}
+        fontCss={kind === 'web' ? preview.css : glyphCss}
+        empty={kind === 'web' ? 'The font file could not be read, so its characters are unknown.' : 'Use "Show installed styles" below to read the installed copy and check its languages.'}
+      />
+
       <MetricsCard fontCss={preview.css} weight={weight} parsed={parsed} />
 
       {data.fileError && !parsed && (
@@ -190,15 +247,8 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
           <dd>{designerText ?? 'Unknown'}</dd>
           {parsed?.version && (<><dt>Version</dt><dd>{parsed.version}</dd></>)}
           {parsed && (<><dt>File</dt><dd>{round(parsed.byteLength / 1024, 1)} KB · {parsed.glyphCount} glyphs · {parsed.characterCount} characters</dd></>)}
-          <dt>License</dt>
-          <dd>
-            {data.licenseType && data.licenseType !== 'unknown' ? LICENSE_LABEL[data.licenseType] : 'Unknown'}
-            {gf?.l ? <span className="muted"> (from the Google Fonts catalogue)</span> : null}
-            {parsed?.licenseUrl ? (<><br /><a href={parsed.licenseUrl} target="_blank" rel="noreferrer">License link in the font file</a></>) : null}
-          </dd>
           {usage && (<><dt>On this page</dt><dd>{roleSummary(usage, 7)}</dd><dt>Weights used</dt><dd className="mono" style={{ fontSize: 11.5 }}>{usage.weights.join(' · ')}</dd><dt>Sizes used</dt><dd className="mono" style={{ fontSize: 11.5 }}>{usage.sizes.slice(0, 12).map((s) => `${round(s, 1)}`).join(' · ')} px</dd></>)}
         </dl>
-        <span className="muted" style={{ fontSize: 11 }}>This is a summary, not legal advice.</span>
       </section>
 
       {(parsed?.axes.length || gf?.a.length) ? (
@@ -211,6 +261,15 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
           </dl>
         </section>
       ) : null}
+
+      <InstalledCard family={parsed?.familyName ?? name} onFaces={onInstalled} />
+
+      <GlyphsCard
+        codepoints={glyphSet}
+        fontCss={glyphCss}
+        toast={toast}
+        note={glyphSet ? (fileCov ? 'From the font files this site loads. Boxes mean the character is missing.' : 'From the copy installed on this computer.') : kind === 'web' ? 'The font file could not be read, so its characters cannot be shown.' : 'Use "Show installed styles" above to see the characters of the installed copy.'}
+      />
 
       {saved && (
         <section className="section">
@@ -299,7 +358,7 @@ function MetricsCard({ fontCss, weight, parsed }: { fontCss: string; weight: str
       line(base, ink, false);
       c.fillStyle = ink;
       c.fillText('Hxg', 14, base);
-      c.font = `10px 'JetBrains Mono', monospace`;
+      c.font = `10px 'FFP JetBrains Mono', monospace`;
       c.textAlign = 'right';
       const capLabel = parsed?.capHeight ? `CAP ${parsed.capHeight}` : 'CAP';
       const xLabel = parsed?.xHeight ? `X ${parsed.xHeight}` : 'X';

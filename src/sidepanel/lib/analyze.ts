@@ -1,5 +1,6 @@
 import { classify, googleFamily } from '../../shared/catalog';
 import { db, upsertFont } from '../../shared/db';
+import { knownFont, licenceTypeFor } from '../../shared/licences';
 import type { FontRecord } from '../../shared/types';
 import { getFontBytes, parseFontBytes } from './fonts';
 
@@ -17,7 +18,8 @@ export function analyzeFont(base: Omit<FontRecord, 'updatedAt'>, tabId: number |
   if (existing) return existing;
   const job = (async () => {
     const cached = await db.fonts.get(base.id);
-    if (cached?.parsed) {
+    // Files read by an older version lack the character list; read them again.
+    if (cached?.parsed?.codepoints) {
       // Records saved by an older version may lack the Google Fonts match.
       if (cached.catalogFamily === undefined) {
         const gf = cached.parsed.familyName ? googleFamily(cached.parsed.familyName) : googleFamily(cached.family);
@@ -34,6 +36,7 @@ export function analyzeFont(base: Omit<FontRecord, 'updatedAt'>, tabId: number |
       // The name stored inside the file confirms Google Fonts families that a
       // site has renamed (for example "GeistSans" is the file "Geist").
       const gf = base.catalogFamily ? googleFamily(base.catalogFamily) : parsed.familyName ? googleFamily(parsed.familyName) : null;
+      const known = !gf && parsed.familyName ? knownFont(parsed.familyName) : null;
       await upsertFont({
         ...base,
         parsed,
@@ -41,7 +44,7 @@ export function analyzeFont(base: Omit<FontRecord, 'updatedAt'>, tabId: number |
         foundry: parsed.manufacturer,
         catalogFamily: gf?.family ?? null,
         displayName: gf?.family ?? base.displayName,
-        licenseType: gf?.l ?? base.licenseType,
+        licenseType: gf?.l ?? (base.licenseType === 'unknown' && known ? licenceTypeFor(known) : base.licenseType),
         designers: gf?.d ?? base.designers,
         classification: gf && gf.c !== 'unknown' ? gf.c : classify(base.family, base.source, parsed.classification),
         fileError: null,

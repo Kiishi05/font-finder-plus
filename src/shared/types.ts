@@ -14,7 +14,7 @@ export type SourceKind =
   | 'system' // installed on this computer, not a web font
   | 'unknown';
 
-export type LicenseType = 'OFL' | 'APACHE' | 'UFL' | 'system' | 'commercial' | 'unknown';
+export type LicenseType = 'OFL' | 'APACHE' | 'UFL' | 'free-other' | 'system' | 'commercial' | 'unknown';
 
 export type Role = 'heading' | 'body' | 'button' | 'link' | 'nav' | 'code' | 'caption';
 
@@ -135,6 +135,8 @@ export interface ParsedFontFile {
   xHeight: number | null;
   glyphCount: number;
   characterCount: number;
+  /** Every Unicode code point the file has a glyph for (sorted). */
+  codepoints?: number[];
   isFixedPitch: boolean;
   panose: number[] | null;
   familyClass: number | null;

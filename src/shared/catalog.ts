@@ -1,4 +1,5 @@
 import catalogJson from './data/gf-catalog.json';
+import { knownFont, licenceTypeFor } from './licences';
 import type { Classification, LicenseType, SourceKind } from './types';
 
 interface CatalogEntry {
@@ -96,6 +97,8 @@ export function genericClassification(generic: string): Classification {
 export function licenseFromCatalog(family: string, source: SourceKind): LicenseType {
   const gf = googleFamily(family);
   if (gf?.l) return gf.l;
+  const known = knownFont(cleanFamilyName(family));
+  if (known) return licenceTypeFor(known);
   if (source === 'system') return 'system';
   return 'unknown';
 }
@@ -133,6 +136,7 @@ export const LICENSE_LABEL: Record<LicenseType, string> = {
   OFL: 'SIL Open Font License',
   APACHE: 'Apache License 2.0',
   UFL: 'Ubuntu Font Licence',
+  'free-other': 'Free, own licence',
   system: 'System font',
   commercial: 'Commercial',
   unknown: 'License unknown',
@@ -140,7 +144,7 @@ export const LICENSE_LABEL: Record<LicenseType, string> = {
 
 /** Short badge shown next to a font. */
 export function licenseBadge(l: LicenseType): { text: string; tone: 'free' | 'warn' | 'neutral' } {
-  if (l === 'OFL' || l === 'APACHE' || l === 'UFL') return { text: 'Free', tone: 'free' };
+  if (l === 'OFL' || l === 'APACHE' || l === 'UFL' || l === 'free-other') return { text: 'Free', tone: 'free' };
   if (l === 'system') return { text: 'System', tone: 'warn' };
   if (l === 'commercial') return { text: 'Paid', tone: 'warn' };
   return { text: 'Unknown', tone: 'neutral' };

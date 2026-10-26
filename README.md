@@ -2,7 +2,7 @@
 
 A Chrome extension (Manifest V3) for designers and developers. Hover any text to see the font that is really rendering, see every font a page uses, save fonts to collections, and copy their CSS.
 
-Status: **Phase 1 (Identify)** is complete. Later phases add licences in plain language, language coverage, swapping, type systems, export, specimen boards and identifying fonts from images.
+Status: **Phase 1 (Identify)** and **Phase 2 (Understand)** are complete. Later phases add swapping and pairing, type systems, export, specimen boards and identifying fonts from images.
 
 ## Load it in Chrome
 
@@ -25,6 +25,11 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
 - **Icon fonts** (for example Font Awesome, Material Symbols or a site's own icon font) are named in one line and left out of the list, because they draw symbols rather than text.
 - **Show on page:** outlines the text that uses a font, follows the page as it scrolls, and fades after 6 seconds.
 - **Library:** saved fonts in a grid or wide list, collections with colours (a font can be in several), search, and filters for style, licence, source and Google Fonts availability.
+- **Licence, in plain language** (font detail): what you can do with the font (websites, print, apps, logos, changing it, selling it). Open licences (OFL, Apache, Ubuntu) are summarised from their published text. About 50 well-known commercial families are matched to the foundry that sells them, with a link; their exact terms are never guessed. Anything else is shown as unknown. Always marked "This is a summary, not legal advice."
+- **Languages** (font detail): checks 13 languages (English, Yoruba, Igbo, Hausa, Swahili, Twi, Polish, Turkish, Vietnamese, Cyrillic, Greek, Arabic, Amharic) against the font's real character list. A language counts as supported only when every letter of its alphabet is present. Missing letters are listed.
+- **On this computer** (font detail): a quick yes or no, and, with Chrome's Local Font Access (Chrome asks once), the installed styles. The installed copy can then be used for the language check and glyphs.
+- **Glyphs** (font detail): every character in the font, grouped by Unicode block, searchable by letter or code point. Click one to copy it, or its CSS or HTML code.
+- Previews never borrow letters from another font: a missing character shows as a box (Adobe NotDef).
 - **Sample text:** each font's name, your own text, or a sample sentence in one of 16 languages.
 
 ## Permissions, and why each one is needed
@@ -44,6 +49,8 @@ The extension does not ask for access to all your sites when you install it.
 
 - Everything runs on your computer. The library lives in IndexedDB inside the extension. There is no account and no server.
 - No browsing data is sent anywhere. Font files are downloaded only from the hosts the page already uses.
+- For fonts in the Google Fonts catalogue, the language check asks Google Fonts for a file holding the test characters (the request carries only the family name and those characters, nothing about the page you are on).
+- Local Font Access (installed styles) runs only when you click, and the font list never leaves your computer.
 - Your Google Fonts API key is stored only in `chrome.storage.local`. It is never written to code, logs or the library, and it is only sent to Google's Web Fonts API when you use it.
 
 ## How the real font is found
@@ -95,5 +102,6 @@ Rename the product in `src/shared/brand.ts` and `public/manifest.json`.
 ## Credits and licences
 
 - Interface fonts: [Inter](https://rsms.me/inter/) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/), both under the SIL Open Font License 1.1 (see `public/fonts/`).
+- [Adobe NotDef](https://github.com/adobe-fonts/adobe-notdef), SIL Open Font License 1.1, draws boxes for missing characters in previews.
 - Icons: [Hugeicons](https://hugeicons.com) free set, MIT License.
 - Font parsing: fontkit, MIT License. Database: Dexie, Apache 2.0.

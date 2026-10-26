@@ -58,7 +58,7 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
         if (src === 'on-google' && !(f.catalogFamily || f.source === 'google')) return false;
         if (src !== 'all' && src !== 'on-google' && f.source !== src) return false;
         if (lic !== 'all') {
-          const free = ['OFL', 'APACHE', 'UFL'].includes(f.licenseType);
+          const free = ['OFL', 'APACHE', 'UFL', 'free-other'].includes(f.licenseType);
           if (lic === 'free' && !free) return false;
           if (lic === 'system' && f.licenseType !== 'system') return false;
           if (lic === 'commercial' && f.licenseType !== 'commercial') return false;
