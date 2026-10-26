@@ -160,6 +160,12 @@ try {
   // Language sample
   await panel.selectOption('select[aria-label="Language sample"]', 'yo');
   await panel.waitForTimeout(150);
+  await panel.selectOption('select[aria-label="Language sample"]', 'ar');
+  await panel.waitForTimeout(400);
+  const miss = await panel.locator('.missing').first().innerText().catch(() => '');
+  check('missing letters are named in words', /does not support Arabic/.test(miss), miss.slice(0, 80));
+  await panel.selectOption('select[aria-label="Language sample"]', 'yo');
+  await panel.waitForTimeout(150);
   check('language sample shows Yoruba text', (await panel.locator('.fcard .specimen').first().innerText()).includes('káàárọ̀'));
   await panel.screenshot({ path: path.join(out, 'panel-page-yoruba.png'), fullPage: true });
   await panel.locator('.toggles button', { hasText: 'Font name' }).click();
@@ -315,6 +321,17 @@ try {
 } finally {
   await ctx.close();
   server.kill();
+}
+
+// Unit checks (no browser)
+{
+  const { build } = require('esbuild');
+  const tmp = path.join(root, 'node_modules/.cache/ffp-css.mjs');
+  await build({ entryPoints: [path.join(root, 'src/shared/css.ts')], outfile: tmp, format: 'esm', bundle: true, platform: 'node', logLevel: 'silent' });
+  const { tidyStack } = await import(tmp);
+  const long = ['anthropic-sans', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'PingFang SC', 'Noto Sans Thai', 'sans-serif', 'ui-sans-serif'];
+  check('Copy CSS keeps a short font stack', JSON.stringify(tidyStack(long, 'anthropic-sans')) === JSON.stringify(['anthropic-sans', 'sans-serif']), JSON.stringify(tidyStack(long, 'anthropic-sans')));
+  check('Copy CSS keeps fallbacks up to the font that renders', JSON.stringify(tidyStack(['Söhne', 'Helvetica', 'Arial', 'sans-serif'], 'Arial')) === JSON.stringify(['Söhne', 'Helvetica', 'Arial', 'sans-serif']));
 }
 
 const failed = results.filter((r) => !r.ok);

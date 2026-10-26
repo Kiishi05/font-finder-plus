@@ -2,6 +2,7 @@
 export {
   Alert02Icon,
   ArrowDown01Icon,
+  ArrowUp01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
   Bookmark02Icon,

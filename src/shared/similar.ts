@@ -12,20 +12,26 @@ const SECONDARY_LATIN = new Set(['japanese', 'korean', 'chinese-simplified', 'ch
 
 const SCRIPT_NAME = /\b(Devanagari|Hindi|Marathi|Tamil|Bangla|Bengali|Gujarati|Gurmukhi|Kannada|Telugu|Malayalam|Oriya|Odia|Arabic|Hebrew|Thai|Thai Looped|Armenian|Georgian|Ethiopic|Sinhala|Khmer|Lao|Myanmar|Tibetan|Mongolian|Javanese|Balinese|Cherokee|Adlam|Syriac|Kufi|Naskh|Nastaliq|Urdu|JP|KR|SC|TC|HK)\b/;
 
-type Key = 'x' | 'cap' | 'asc' | 'desc' | 'w' | 'stem' | 'contrast' | 'round';
-const KEYS: Key[] = ['x', 'cap', 'asc', 'desc', 'w', 'stem', 'contrast', 'round'];
-const WEIGHTS: Record<Key, number> = { x: 2, cap: 0.8, asc: 0.6, desc: 0.6, w: 2, stem: 1.6, contrast: 1.6, round: 1 };
+type Key = 'x' | 'cap' | 'asc' | 'desc' | 'w' | 'stem' | 'contrast' | 'round' | 'sq';
+type Feat = Key | `p${number}`;
+const KEYS: Key[] = ['x', 'cap', 'asc', 'desc', 'w', 'stem', 'contrast', 'round', 'sq'];
+const PROF_N = 9;
+const FEATS: Feat[] = [...KEYS, ...Array.from({ length: PROF_N }, (_, i) => `p${i}` as Feat)];
+// How much each measurement counts. The letter-width profile (p0 to p8) tells
+// geometric fonts from grotesques; together it counts as much as width.
+const WEIGHTS: Record<string, number> = { x: 2, cap: 0.8, asc: 0.6, desc: 0.6, w: 1.6, stem: 1.6, contrast: 1.6, round: 1.2, sq: 1.6 };
+for (let i = 0; i < PROF_N; i++) WEIGHTS[`p${i}`] = 0.35;
 
 // Contrast is skewed (sans about 1.1, Didones above 5), so compare it on a log scale.
-const val = (s: Shape, k: Key): number | null => {
-  const v = s[k];
+const val = (s: Shape, k: Feat): number | null => {
+  const v = /^p\d$/.test(k) ? s.prof?.[Number(k.slice(1))] : s[k as Key];
   if (v == null || !Number.isFinite(v)) return null;
   return k === 'contrast' ? Math.log(Math.max(0.2, v)) : v;
 };
 
 interface Entry { family: string; shape: Shape; c: Classification; p: number }
 let entries: Entry[] | null = null;
-const stats = {} as Record<Key, { mean: number; sd: number }>;
+const stats = {} as Record<string, { mean: number; sd: number }>;
 
 function load(): Entry[] {
   if (entries) return entries;
@@ -43,10 +49,10 @@ function load(): Entry[] {
     if (!prev || e.p < prev.p) seen.set(sig, e);
   }
   entries = [...seen.values()];
-  for (const k of KEYS) {
+  for (const k of FEATS) {
     const vs = entries.map((e) => val(e.shape, k)).filter((v): v is number => v != null);
-    const mean = vs.reduce((a, b) => a + b, 0) / vs.length;
-    const sd = Math.sqrt(vs.reduce((a, b) => a + (b - mean) ** 2, 0) / vs.length) || 1;
+    const mean = vs.reduce((a, b) => a + b, 0) / Math.max(1, vs.length);
+    const sd = Math.sqrt(vs.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(1, vs.length)) || 1;
     stats[k] = { mean, sd };
   }
   return entries;
@@ -57,9 +63,9 @@ export function shapeOf(family: string): Shape | null {
   return a ? unpackShape(a) : null;
 }
 
-function diffs(a: Shape, b: Shape): Partial<Record<Key, number>> {
-  const out: Partial<Record<Key, number>> = {};
-  for (const k of KEYS) {
+function diffs(a: Shape, b: Shape): Partial<Record<Feat, number>> {
+  const out: Partial<Record<Feat, number>> = {};
+  for (const k of FEATS) {
     const va = val(a, k);
     const vb = val(b, k);
     if (va == null || vb == null) continue;
@@ -68,10 +74,10 @@ function diffs(a: Shape, b: Shape): Partial<Record<Key, number>> {
   return out;
 }
 
-function distance(d: Partial<Record<Key, number>>, ignoreWeight: boolean): number {
+function distance(d: Partial<Record<Feat, number>>, ignoreWeight: boolean): number {
   let sum = 0;
   let wsum = 0;
-  for (const k of KEYS) {
+  for (const k of FEATS) {
     const z = d[k];
     if (z == null) continue;
     const w = k === 'stem' && ignoreWeight ? 0.3 : WEIGHTS[k];
@@ -81,18 +87,19 @@ function distance(d: Partial<Record<Key, number>>, ignoreWeight: boolean): numbe
   return wsum ? Math.sqrt(sum / wsum) : 9;
 }
 
-const LABEL: Record<Key, string> = { x: 'x-height', cap: 'cap height', asc: 'ascenders', desc: 'descenders', w: 'width', stem: 'weight', contrast: 'contrast', round: 'roundness' };
+const LABEL: Record<Key, string> = { x: 'x-height', cap: 'cap height', asc: 'ascenders', desc: 'descenders', w: 'width', stem: 'weight', contrast: 'contrast', round: 'roundness', sq: 'squareness' };
 const MORE: Partial<Record<Key, [string, string]>> = {
   x: ['taller x-height', 'shorter x-height'],
   w: ['wider', 'narrower'],
   stem: ['bolder', 'lighter'],
   contrast: ['more contrast', 'less contrast'],
   round: ['rounder', 'more oval'],
+  sq: ['squarer', 'rounder curves'],
 };
 
 /** Plain-language reason, e.g. "Same x-height and width. A little bolder." */
-function reason(d: Partial<Record<Key, number>>): string {
-  const same = (['x', 'w', 'stem', 'contrast', 'round'] as Key[]).filter((k) => d[k] != null && Math.abs(d[k]!) < 0.35).map((k) => LABEL[k]);
+function reason(d: Partial<Record<Feat, number>>): string {
+  const same = (['x', 'w', 'stem', 'contrast', 'round'] as Feat[]).filter((k) => KEYS.includes(k as Key)).filter((k) => d[k] != null && Math.abs(d[k]!) < 0.35).map((k) => LABEL[k as Key]);
   const differ = (Object.keys(MORE) as Key[])
     .filter((k) => d[k] != null && Math.abs(d[k]!) >= 0.8)
     .sort((a, b) => Math.abs(d[b]!) - Math.abs(d[a]!))
@@ -129,8 +136,12 @@ export function similarTo(target: Shape, opts: { exclude?: string; classificatio
       const d = diffs(target, e.shape);
       let dist = distance(d, !!opts.ignoreWeight);
       if (cls && e.c !== cls) dist += cls === 'mono' || e.c === 'mono' ? 1.2 : 0.5;
-      // Among close matches, prefer well-made, widely used families.
-      return { e, d, dist, rank: dist + Math.min(e.p, 1500) / 1500 * 0.35 };
+      // A one-bowl "g" against a two-bowl "g" is easy to see, so it counts.
+      if (target.g2 != null && e.shape.g2 != null && target.g2 !== e.shape.g2) dist += 0.2;
+      // Same for a one-storey "a" (as in Futura) against a two-storey "a".
+      if (target.a2 != null && e.shape.a2 != null && target.a2 !== e.shape.a2) dist += 0.35;
+      // Among equally close matches, prefer well-made, widely used families.
+      return { e, d, dist, rank: dist + Math.min(e.p, 1500) / 1500 * 0.15 };
     })
     .sort((a, b) => a.rank - b.rank)
     .slice(0, opts.limit ?? 8);

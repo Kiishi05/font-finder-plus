@@ -12,10 +12,31 @@ function isGeneric(f: string): boolean {
   return ['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui', 'ui-serif', 'ui-sans-serif', 'ui-monospace', 'ui-rounded', 'emoji', 'math', '-apple-system', 'BlinkMacSystemFont'].includes(f);
 }
 
+const BASIC_GENERIC = ['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy'];
+
+/**
+ * A short font stack to copy: the families up to the one that actually
+ * renders, then one generic fallback. Sites often list dozens of fallbacks
+ * for other languages; those are left out.
+ */
+export function tidyStack(declared: string[], rendered?: string | null): string[] {
+  if (!declared.length) return rendered ? [rendered, 'sans-serif'] : [];
+  const lower = declared.map((d) => d.toLowerCase());
+  let idx = rendered ? lower.indexOf(rendered.toLowerCase()) : -1;
+  if (idx < 0) idx = Math.max(0, declared.findIndex((d) => !isGeneric(d)));
+  let keep = declared.slice(0, idx + 1);
+  if (keep.length > 4) keep = [keep[0], ...keep.slice(-3)];
+  if (!isGeneric(keep[keep.length - 1])) {
+    const generic = declared.slice(idx + 1).find((d) => BASIC_GENERIC.includes(d)) ?? declared.find((d) => BASIC_GENERIC.includes(d));
+    if (generic) keep.push(generic);
+  }
+  return keep;
+}
+
 /** The CSS a designer would paste to reproduce this text style. */
-export function declarationCss(declared: string[], s: TypeSample): string {
+export function declarationCss(declared: string[], s: TypeSample, rendered?: string | null): string {
   const lines = [
-    `font-family: ${fontStackCss(declared)};`,
+    `font-family: ${fontStackCss(tidyStack(declared, rendered))};`,
     `font-weight: ${s.fontWeight};`,
     s.fontStyle !== 'normal' ? `font-style: ${s.fontStyle};` : null,
     `font-size: ${round(s.fontSize)}px;`,

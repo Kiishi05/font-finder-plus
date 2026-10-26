@@ -62,7 +62,8 @@ chrome.runtime.onConnect.addListener((port) => {
 chrome.action.onClicked.addListener((tab) => {
   if (tab.id == null) return;
   // Open the side panel first, while Chrome still counts this as a user gesture.
-  chrome.sidePanel.open({ tabId: tab.id }).catch(() => undefined);
+  // It opens for the window, so it stays open and follows you between tabs.
+  chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => undefined);
   // Panel closed: open it and start. Panel already open: the icon (and
   // Alt + Shift + F) turns the hover card on and off.
   const panelOpen = tab.windowId != null && openPanels.has(tab.windowId);
@@ -71,7 +72,7 @@ chrome.action.onClicked.addListener((tab) => {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId !== MENU_ID || tab?.id == null) return;
-  chrome.sidePanel.open({ tabId: tab.id }).catch(() => undefined);
+  chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => undefined);
   toggleInspector(tab.id, true);
 });
 

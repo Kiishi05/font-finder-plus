@@ -32,11 +32,13 @@ function PairRow({ p, name, fontCss, toast }: { p: Pair; name: string; fontCss: 
   };
   return (
     <div className="match">
+      <b style={{ fontSize: 13 }}>{heading.label} + {body.label}</b>
       <div className="pairprev">
-        <span style={{ fontFamily: heading.css, fontSize: 24, lineHeight: 1.1 }}>A quiet place to read</span>
-        <span style={{ fontFamily: body.css, fontSize: 13.5, lineHeight: 1.5 }}>Good type sets a pace, gives the eye somewhere to rest, and lets the words do their work.</span>
+        <span className="role">Heading · {heading.label}</span>
+        <span style={{ fontFamily: heading.css, fontSize: 26, lineHeight: 1.1 }}>A quiet place to read</span>
+        <span className="role" style={{ marginTop: 6 }}>Body text · {body.label}</span>
+        <span style={{ fontFamily: body.css, fontSize: 14, lineHeight: 1.5 }}>Good type sets a pace, gives the eye somewhere to rest, and lets the words do their work.</span>
       </div>
-      <span className="label">Headings {heading.label} · Body {body.label}</span>
       <span className="muted" style={{ fontSize: 11.5 }}>{p.reason}</span>
       <div className="row" style={{ gap: 6 }}>
         <button className="btn sm" onClick={copy}><Icon icon={SourceCodeIcon} size={13} />Copy CSS</button>

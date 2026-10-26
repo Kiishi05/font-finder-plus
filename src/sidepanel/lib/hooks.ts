@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { sendToTab, type PingReply, type ScanReply, type ToExtension } from '../../shared/messages';
-import { DEFAULT_SETTINGS, getSettings, onSettingsChanged, setSettings, type Settings } from '../../shared/settings';
+import { sendToExtension, sendToTab, type PingReply, type ScanReply, type ToExtension } from '../../shared/messages';
+import { DEFAULT_SETTINGS, getSettings, hasAllSitesAccess, onSettingsChanged, setSettings, type Settings } from '../../shared/settings';
 import type { ElementFontInfo, PageScan } from '../../shared/types';
 
 export interface TabState {
@@ -38,9 +38,22 @@ export function useActiveTab(): TabState {
     const forced = Number(new URLSearchParams(location.search).get('tab'));
     const [tab] = forced ? [{ id: forced }] : await chrome.tabs.query({ active: true, currentWindow: true });
     const id = tab?.id ?? null;
+    const prev = tabRef.current;
     tabRef.current = id;
     setTabId(id);
     setPinned(null);
+    // Switching tabs moves the inspector: off in the tab you left, on in the
+    // tab you opened (when the extension may run there).
+    if (!forced && prev != null && id != null && prev !== id) {
+      sendToTab(prev, { type: 'ffp:inspect', on: false }, 500);
+      sendToTab(prev, { type: 'ffp:highlight', key: null }, 500);
+      const p = await sendToTab<PingReply>(id, { type: 'ffp:ping' }, 600);
+      if (p) {
+        if (!p.inspecting) await sendToTab(id, { type: 'ffp:inspect', on: true });
+      } else if (await hasAllSitesAccess()) {
+        await sendToExtension({ type: 'ffp:inject', tabId: id, startInspecting: true });
+      }
+    }
     check(id);
   }, [check]);
 

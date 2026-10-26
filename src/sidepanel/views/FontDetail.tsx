@@ -1,13 +1,14 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CLASS_LABEL, SOURCE_LABEL, googleFamily, googleFontsUrl, licenseBadge } from '../../shared/catalog';
-import { declarationCss, round } from '../../shared/css';
+import { declarationCss, fontStackCss, round, tidyStack } from '../../shared/css';
 import { db, saveFont } from '../../shared/db';
 import { Alert02Icon, ArrowLeft01Icon, ArrowUpRight01Icon, Bookmark02Icon, Copy01Icon, Delete02Icon, SourceCodeIcon } from '../../shared/icons';
 import { bestFileUrl, recordFromUsage } from '../../shared/records';
 import { FORMAT_LABEL } from '../../shared/sources';
 import type { FontRecord, PageFontUsage, ParsedFontFile } from '../../shared/types';
 import { Icon } from '../components/Icon';
+import { MissingNote } from '../components/MissingNote';
 import { DEFAULT_TESTER, Tester, sampleText, type TesterState } from '../components/Tester';
 import { analyzeFont } from '../lib/analyze';
 import { copyToClipboard } from '../lib/hooks';
@@ -192,7 +193,7 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
             className="btn"
             style={{ flex: 1 }}
             onClick={async () => {
-              const css = sample ? declarationCss(declared, sample) : `font-family: ${declared.join(', ')};`;
+              const css = sample ? declarationCss(declared, sample, family) : `font-family: ${fontStackCss(tidyStack(declared, family))};`;
               if (await copyToClipboard(css)) toast('Copied CSS');
             }}
           >
@@ -238,6 +239,7 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
         >
           {sampleText(tester, name)}
         </p>
+        {kind !== 'generic' && <MissingNote css={preview.css} text={sampleText(tester, name)} ready={preview.ready && !preview.failed} tester={tester} name={name} />}
         {preview.failed && <p className="muted" style={{ margin: 0, padding: '0 14px 12px', fontSize: 11.5 }}>The font file could not be loaded in the panel, so a fallback font is shown.</p>}
       </section>
 
@@ -389,8 +391,10 @@ function MetricsCard({ fontCss, weight, parsed }: { fontCss: string; weight: str
       c.fillText('Hxg', 14, base);
       c.font = `10px 'FFP JetBrains Mono', monospace`;
       c.textAlign = 'right';
-      const capLabel = parsed?.capHeight ? `CAP ${parsed.capHeight}` : 'CAP';
-      const xLabel = parsed?.xHeight ? `X ${parsed.xHeight}` : 'X';
+      // Values from the font file (units and share of the em), or measured from how it draws.
+      const em = (v: number) => `${Math.round(v * 100) / 100} em`;
+      const capLabel = parsed?.capHeight ? `CAP ${parsed.capHeight} · ${em(parsed.capHeight / parsed.unitsPerEm)}` : `CAP ${em(capA / 96)}`;
+      const xLabel = parsed?.xHeight ? `X-HEIGHT ${parsed.xHeight} · ${em(parsed.xHeight / parsed.unitsPerEm)}` : `X-HEIGHT ${em(xA / 96)}`;
       c.fillStyle = muted;
       c.fillText(capLabel, w - 10, base - capA - 5);
       c.fillStyle = green;

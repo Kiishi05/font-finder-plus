@@ -62,7 +62,7 @@ await Promise.all(Array.from({ length: 12 }, async () => {
 const sorted = Object.fromEntries(Object.keys(out).sort().map((k) => [k, out[k]]));
 await fs.writeFile(
   path.join(root, 'src/shared/data/gf-shapes.json'),
-  JSON.stringify({ generated: new Date().toISOString().slice(0, 10), fields: ['x', 'cap', 'asc', 'desc', 'w', 'stem', 'contrast', 'round'], count: Object.keys(sorted).length, families: sorted }),
+  JSON.stringify({ generated: new Date().toISOString().slice(0, 10), fields: ['x', 'cap', 'asc', 'desc', 'w', 'stem', 'contrast', 'round', 'g2', 'a2', 'sq', 'n/o', 's/o', 'a/o', 'e/o', 'r/o', 't/o', 'M/H', 'R/H', 'S/H'], count: Object.keys(sorted).length, families: sorted }),
 );
 console.log(`Measured ${Object.keys(sorted).length} families. Not measured: ${failed.length}`);
 if (failed.length) console.log(failed.slice(0, 40).join('\n'));

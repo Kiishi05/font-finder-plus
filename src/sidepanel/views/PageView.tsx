@@ -3,12 +3,13 @@ import { useEffect, useRef, useState } from 'react';
 import { CLASS_LABEL, SOURCE_LABEL, licenseBadge } from '../../shared/catalog';
 import { declarationCss } from '../../shared/css';
 import { db, saveFont } from '../../shared/db';
-import { Alert02Icon, ArrowRight01Icon, Bookmark02Icon, CloseIcon, SourceCodeIcon, Target02Icon } from '../../shared/icons';
+import { Alert02Icon, ArrowDown01Icon, ArrowRight01Icon, ArrowUp01Icon, Bookmark02Icon, CloseIcon, SourceCodeIcon, Target02Icon } from '../../shared/icons';
 import { sendToExtension, sendToTab } from '../../shared/messages';
 import { bestFileUrl, fontId, recordFromUsage } from '../../shared/records';
 import { hasAllSitesAccess } from '../../shared/settings';
 import type { PageFontUsage, Role } from '../../shared/types';
 import { CollectionPicker } from '../components/CollectionPicker';
+import { MissingNote } from '../components/MissingNote';
 import { similarTo, type Match } from '../../shared/similar';
 import { trySwap, undoSwap, useSwaps } from '../lib/google';
 import { Icon } from '../components/Icon';
@@ -70,8 +71,8 @@ export function PageView({ tab, tester, onTester, onOpen, toast }: Props) {
             <p>{tab.injectError}</p>
           ) : (
             <p>
-              Go to the web page you want to check, then click the Font Finder Plus icon in Chrome's toolbar, or press <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd>.
-              The list of fonts appears here and you can hover any text on the page.
+              Click the Font Finder Plus icon in Chrome's toolbar, or press <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd>, to inspect this tab.
+              {!canInject && ' Chrome only lets the extension read a tab after you click it there. To follow you between tabs automatically, allow access to all sites in Settings.'}
             </p>
           )}
           {canInject && tab.tabId != null && !tab.injectError && (
@@ -100,7 +101,7 @@ export function PageView({ tab, tester, onTester, onOpen, toast }: Props) {
   const copyAll = async () => {
     if (!scan) return;
     const css = scan.fonts
-      .map((f) => `/* ${f.family} · ${roleSummary(f, 2)} */\n${declarationCss(parseFamilyList(f.declaredStacks[0] ?? f.family), f.sample)}`)
+      .map((f) => `/* ${f.family} · ${roleSummary(f, 2)} */\n${declarationCss(parseFamilyList(f.declaredStacks[0] ?? f.family), f.sample, f.family)}`)
       .join('\n\n');
     if (await copyToClipboard(css)) toast('Copied CSS for all fonts');
   };
@@ -175,7 +176,7 @@ function FontCard({ f, tester, tabId, host, swappedTo, onOpen, toast }: { f: Pag
   const where = catalogFamily ? (f.source === 'google' ? 'Google Fonts' : `${SOURCE_LABEL[f.source]} · on Google Fonts`) : SOURCE_LABEL[f.source];
 
   const copyCss = async () => {
-    if (await copyToClipboard(declarationCss(parseFamilyList(f.declaredStacks[0] ?? f.family), f.sample))) toast(`Copied CSS for ${name}`);
+    if (await copyToClipboard(declarationCss(parseFamilyList(f.declaredStacks[0] ?? f.family), f.sample, f.family))) toast(`Copied CSS for ${name}`);
   };
   const [picking, setPicking] = useState(false);
   // Save and unsave. Right after saving, the collections appear so the font
@@ -229,6 +230,7 @@ function FontCard({ f, tester, tabId, host, swappedTo, onOpen, toast }: { f: Pag
       >
         {text}
       </div>
+      {f.kind !== 'generic' && <MissingNote css={preview.css} text={text} ready={preview.ready && !preview.failed} tester={tester} name={name} />}
       <div className="fmeta label">
         Used for {roleSummary(f) || 'text'}
         {f.hiddenCount > 0 && (f.hiddenCount === f.elementCount ? ' · all hidden right now (menus or pop-ups)' : ` · ${f.hiddenCount} hidden right now`)}
@@ -300,6 +302,7 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
   const ids = candidates.map((f) => fontId(f.family, f.source));
   const records = useLiveQuery(() => db.fonts.bulkGet(ids), [ids.join('|')]) ?? [];
   const [busy, setBusy] = useState(false);
+  const [all, setAll] = useState(false);
   const rows = candidates
     .map((f, i) => {
       const r = records[i];
@@ -336,7 +339,7 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
         {rows.length === 1 ? 'One font on this page is' : `${rows.length} fonts on this page are`} paid or have an unknown licence. Preview the page with the closest free Google Fonts instead.
       </span>
       <div className="freelist">
-        {rows.map((r) => (
+        {(all ? rows : rows.slice(0, 5)).map((r) => (
           <div key={r.f.key} className="freerow">
             <span className="grow">{r.name}</span>
             <span className="muted">to</span>
@@ -344,6 +347,12 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
           </div>
         ))}
       </div>
+      {rows.length > 5 && (
+        <button className="linkbtn row" style={{ gap: 4, alignSelf: 'flex-start', textDecoration: 'none' }} aria-expanded={all} onClick={() => setAll(!all)}>
+          {all ? 'Show fewer' : `Show ${rows.length - 5} more`}
+          <Icon icon={all ? ArrowUp01Icon : ArrowDown01Icon} size={14} />
+        </button>
+      )}
       <div className="row" style={{ gap: 6 }}>
         <button className="btn sm primary" onClick={swapAll} disabled={busy || !rows.some((r) => r.match)}>{busy ? 'Loading fonts…' : anySwapped ? 'Swap again' : 'Swap all on the page'}</button>
         {anySwapped && <button className="btn sm" onClick={() => undoSwap(tabId, null)}>Undo all</button>}

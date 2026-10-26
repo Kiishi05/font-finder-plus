@@ -107,7 +107,7 @@ function ensureUi() {
         lineHeight: s.lineHeight,
         letterSpacing: s.letterSpacing,
         color: s.color,
-      }),
+      }, s.family),
     );
     flashButton('.copycss', 'Copied CSS');
   });
@@ -308,8 +308,8 @@ function drawMetrics() {
     c.fillStyle = color;
     c.fillText(text, W - 10 * scale, y);
   };
-  label(info.capHeight != null ? `CAP ${info.capHeight}` : 'CAP', base - capA - 5 * scale, '#5C5C5A');
-  label(info.xHeight != null ? `X ${info.xHeight}` : 'X', base - xA - 5 * scale, '#0B7A37');
+  label(info.capHeight != null ? `CAP ${info.capHeight}PX` : 'CAP', base - capA - 5 * scale, '#5C5C5A');
+  label(info.xHeight != null ? `X-HEIGHT ${info.xHeight}PX` : 'X-HEIGHT', base - xA - 5 * scale, '#0B7A37');
   label('BASELINE', base - 5 * scale, '#111111');
   c.textAlign = 'left';
 }

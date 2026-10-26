@@ -6,6 +6,7 @@ import { FolderAddIcon, GridViewIcon, Menu01Icon, PlusSignIcon, Search01Icon, Ti
 import type { Classification, FontRecord, SavedFont, SourceKind } from '../../shared/types';
 import { Icon } from '../components/Icon';
 import { Select } from '../components/Select';
+import { MissingNote } from '../components/MissingNote';
 import { Tester, sampleText, type TesterState } from '../components/Tester';
 import { usePreviewFamily } from '../lib/preview';
 import { CollectionPicker, NewCollectionInline } from '../components/CollectionPicker';
@@ -239,6 +240,7 @@ function LibraryCard({ f, savedId, tester, wide, onOpen }: { f: FontRecord; save
         <span dir="auto" className={`prev specimen${tester.invert ? ' invert' : ''}`} style={{ fontFamily: preview.css, fontSize: tester.size, padding: 0, textAlign: tester.align === 'center' ? 'center' : 'left' }}>
           {sampleText(tester, name)}
         </span>
+        {f.kind !== 'generic' && <MissingNote css={preview.css} text={sampleText(tester, name)} ready={preview.ready && !preview.failed} tester={tester} name={name} style={{ margin: 0 }} />}
         {picker}
       </div>
     );
@@ -248,6 +250,7 @@ function LibraryCard({ f, savedId, tester, wide, onOpen }: { f: FontRecord; save
       <span dir="auto" className={`prev specimen${tester.invert ? ' invert' : ''}`} style={{ fontFamily: preview.css, fontSize: Math.min(tester.size, 40), justifyContent: tester.align === 'center' ? 'center' : 'flex-start' }}>
         {sampleText(tester, name)}
       </span>
+      {f.kind !== 'generic' && <MissingNote css={preview.css} text={sampleText(tester, name)} ready={preview.ready && !preview.failed} tester={tester} name={name} style={{ margin: '0 10px 8px' }} />}
       <span className="meta">
         <span className="row" style={{ alignItems: 'flex-start', gap: 4 }}>
           <b className="grow">{name}</b>
