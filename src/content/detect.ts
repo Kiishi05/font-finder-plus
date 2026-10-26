@@ -1,4 +1,4 @@
-import { GENERIC_FAMILIES, classify, genericClassification, googleFamily, licenseFromCatalog } from '../shared/catalog';
+import { GENERIC_FAMILIES, classify, cleanFamilyName, genericClassification, googleFamily, licenseFromCatalog } from '../shared/catalog';
 import { formatFromUrl, sourceFromUrl } from '../shared/sources';
 import type { Classification, FaceFile, LicenseType, Role, SourceKind } from '../shared/types';
 
@@ -450,13 +450,16 @@ export function familyCss(r: Rendered): string {
   return JSON.stringify(r.family);
 }
 
-export function fontFacts(r: Rendered): { source: SourceKind; host: string | null; fileUrl: string | null; format: string | null; classification: Classification; licenseType: LicenseType; designers: string[] } {
+export function fontFacts(r: Rendered): { source: SourceKind; host: string | null; fileUrl: string | null; format: string | null; classification: Classification; licenseType: LicenseType; designers: string[]; displayName: string; catalogFamily: string | null } {
   const src = sourceForFamily(r.family, r.kind);
+  const gf = r.kind === 'generic' ? null : googleFamily(r.family);
   const classification = r.kind === 'generic' ? genericClassification(r.genericName ?? 'serif') : classify(r.family, src.source);
   return {
     ...src,
     classification,
     licenseType: r.kind === 'generic' ? 'system' : licenseFromCatalog(r.family, src.source),
-    designers: googleFamily(r.family)?.d ?? [],
+    designers: gf?.d ?? [],
+    displayName: r.kind === 'generic' ? r.family : gf?.family ?? cleanFamilyName(r.family),
+    catalogFamily: gf?.family ?? null,
   };
 }

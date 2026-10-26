@@ -1,4 +1,4 @@
-import { classify } from '../../shared/catalog';
+import { classify, googleFamily } from '../../shared/catalog';
 import { db, upsertFont } from '../../shared/db';
 import type { FontRecord } from '../../shared/types';
 import { getFontBytes, parseFontBytes } from './fonts';
@@ -17,16 +17,33 @@ export function analyzeFont(base: Omit<FontRecord, 'updatedAt'>, tabId: number |
   if (existing) return existing;
   const job = (async () => {
     const cached = await db.fonts.get(base.id);
-    if (cached?.parsed) return;
+    if (cached?.parsed) {
+      // Records saved by an older version may lack the Google Fonts match.
+      if (cached.catalogFamily === undefined) {
+        const gf = cached.parsed.familyName ? googleFamily(cached.parsed.familyName) : googleFamily(cached.family);
+        await db.fonts.update(base.id, {
+          catalogFamily: gf?.family ?? null,
+          ...(gf ? { displayName: gf.family, licenseType: gf.l ?? cached.licenseType, designers: gf.d, classification: gf.c } : {}),
+        });
+      }
+      return;
+    }
     try {
       const bytes = await getFontBytes(fileUrl, tabId);
       const parsed = await parseFontBytes(bytes);
+      // The name stored inside the file confirms Google Fonts families that a
+      // site has renamed (for example "GeistSans" is the file "Geist").
+      const gf = base.catalogFamily ? googleFamily(base.catalogFamily) : parsed.familyName ? googleFamily(parsed.familyName) : null;
       await upsertFont({
         ...base,
         parsed,
         format: parsed.format,
         foundry: parsed.manufacturer,
-        classification: classify(base.family, base.source, parsed.classification),
+        catalogFamily: gf?.family ?? null,
+        displayName: gf?.family ?? base.displayName,
+        licenseType: gf?.l ?? base.licenseType,
+        designers: gf?.d ?? base.designers,
+        classification: gf && gf.c !== 'unknown' ? gf.c : classify(base.family, base.source, parsed.classification),
         fileError: null,
       });
     } catch (err) {

@@ -97,6 +97,8 @@ export async function scanPage(): Promise<PageScan> {
       f = {
         key,
         family: r.family,
+        displayName: facts.displayName,
+        catalogFamily: facts.catalogFamily,
         kind: r.kind,
         genericName: r.genericName,
         source: facts.source,

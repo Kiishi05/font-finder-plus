@@ -181,6 +181,8 @@ function infoFor(el: Element): Current {
   const m = measureMetrics(familyCss(rendered), cs.fontWeight, cs.fontStyle, size);
   const info: ElementFontInfo = {
     family: rendered.family,
+    displayName: facts.displayName,
+    catalogFamily: facts.catalogFamily,
     kind: rendered.kind,
     genericName: rendered.genericName,
     source: facts.source,
@@ -213,12 +215,12 @@ function renderCard() {
   if (!current) return;
   const { info, rendered } = current;
   const name = $<HTMLElement>('.name');
-  name.textContent = info.family;
+  name.textContent = info.displayName ?? info.family;
   name.style.fontFamily = `${familyCss(rendered)}, system-ui`;
   name.style.fontWeight = info.weight;
   name.style.fontStyle = info.style;
   const src = info.kind === 'web' ? SOURCE_LABEL[info.source] : info.kind === 'generic' ? 'Browser default' : 'System font';
-  $<HTMLElement>('.meta').textContent = `[${info.tag} · ${src.toUpperCase()}]`;
+  $<HTMLElement>('.meta').textContent = `[${info.tag} · ${src.toUpperCase()}${info.catalogFamily && info.source !== 'google' ? ' · ON GOOGLE FONTS' : ''}]`;
   const fb = $<HTMLElement>('.fallback');
   fb.hidden = !info.fellBackFrom.length;
   fb.textContent = info.fellBackFrom.length ? `Fallback: ${info.fellBackFrom.join(', ')} did not load` : '';

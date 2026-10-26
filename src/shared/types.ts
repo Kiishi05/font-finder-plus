@@ -43,6 +43,10 @@ export interface TypeSample {
 export interface PageFontUsage {
   key: string;
   family: string;
+  /** Readable name (build-tool renames cleaned up). */
+  displayName: string;
+  /** The matching Google Fonts family, if this font is in the Google Fonts catalogue. */
+  catalogFamily: string | null;
   kind: 'web' | 'local' | 'generic';
   genericName?: string;
   source: SourceKind;
@@ -84,6 +88,8 @@ export interface PageScan {
 /** What the hover tooltip shows for one element. */
 export interface ElementFontInfo {
   family: string;
+  displayName: string;
+  catalogFamily: string | null;
   kind: 'web' | 'local' | 'generic';
   genericName?: string;
   source: SourceKind;
@@ -139,6 +145,8 @@ export interface ParsedFontFile {
 export interface FontRecord {
   id: string; // `${family}::${source}`
   family: string;
+  displayName?: string;
+  catalogFamily?: string | null;
   source: SourceKind;
   sourceHost?: string | null;
   classification: Classification;

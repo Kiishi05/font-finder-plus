@@ -22,6 +22,10 @@ export {
   Target02Icon,
   GridViewIcon,
   Menu01Icon,
+  ArrowUpRight01Icon,
+  Cursor01Icon,
+  Mouse01Icon,
+  Cancel01Icon as CloseIcon,
 } from '@hugeicons/core-free-icons';
 
 export type IconNode = readonly (readonly [string, Record<string, string | number>])[];

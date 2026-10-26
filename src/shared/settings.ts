@@ -5,6 +5,7 @@ export interface Settings {
   theme: 'system' | 'light' | 'dark';
   googleFontsApiKey: string;
   tipDismissed: boolean;
+  guideDismissed: boolean;
   testerText: string;
   testerSize: number;
 }
@@ -13,6 +14,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   googleFontsApiKey: '',
   tipDismissed: false,
+  guideDismissed: false,
   testerText: '',
   testerSize: 32,
 };

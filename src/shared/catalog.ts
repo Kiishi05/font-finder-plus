@@ -18,9 +18,39 @@ for (const name of Object.keys(families)) byLower.set(name.toLowerCase(), name);
 export const CATALOG_DATE = (catalogJson as { generated: string }).generated;
 export const CATALOG_COUNT = (catalogJson as { count: number }).count;
 
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+const bySquash = new Map<string, string>();
+for (const name of Object.keys(families)) bySquash.set(squash(name), name);
+
+/**
+ * Turn the name a site uses in CSS into a readable family name.
+ * Build tools often rename fonts they copy onto the site, for example
+ * Next.js: "__Geist_Mono_9a8b7c" and "__Inter_Fallback_a64ecd".
+ */
+export function cleanFamilyName(raw: string): string {
+  let s = raw.trim();
+  if (/^_+/.test(s) || /_[0-9a-f]{5,10}$/i.test(s)) {
+    s = s.replace(/^_+/, '').replace(/_[0-9a-f]{5,10}$/i, '').replace(/_+/g, ' ');
+  }
+  s = s.replace(/\s+Fallback$/i, '');
+  return s.trim() || raw.trim();
+}
+
+/** The Google Fonts family for a name, matching exact names and cleaned build-tool names. */
 export function googleFamily(name: string): (CatalogEntry & { family: string }) | null {
-  const real = byLower.get(name.trim().toLowerCase());
-  return real ? { ...families[real], family: real } : null;
+  const exact = byLower.get(name.trim().toLowerCase());
+  if (exact) return { ...families[exact], family: exact };
+  const clean = cleanFamilyName(name);
+  const variants = [clean, clean.replace(/\s+(Variable|VF|Var)$/i, '')];
+  for (const v of variants) {
+    const hit = bySquash.get(squash(v));
+    if (hit) return { ...families[hit], family: hit };
+  }
+  return null;
+}
+
+export function googleFontsUrl(family: string): string {
+  return `https://fonts.google.com/specimen/${family.trim().replace(/\s+/g, '+')}`;
 }
 
 // Classification of common operating-system fonts. Facts only: these are the

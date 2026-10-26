@@ -8,6 +8,8 @@ export function recordFromInfo(info: ElementFontInfo, fileUrl: string | null, fi
   return {
     id: fontId(info.family, info.source),
     family: info.family,
+    displayName: info.displayName,
+    catalogFamily: info.catalogFamily,
     source: info.source,
     sourceHost: info.sourceHost ?? null,
     classification: info.classification,
@@ -38,6 +40,8 @@ export function recordFromUsage(f: PageFontUsage, fileUrl: string | null): Omit<
     format: file?.format ?? null,
     id: fontId(f.family, f.source),
     family: f.family,
+    displayName: f.displayName,
+    catalogFamily: f.catalogFamily,
     source: f.source,
     sourceHost: f.sourceHost ?? null,
     classification: f.classification,

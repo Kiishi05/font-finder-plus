@@ -2,14 +2,25 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
 import { CLASS_LABEL, SOURCE_LABEL, licenseBadge } from '../../shared/catalog';
 import { db, deleteCollection } from '../../shared/db';
-import { Search01Icon } from '../../shared/icons';
+import { GridViewIcon, Menu01Icon, Search01Icon } from '../../shared/icons';
 import type { Classification, FontRecord, SavedFont, SourceKind } from '../../shared/types';
 import { Icon } from '../components/Icon';
+import { Select } from '../components/Select';
 import { Tester, sampleText, type TesterState } from '../components/Tester';
 import { usePreviewFamily } from '../lib/preview';
 import { NewCollectionInline } from './FontDetail';
 
 type LicenseFilter = 'all' | 'free' | 'system' | 'commercial' | 'unknown';
+type SourceFilter = SourceKind | 'all' | 'on-google';
+
+const VIEW_KEY = 'ffp-library-view';
+function readView(): 'list' | 'grid' {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'grid' ? 'grid' : 'list';
+  } catch {
+    return 'list';
+  }
+}
 
 interface Props {
   tester: TesterState;
@@ -24,7 +35,12 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
   const [query, setQuery] = useState('');
   const [cls, setCls] = useState<Classification | 'all'>('all');
   const [lic, setLic] = useState<LicenseFilter>('all');
-  const [src, setSrc] = useState<SourceKind | 'all'>('all');
+  const [src, setSrc] = useState<SourceFilter>('all');
+  const [view, setViewState] = useState<'list' | 'grid'>(readView);
+  const setView = (v: 'list' | 'grid') => {
+    setViewState(v);
+    try { localStorage.setItem(VIEW_KEY, v); } catch { /* not important */ }
+  };
   const [collection, setCollection] = useState<number | 'all'>('all');
   const [renaming, setRenaming] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -38,7 +54,8 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
       .filter(({ s, f }) => {
         if (collection !== 'all' && !s.collectionIds.includes(collection)) return false;
         if (cls !== 'all' && f.classification !== cls) return false;
-        if (src !== 'all' && f.source !== src) return false;
+        if (src === 'on-google' && !(f.catalogFamily || f.source === 'google')) return false;
+        if (src !== 'all' && src !== 'on-google' && f.source !== src) return false;
         if (lic !== 'all') {
           const free = ['OFL', 'APACHE', 'UFL'].includes(f.licenseType);
           if (lic === 'free' && !free) return false;
@@ -48,7 +65,7 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
         }
         if (q) {
           const names = collections.filter((c) => s.collectionIds.includes(c.id!)).map((c) => c.name.toLowerCase());
-          const hay = [f.family, f.foundry ?? '', ...(f.designers ?? []), f.sourceHost ?? '', ...s.sitesSeen, s.notes, ...names].join(' ').toLowerCase();
+          const hay = [f.family, f.displayName ?? '', f.catalogFamily ?? '', f.foundry ?? '', ...(f.designers ?? []), f.sourceHost ?? '', ...s.sitesSeen, s.notes, ...names].join(' ').toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
@@ -71,25 +88,34 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
           <input id="lib-search" placeholder={`Search ${saved.length} saved ${saved.length === 1 ? 'font' : 'fonts'}`} value={query} onChange={(e) => setQuery(e.target.value)} />
         </label>
         <div className="filters" style={{ padding: '8px 0' }}>
-          <select className="select" aria-label="Classification" value={cls} onChange={(e) => setCls(e.target.value as Classification | 'all')}>
-            <option value="all">All styles</option>
-            {(['serif', 'sans', 'mono', 'display', 'script', 'unknown'] as Classification[]).map((c) => (
-              <option key={c} value={c}>{CLASS_LABEL[c]}</option>
-            ))}
-          </select>
-          <select className="select" aria-label="License" value={lic} onChange={(e) => setLic(e.target.value as LicenseFilter)}>
-            <option value="all">Any license</option>
-            <option value="free">Free (open license)</option>
-            <option value="commercial">Commercial</option>
-            <option value="system">System font</option>
-            <option value="unknown">Unknown</option>
-          </select>
-          <select className="select" aria-label="Source" value={src} onChange={(e) => setSrc(e.target.value as SourceKind | 'all')}>
-            <option value="all">Any source</option>
-            {(Object.keys(SOURCE_LABEL) as SourceKind[]).map((k) => (
-              <option key={k} value={k}>{SOURCE_LABEL[k]}</option>
-            ))}
-          </select>
+          <Select<Classification | 'all'>
+            label="Style"
+            value={cls}
+            onChange={setCls}
+            options={[{ value: 'all', label: 'All styles' }, ...(['serif', 'sans', 'mono', 'display', 'script', 'unknown'] as Classification[]).map((c) => ({ value: c, label: CLASS_LABEL[c] }))]}
+          />
+          <Select<LicenseFilter>
+            label="License"
+            value={lic}
+            onChange={setLic}
+            options={[
+              { value: 'all', label: 'Any license' },
+              { value: 'free', label: 'Free (open license)' },
+              { value: 'commercial', label: 'Commercial' },
+              { value: 'system', label: 'System font' },
+              { value: 'unknown', label: 'Unknown' },
+            ]}
+          />
+          <Select<SourceFilter>
+            label="Source"
+            value={src}
+            onChange={setSrc}
+            options={[
+              { value: 'all', label: 'Any source' },
+              { value: 'on-google', label: 'Available on Google Fonts' },
+              ...(Object.keys(SOURCE_LABEL) as SourceKind[]).map((k) => ({ value: k, label: `Served from ${SOURCE_LABEL[k]}` })),
+            ]}
+          />
         </div>
       </div>
 
@@ -104,6 +130,11 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
           </button>
         ))}
         <NewCollectionInline />
+        <span className="grow" />
+        <div className="viewtoggle" role="group" aria-label="Layout">
+          <button aria-pressed={view === 'list'} aria-label="Wide list" title="Wide list" onClick={() => setView('list')}><Icon icon={Menu01Icon} size={15} /></button>
+          <button aria-pressed={view === 'grid'} aria-label="Grid" title="Grid" onClick={() => setView('grid')}><Icon icon={GridViewIcon} size={15} /></button>
+        </div>
       </div>
 
       {activeCollection && (
@@ -138,9 +169,9 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
       ) : items.length === 0 ? (
         <div className="notice neutral">No saved fonts match these filters.</div>
       ) : (
-        <div className="grid2">
+        <div className={view === 'grid' ? 'grid2' : 'list'}>
           {items.map(({ s, f }) => (
-            <LibraryCard key={s.id} f={f} tester={tester} onOpen={() => onOpen(f.id)} />
+            <LibraryCard key={s.id} f={f} tester={tester} wide={view === 'list'} onOpen={() => onOpen(f.id)} />
           ))}
         </div>
       )}
@@ -148,7 +179,7 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
   );
 }
 
-function LibraryCard({ f, tester, onOpen }: { f: FontRecord; tester: TesterState; onOpen: () => void }) {
+function LibraryCard({ f, tester, wide, onOpen }: { f: FontRecord; tester: TesterState; wide: boolean; onOpen: () => void }) {
   const preview = usePreviewFamily(
     {
       family: f.family,
@@ -159,17 +190,33 @@ function LibraryCard({ f, tester, onOpen }: { f: FontRecord; tester: TesterState
     null,
   );
   const badge = licenseBadge(f.licenseType);
+  const name = f.displayName ?? f.family;
+  const onGoogle = !!f.catalogFamily || f.source === 'google';
+  const tags = (
+    <>
+      <span className={`lic ${badge.tone}`}><i />{badge.text}</span>
+      <span className="label">{CLASS_LABEL[f.classification]} · {SOURCE_LABEL[f.source]}</span>
+      {onGoogle && <span className="gtag">On Google Fonts</span>}
+    </>
+  );
+  if (wide) {
+    return (
+      <button className={`lrow${tester.invert ? ' invert' : ''}`} onClick={onOpen}>
+        <span className="meta"><b>{name}</b>{tags}</span>
+        <span className={`prev specimen${tester.invert ? ' invert' : ''}`} style={{ fontFamily: preview.css, fontSize: tester.size, padding: 0, textAlign: tester.align === 'center' ? 'center' : 'left' }}>
+          {sampleText(tester, name)}
+        </span>
+      </button>
+    );
+  }
   return (
     <button className={`lcard${tester.invert ? ' invert' : ''}`} onClick={onOpen}>
-      <span className={`prev specimen${tester.invert ? ' invert' : ''}`} style={{ fontFamily: preview.css, fontSize: tester.size, justifyContent: tester.align === 'center' ? 'center' : 'flex-start' }}>
-        {sampleText(tester, f.family)}
+      <span className={`prev specimen${tester.invert ? ' invert' : ''}`} style={{ fontFamily: preview.css, fontSize: Math.min(tester.size, 40), justifyContent: tester.align === 'center' ? 'center' : 'flex-start' }}>
+        {sampleText(tester, name)}
       </span>
       <span className="meta">
-        <b>{f.family}</b>
-        <span className="lic mono" style={{ fontSize: 9.5 }}>
-          <span className={`lic ${badge.tone}`} style={{ fontSize: 9.5 }}><i /></span>
-          {badge.text.toUpperCase()} · {CLASS_LABEL[f.classification].toUpperCase()} · {SOURCE_LABEL[f.source].toUpperCase()}
-        </span>
+        <b>{name}</b>
+        <span className="row" style={{ gap: 6, flexWrap: 'wrap' }}>{tags}</span>
       </span>
     </button>
   );

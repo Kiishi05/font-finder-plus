@@ -1,16 +1,16 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
-import { CLASS_LABEL, licenseBadge } from '../../shared/catalog';
+import { CLASS_LABEL, SOURCE_LABEL, licenseBadge } from '../../shared/catalog';
 import { declarationCss } from '../../shared/css';
 import { db, saveFont } from '../../shared/db';
-import { Alert02Icon, ArrowRight01Icon, Bookmark02Icon, SourceCodeIcon, Target02Icon } from '../../shared/icons';
+import { Alert02Icon, ArrowRight01Icon, Bookmark02Icon, CloseIcon, SourceCodeIcon, Target02Icon } from '../../shared/icons';
 import { sendToExtension, sendToTab } from '../../shared/messages';
 import { bestFileUrl, fontId, recordFromUsage } from '../../shared/records';
 import { hasAllSitesAccess } from '../../shared/settings';
 import type { PageFontUsage, Role } from '../../shared/types';
 import { Icon } from '../components/Icon';
 import { Tester, sampleText, type TesterState } from '../components/Tester';
-import { copyToClipboard, usePageScan, type TabState } from '../lib/hooks';
+import { copyToClipboard, usePageScan, useSettings, type TabState } from '../lib/hooks';
 import { usePreviewFamily } from '../lib/preview';
 import { analyzeAll } from '../lib/analyze';
 import { parseFamilyList } from '../lib/stack';
@@ -59,27 +59,31 @@ export function PageView({ tab, tester, onTester, onOpen, toast }: Props) {
 
   if (!ready) {
     return (
-      <div className="empty">
-        <h2>Inspect the fonts on this page</h2>
-        {tab.injectError ? (
-          <p>{tab.injectError}</p>
-        ) : (
-          <p>
-            Click the Font Finder Plus icon in the toolbar, or press <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd>, on the page you want to inspect.
-          </p>
-        )}
-        {canInject && tab.tabId != null && !tab.injectError && (
-          <button
-            className="btn primary"
-            onClick={async () => {
-              await sendToExtension({ type: 'ffp:inject', tabId: tab.tabId!, startInspecting: true });
-              tab.refresh();
-            }}
-          >
-            Inspect this page
-          </button>
-        )}
-      </div>
+      <>
+        <div className="empty">
+          <h2>Inspect the fonts on this page</h2>
+          {tab.injectError ? (
+            <p>{tab.injectError}</p>
+          ) : (
+            <p>
+              Go to the web page you want to check, then click the Font Finder Plus icon in Chrome's toolbar, or press <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd>.
+              The list of fonts appears here and you can hover any text on the page.
+            </p>
+          )}
+          {canInject && tab.tabId != null && !tab.injectError && (
+            <button
+              className="btn primary"
+              onClick={async () => {
+                await sendToExtension({ type: 'ffp:inject', tabId: tab.tabId!, startInspecting: true });
+                tab.refresh();
+              }}
+            >
+              Inspect this page
+            </button>
+          )}
+        </div>
+        <Guide force />
+      </>
     );
   }
 
@@ -108,6 +112,8 @@ export function PageView({ tab, tester, onTester, onOpen, toast }: Props) {
         {scan && <span className="mono muted" style={{ fontSize: 10.5 }}>{scan.fonts.length} {scan.fonts.length === 1 ? 'font' : 'fonts'}</span>}
         <button className="switch" role="switch" aria-checked={tab.inspecting} aria-label="Hover inspector" onClick={toggle} />
       </div>
+
+      <Guide />
 
       <Tester value={tester} onChange={onTester} />
 
@@ -147,50 +153,84 @@ function FontCard({ f, tester, tabId, host, onOpen, toast }: { f: PageFontUsage;
   const id = fontId(f.family, f.source);
   const saved = useLiveQuery(() => db.savedFonts.where('fontId').equals(id).first(), [id]);
   const record = useLiveQuery(() => db.fonts.get(id), [id]);
+  // The stored record knows more once the font file has been read.
   const classification = record?.parsed ? record.classification : f.classification;
+  const catalogFamily = record?.catalogFamily !== undefined ? record.catalogFamily : f.catalogFamily;
+  const name = record?.displayName ?? f.displayName ?? f.family;
   const preview = usePreviewFamily(f, tabId);
-  const badge = licenseBadge(f.licenseType);
-  const text = sampleText(tester, f.family);
+  const badge = licenseBadge(record?.licenseType ?? f.licenseType);
+  const text = sampleText(tester, name);
+  const where = catalogFamily ? (f.source === 'google' ? 'Google Fonts' : `${SOURCE_LABEL[f.source]} · on Google Fonts`) : SOURCE_LABEL[f.source];
 
   const copyCss = async () => {
-    if (await copyToClipboard(declarationCss(parseFamilyList(f.declaredStacks[0] ?? f.family), f.sample))) toast(`Copied CSS for ${f.family}`);
+    if (await copyToClipboard(declarationCss(parseFamilyList(f.declaredStacks[0] ?? f.family), f.sample))) toast(`Copied CSS for ${name}`);
   };
   const save = async () => {
     await saveFont(recordFromUsage(f, bestFileUrl(f, f.sample.fontWeight)), host, f.sample);
-    toast(`Saved ${f.family} to your library`);
+    toast(`Saved ${name} to your library`);
   };
 
   return (
     <article className={`fcard${tester.invert ? ' invert' : ''}`}>
       <div className="fcard-head">
-        <span className="fname">
-          {f.family}
-          <span className="label">[{CLASS_LABEL[classification]}]</span>
+        <span className="fname" style={{ flexWrap: 'wrap' }}>
+          {name}
+          <span className="label">[{CLASS_LABEL[classification]} · {where}]</span>
         </span>
         <span className={`lic ${badge.tone}`}><i />{badge.text}</span>
       </div>
       <div
-        className={`specimen${tester.align === 'center' ? ' center' : ''}`}
+        className={`specimen clamp${tester.align === 'center' ? ' center' : ''}`}
         style={{ fontFamily: preview.css, fontSize: tester.size, fontWeight: Number(f.sample.fontWeight) || 400, fontStyle: f.sample.fontStyle }}
         title={preview.failed ? 'The font file could not be loaded here, so a fallback is shown.' : undefined}
       >
         {text}
       </div>
-      <div className="fcard-foot">
-        <span className="label grow" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{roleSummary(f)}</span>
-        <button className="iconbtn sm" aria-label="Show on page" title="Show on page" onClick={() => tabId != null && sendToTab(tabId, { type: 'ffp:highlight', key: f.key })}>
-          <Icon icon={Target02Icon} size={15} />
+      <div className="fmeta label">
+        Used for {roleSummary(f) || 'text'}
+        {name !== f.family && <> · CSS name {f.family}</>}
+      </div>
+      <div className="actions">
+        <button title="Outline every element on the page that uses this font" onClick={() => tabId != null && sendToTab(tabId, { type: 'ffp:highlight', key: f.key })}>
+          <Icon icon={Target02Icon} size={16} />Show on page
         </button>
-        <button className="iconbtn sm" aria-label="Copy CSS" title="Copy CSS" onClick={copyCss}>
-          <Icon icon={SourceCodeIcon} size={15} />
+        <button title="Copy the font-family, size, weight and line height as CSS" onClick={copyCss}>
+          <Icon icon={SourceCodeIcon} size={16} />Copy CSS
         </button>
-        <button className={`iconbtn sm${saved ? ' on' : ''}`} aria-label={saved ? 'Saved to library' : 'Save to library'} title={saved ? 'Saved' : 'Save'} onClick={save}>
-          <Icon icon={Bookmark02Icon} size={15} stroke={saved ? 2.2 : 1.5} />
+        <button className={saved ? 'on' : ''} title={saved ? 'Already in your library' : 'Save to your library'} onClick={save}>
+          <Icon icon={Bookmark02Icon} size={16} stroke={saved ? 2.2 : 1.5} />{saved ? 'Saved' : 'Save'}
         </button>
-        <button className="btn sm primary" onClick={() => onOpen(f, id)}>
-          Open <Icon icon={ArrowRight01Icon} size={13} />
+        <button className="primary" title="See everything about this font" onClick={() => onOpen(f, id)}>
+          <Icon icon={ArrowRight01Icon} size={16} />Details
         </button>
       </div>
     </article>
+  );
+}
+
+/** A short "how it works" card. Hidden once dismissed; Settings can bring it back. */
+function Guide({ force = false }: { force?: boolean }) {
+  const [settings, update] = useSettings();
+  if (settings.guideDismissed && !force) return null;
+  return (
+    <section className="guide" aria-label="How it works">
+      <div className="row" style={{ justifyContent: 'space-between' }}>
+        <span className="label">[How it works]</span>
+        {!force && (
+          <button className="iconbtn sm" aria-label="Hide this guide" title="Hide this guide" onClick={() => update({ guideDismissed: true })}>
+            <Icon icon={CloseIcon} size={14} />
+          </button>
+        )}
+      </div>
+      <ol>
+        <li><span className="n">1</span><span><b>Hover</b> any text on the web page. A card shows the font, size, weight and spacing.</span></li>
+        <li><span className="n">2</span><span>Press <kbd>Space</kbd> or <b>click</b> to pin the card. Click any value in it to copy it.</span></li>
+        <li><span className="n">3</span><span>Press <kbd>Esc</kbd> to stop. The switch at the top of this panel turns hovering on and off.</span></li>
+        <li><span className="n">4</span><span>This panel lists every font on the page. <b>Details</b> shows the file facts and a link to Google Fonts when it is there.</span></li>
+      </ol>
+      <p className="hint" style={{ margin: 0 }}>
+        Another way to start: right-click anywhere on the web page itself (not in this panel) and choose <b>Inspect fonts on this page</b>.
+      </p>
+    </section>
   );
 }

@@ -103,7 +103,13 @@ export function SettingsView({ settings, update, toast }: Props) {
       </section>
 
       <section className="section">
-        <h2>[Hover card]</h2>
+        <h2>[Help]</h2>
+        <div className="row">
+          <span className="grow" style={{ fontSize: 12.5 }}>"How it works" guide on the Page tab</span>
+          <button className="btn sm" disabled={!settings.guideDismissed} onClick={() => update({ guideDismissed: false })}>
+            {settings.guideDismissed ? 'Show again' : 'Showing'}
+          </button>
+        </div>
         <div className="row">
           <span className="grow" style={{ fontSize: 12.5 }}>Keyboard tip under the hover card</span>
           <button className="btn sm" disabled={!settings.tipDismissed} onClick={() => update({ tipDismissed: false })}>

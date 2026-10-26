@@ -75,6 +75,9 @@ try {
   check('Inter detected as Google Fonts body', fam('Inter')?.source === 'google' && (fam('Inter')?.roles.body ?? 0) >= 1);
   check('House Mono detected as self-hosted', fam('House Mono')?.source === 'self-hosted');
   check('House Mono used for code', (fam('House Mono')?.roles.code ?? 0) >= 1);
+  const geist = fam('__Geist_Mono_9a8b7c');
+  check('renamed Google font matched by name', geist?.catalogFamily === 'Geist Mono' && geist?.displayName === 'Geist Mono', JSON.stringify({ c: geist?.catalogFamily, d: geist?.displayName }));
+  check('renamed Google font license from catalogue', geist?.licenseType === 'OFL');
   const sohne = scan.notLoaded.find((n) => n.family === 'Sohne Test');
   check('font that failed to load is reported', !!sohne, sohne ? `fell back to ${sohne.fellBackTo}` : '');
   const nonexist = scan.notLoaded.find((n) => n.family === 'Nonexistent Serif');
@@ -100,10 +103,15 @@ try {
   await panel.screenshot({ path: path.join(out, 'panel-page.png'), fullPage: true });
   const cards = await panel.locator('.fcard').count();
   check('side panel lists fonts', cards >= 4, `${cards} cards`);
+  check('page card shows Geist Mono by its real name', (await panel.locator('.fcard', { hasText: 'Geist Mono' }).count()) === 1);
+  // BrandSerif is only recognised after the file's own name table is read.
+  await panel.waitForFunction(() => [...document.querySelectorAll('.fcard')].some((c) => c.textContent.includes('Libre Caslon Condensed')), null, { timeout: 15000 }).catch(() => {});
+  check('font renamed in CSS confirmed from its file', (await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).count()) === 1);
+  check('how it works guide is shown', (await panel.locator('.guide').count()) === 1);
   check('side panel shows not-loaded warning', (await panel.locator('.notice.amber').count()) >= 1);
 
   // Font detail for Fraunces
-  await panel.locator('.fcard', { hasText: 'Fraunces' }).locator('button', { hasText: 'Open' }).click();
+  await panel.locator('.fcard', { hasText: 'Fraunces' }).locator('button', { hasText: 'Details' }).click();
   await panel.waitForSelector('.hero-name');
   await panel.waitForFunction(() => document.body.innerText.includes('Glyphs') || document.body.innerText.includes('could not'), null, { timeout: 20000 }).catch(() => {});
   await panel.waitForTimeout(1500);
@@ -112,6 +120,7 @@ try {
   check('detail shows designers from catalogue', detailText.includes('Undercase Type'));
   check('detail read the font file (format WOFF2)', detailText.includes('WOFF2'));
   check('detail shows variable axes', /opsz/i.test(detailText));
+  check('detail links to Google Fonts', (await panel.locator('a[href="https://fonts.google.com/specimen/Fraunces"]').count()) >= 1);
 
   // Save to library and create a collection
   await panel.locator('.topbar button', { hasText: 'Save' }).click();
@@ -122,7 +131,7 @@ try {
   await panel.waitForTimeout(400);
   await panel.locator('button[aria-label="Back"]').click();
   await panel.locator('.tabs button', { hasText: 'Library' }).click();
-  await panel.waitForSelector('.lcard');
+  await panel.waitForSelector('.lrow');
   await panel.waitForTimeout(1200);
   await panel.screenshot({ path: path.join(out, 'panel-library.png'), fullPage: true });
   const libText = await panel.locator('body').innerText();
@@ -130,13 +139,27 @@ try {
   check('collection created with count', /Editorial\s*1/.test(libText));
 
   // Filters: classification Mono should hide Fraunces
-  await panel.selectOption('select[aria-label="Classification"]', 'mono');
+  await panel.selectOption('select[aria-label="Style"]', 'mono');
   await panel.waitForTimeout(200);
-  check('filter by classification works', (await panel.locator('.lcard').count()) === 0);
-  await panel.selectOption('select[aria-label="Classification"]', 'all');
+  check('filter by classification works', (await panel.locator('.lrow').count()) === 0);
+  await panel.selectOption('select[aria-label="Style"]', 'all');
+  await panel.selectOption('select[aria-label="Source"]', 'on-google');
+  await panel.waitForTimeout(200);
+  check('filter "Available on Google Fonts" works', (await panel.locator('.lrow').count()) === 1);
+  await panel.selectOption('select[aria-label="Source"]', 'all');
   await panel.fill('#lib-search', 'undercase');
   await panel.waitForTimeout(200);
-  check('search by designer works', (await panel.locator('.lcard').count()) === 1);
+  check('search by designer works', (await panel.locator('.lrow').count()) === 1);
+  // The select arrow must sit inside the select box.
+  const arrowInside = await panel.evaluate(() => [...document.querySelectorAll('.selectwrap')].every((w) => {
+    const a = w.getBoundingClientRect(); const i = w.querySelector('svg').getBoundingClientRect();
+    return i.right <= a.right - 4 && i.left >= a.left;
+  }));
+  check('dropdown arrows sit inside their boxes', arrowInside);
+  await panel.locator('.viewtoggle button[aria-label="Grid"]').click();
+  await panel.waitForTimeout(300);
+  await panel.screenshot({ path: path.join(out, 'panel-library-grid.png'), fullPage: true });
+  await panel.locator('.viewtoggle button[aria-label="Wide list"]').click();
 
   // Save from the hover card (code element, self-hosted)
   await page.bringToFront();

@@ -1,9 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CLASS_LABEL, LICENSE_LABEL, SOURCE_LABEL, googleFamily, licenseBadge } from '../../shared/catalog';
+import { CLASS_LABEL, LICENSE_LABEL, SOURCE_LABEL, googleFamily, googleFontsUrl, licenseBadge } from '../../shared/catalog';
 import { declarationCss, round } from '../../shared/css';
 import { COLLECTION_COLORS, db, saveFont } from '../../shared/db';
-import { Alert02Icon, ArrowLeft01Icon, Bookmark02Icon, Copy01Icon, Delete02Icon, SourceCodeIcon } from '../../shared/icons';
+import { Alert02Icon, ArrowLeft01Icon, ArrowUpRight01Icon, Bookmark02Icon, Copy01Icon, Delete02Icon, SourceCodeIcon } from '../../shared/icons';
 import { bestFileUrl, recordFromUsage } from '../../shared/records';
 import { FORMAT_LABEL } from '../../shared/sources';
 import type { FontRecord, PageFontUsage, ParsedFontFile } from '../../shared/types';
@@ -49,7 +49,11 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
   const data = { ...(base ?? {}), ...(record ?? {}) } as Partial<FontRecord>;
   const family = data.family ?? fontId.split('::')[0];
   const parsed: ParsedFontFile | null = record?.parsed ?? null;
-  const gf = googleFamily(family);
+  // Sites often rename Google fonts ("GeistSans", "__Geist_Mono_9a8b7c"). The
+  // stored match is confirmed from the name inside the font file.
+  const gfName = data.catalogFamily !== undefined ? data.catalogFamily : (usage?.catalogFamily ?? null);
+  const gf = gfName ? googleFamily(gfName) : data.catalogFamily === undefined ? googleFamily(family) : null;
+  const name = gf?.family ?? data.displayName ?? family;
   const kind = usage?.kind ?? data.kind ?? (data.source === 'system' ? 'local' : 'web');
   const previewSrc: PreviewSource | null = useMemo(
     () => ({ family, kind, genericName: usage?.genericName ?? data.genericName, files: usage?.files ?? data.files ?? (data.fileUrl ? [{ url: data.fileUrl, format: null, weight: '400', style: 'normal', unicodeRange: null }] : []) }),
@@ -78,7 +82,7 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
   const doSave = async () => {
     if (!base) return;
     await saveFont(base, pageHost, sample);
-    toast(`Saved ${family}`);
+    toast(`Saved ${name}`);
   };
 
   const toggleCollection = async (id: number) => {
@@ -94,7 +98,7 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
     <>
       <div className="topbar">
         <button className="iconbtn" aria-label="Back" onClick={onBack}><Icon icon={ArrowLeft01Icon} /></button>
-        <span className="label grow" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>[{usage ? 'Page' : 'Library'}] / [{family}]</span>
+        <span className="label grow" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>[{usage ? 'Page' : 'Library'}] / [{name}]</span>
         <button className={`btn${saved ? ' done' : ' primary'}`} style={{ height: 38, borderRadius: 12 }} onClick={doSave}>
           <Icon icon={Bookmark02Icon} size={15} />
           {saved ? 'Saved' : 'Save'}
@@ -109,10 +113,10 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
           </span>
           <span className={`lic ${badge.tone}`}><i />{badge.text}</span>
         </div>
-        <h1 className="hero-name" style={{ fontFamily: preview.css, fontWeight: Number(weight) || 400 }}>{family}</h1>
+        <h1 className="hero-name" style={{ fontFamily: preview.css, fontWeight: Number(weight) || 400 }}>{name}</h1>
         {designerText && <span className="mono muted" style={{ fontSize: 10.5 }}>by {designerText}</span>}
         <div className="row" style={{ gap: 6 }}>
-          <button className="btn" style={{ flex: 1 }} onClick={async () => (await copyToClipboard(family)) && toast('Copied font name')}>
+          <button className="btn" style={{ flex: 1 }} onClick={async () => (await copyToClipboard(name)) && toast('Copied font name')}>
             <Icon icon={Copy01Icon} size={15} /> Copy name
           </button>
           <button
@@ -126,6 +130,15 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
             <Icon icon={SourceCodeIcon} size={15} /> Copy CSS
           </button>
         </div>
+        {gf ? (
+          <a className="btn primary" href={googleFontsUrl(gf.family)} target="_blank" rel="noreferrer">
+            Open on Google Fonts <Icon icon={ArrowUpRight01Icon} size={15} />
+          </a>
+        ) : (
+          <span className="muted" style={{ fontSize: 11.5 }}>
+            {parsed || kind !== 'web' ? 'Not in the Google Fonts catalogue.' : 'Not matched to Google Fonts yet. The font file is being checked.'}
+          </span>
+        )}
       </section>
 
       <Tester
@@ -148,7 +161,7 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
           className={`specimen wrap${tester.align === 'center' ? ' center' : ''}${tester.invert ? ' invert' : ''}`}
           style={{ margin: 0, padding: '14px', fontFamily: preview.css, fontSize: tester.size, fontWeight: Number(weight) || 400, fontStyle: italic ? 'italic' : 'normal', lineHeight: 1.15 }}
         >
-          {sampleText(tester, tester.mode === 'names' ? family : 'Ọmọ mi, ẹ ṣé o. The quick brown fox jumps over the lazy dog.')}
+          {sampleText(tester, tester.mode === 'names' ? name : 'Ọmọ mi, ẹ ṣé o. The quick brown fox jumps over the lazy dog.')}
         </p>
         {preview.failed && <p className="muted" style={{ margin: 0, padding: '0 14px 12px', fontSize: 11.5 }}>The font file could not be loaded in the panel, so a fallback font is shown.</p>}
       </section>
@@ -164,11 +177,15 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
         <h2>[Details]</h2>
         <dl className="kv">
           <dt>Rendered as</dt>
-          <dd>{kind === 'web' ? `${family}, web font` : kind === 'local' ? `${family}, installed on this computer` : `${family}`}</dd>
+          <dd>{kind === 'web' ? `${name}, web font` : kind === 'local' ? `${name}, installed on this computer` : `${name}`}</dd>
+          {name !== family && (<><dt>CSS name</dt><dd className="mono" style={{ fontSize: 11 }}>{family}</dd></>)}
+          {parsed?.familyName && parsed.familyName !== name && (<><dt>Name in file</dt><dd>{parsed.familyName}</dd></>)}
           <dt>CSS stack</dt>
           <dd className="mono" style={{ fontSize: 11 }}>{declared.join(', ')}</dd>
           {usage?.fellBackFrom.length ? (<><dt>Did not load</dt><dd>{usage.fellBackFrom.join(', ')}</dd></>) : null}
-          <dt>Source</dt>
+          <dt>Google Fonts</dt>
+          <dd>{gf ? (<a href={googleFontsUrl(gf.family)} target="_blank" rel="noreferrer">Available as {gf.family}</a>) : 'Not in the catalogue'}</dd>
+          <dt>Served from</dt>
           <dd>{data.source ? SOURCE_LABEL[data.source] : 'Unknown'}{data.sourceHost ? <span className="mono muted" style={{ fontSize: 11 }}> {data.sourceHost}</span> : null}</dd>
           <dt>Format</dt>
           <dd>{parsed ? FORMAT_LABEL[parsed.format] ?? parsed.format : data.format ? FORMAT_LABEL[data.format] ?? data.format : kind === 'web' ? 'Unknown' : 'Installed font'}{parsed?.axes.length ? ' · variable' : ''}</dd>

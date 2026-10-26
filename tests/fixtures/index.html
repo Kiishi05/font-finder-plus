@@ -11,6 +11,17 @@
     src: url('fonts/HouseMono.woff2') format('woff2');
     font-weight: 100 800;
   }
+  /* Google fonts copied onto the site under other names, the way build tools do it */
+  @font-face {
+    font-family: '__Geist_Mono_9a8b7c';
+    src: url('fonts/GeistMono.woff2') format('woff2');
+    font-weight: 100 900;
+  }
+  @font-face {
+    font-family: 'BrandSerif';
+    src: url('fonts/LibreCaslonCondensed.woff2') format('woff2');
+    font-weight: 400 700;
+  }
   @font-face {
     font-family: 'Sohne Test';
     src: url('fonts/does-not-exist.woff2') format('woff2');
@@ -25,15 +36,19 @@
   code { font-family: 'House Mono', monospace; font-size: 14px; }
   figcaption { font-family: 'Sohne Test', Arial, sans-serif; font-size: 13px; color: #6B655C; }
   button { font-family: system-ui, sans-serif; font-size: 14px; padding: 8px 14px; }
+  .kicker { font-family: '__Geist_Mono_9a8b7c', '__Geist_Mono_Fallback_9a8b7c', monospace; font-size: 12px; text-transform: uppercase; }
+  blockquote { font-family: 'BrandSerif', serif; font-size: 26px; margin: 24px 0; }
   .note { font-family: 'Nonexistent Serif', Georgia, serif; font-style: italic; }
 </style>
 </head>
 <body>
 <header><b>The Journal</b><nav><a href="#">Essays</a><a href="#">Type</a><a href="#">About</a></nav></header>
 <main>
+  <div class="kicker">Issue 04 · Typography</div>
   <h1>Notes on slow, careful typography</h1>
   <p>Good type rarely announces itself. It sets a pace, gives the eye somewhere to rest, and lets the words do their work. Ẹ káàárọ̀.</p>
   <p>Install it with <code>npm install good-type</code> and read the docs.</p>
+  <blockquote>Type is a beautiful group of letters, not a group of beautiful letters.</blockquote>
   <figure><figcaption>Figure 1. A caption set in a font that never loads.</figcaption></figure>
   <p class="note">A quiet aside in a font that is not installed.</p>
   <button>Subscribe</button>
