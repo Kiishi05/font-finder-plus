@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CLASS_LABEL, SOURCE_LABEL, licenseBadge } from '../../shared/catalog';
 import { declarationCss } from '../../shared/css';
 import { db, saveFont } from '../../shared/db';
@@ -182,10 +182,25 @@ function FontCard({ f, tester, tabId, host, onOpen, toast }: { f: PageFontUsage;
     toast(`Saved ${name} to your library`);
     setPicking(true);
   };
+  const [outlined, setOutlined] = useState(false);
+  const outlineTimer = useRef<number>();
+  // Only one font is outlined at a time; other cards switch back to "Show on page".
+  useEffect(() => {
+    const on = (e: Event) => {
+      if ((e as CustomEvent<string | null>).detail !== f.key) setOutlined(false);
+    };
+    window.addEventListener('ffp-outline', on);
+    return () => window.removeEventListener('ffp-outline', on);
+  }, [f.key]);
   const show = async () => {
     if (tabId == null) return;
-    const r = await sendToTab<{ shown: number; hidden: number }>(tabId, { type: 'ffp:highlight', key: f.key, label: name });
-    if (r && !r.shown) toast(r.hidden ? `${name} is only in hidden parts of the page, like a closed menu. Open it and try again.` : `${name} is not on the page right now`);
+    const r = await sendToTab<{ shown: number; hidden: number; cleared?: boolean }>(tabId, { type: 'ffp:highlight', key: f.key, label: name });
+    window.clearTimeout(outlineTimer.current);
+    setOutlined(!!r?.shown);
+    // The outlines fade on the page after 6 seconds; match that here.
+    if (r?.shown) outlineTimer.current = window.setTimeout(() => setOutlined(false), 6000);
+    window.dispatchEvent(new CustomEvent('ffp-outline', { detail: r?.shown ? f.key : null }));
+    if (r && !r.shown && !r.cleared) toast(r.hidden ? `${name} is only in hidden parts of the page, like a closed menu. Open it and try again.` : `${name} is not on the page right now`);
   };
 
   return (
@@ -211,8 +226,8 @@ function FontCard({ f, tester, tabId, host, onOpen, toast }: { f: PageFontUsage;
         {name !== f.family && <> · CSS name {f.family}</>}
       </div>
       <div className="actions">
-        <button title="Outline the text on the page that uses this font" onClick={show}>
-          <Icon icon={Target02Icon} size={16} />Show on page
+        <button className={outlined ? 'on' : ''} aria-pressed={outlined} title={outlined ? 'Remove the outlines' : 'Outline the text on the page that uses this font'} onClick={show}>
+          <Icon icon={Target02Icon} size={16} />{outlined ? 'Hide outlines' : 'Show on page'}
         </button>
         <button title="Copy the font-family, size, weight and line height as CSS" onClick={copyCss}>
           <Icon icon={SourceCodeIcon} size={16} />Copy CSS

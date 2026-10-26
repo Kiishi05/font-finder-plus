@@ -151,6 +151,11 @@ try {
     return { n: ms.length, covers: ms.length === 1 && ms[0].top <= q.top + 4 && ms[0].bottom >= q.bottom - 4 };
   });
   check('a paragraph in one font is outlined as one block', quote.covers, JSON.stringify(quote));
+  check('button changes to Hide outlines', (await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).locator('button', { hasText: 'Hide outlines' }).count()) === 1);
+  await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).locator('button', { hasText: 'Hide outlines' }).click();
+  await page.waitForTimeout(200);
+  check('second click removes the outlines', await page.evaluate(() => document.getElementById('ffp-root').shadowRoot.querySelectorAll('.mark').length === 0));
+  check('button returns to Show on page', (await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).locator('button', { hasText: 'Show on page' }).count()) === 1);
   await page.screenshot({ path: path.join(out, 'show-on-page.png') });
   // Language sample
   await panel.selectOption('select[aria-label="Language sample"]', 'yo');

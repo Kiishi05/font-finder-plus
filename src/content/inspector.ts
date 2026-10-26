@@ -562,8 +562,11 @@ function onMarkScroll() {
   markRaf = requestAnimationFrame(drawMarks);
 }
 
+let markKey: string | null = null;
+
 function clearMarks() {
   markGroups = [];
+  markKey = null;
   clearTimeout(markTimer);
   removeEventListener('scroll', onMarkScroll, true);
   removeEventListener('resize', onMarkScroll);
@@ -577,10 +580,13 @@ function clearMarks() {
  * Outline the text that uses a font (from "Show on page" in the side panel).
  * The outlines follow the page while it scrolls and fade after 6 seconds.
  */
-export function highlightKey(key: string | null, label?: string): { shown: number; hidden: number } {
+export function highlightKey(key: string | null, label?: string): { shown: number; hidden: number; cleared?: boolean } {
   ensureUi();
+  // Clicking "Show on page" again for the same font removes the outlines.
+  const wasShowing = markKey;
   clearMarks();
   if (!key) return { shown: 0, hidden: 0 };
+  if (wasShowing === key) return { shown: 0, hidden: 0, cleared: true };
   host!.hidden = false;
   const { shown, hidden, all } = elementsForKey(key);
   const flag = $<HTMLElement>('.flag');
@@ -594,6 +600,7 @@ export function highlightKey(key: string | null, label?: string): { shown: numbe
     return { shown: 0, hidden };
   }
   groupMarks(shown, all);
+  markKey = key;
   flag.textContent = `${name} · ${shown.length} on the page${hidden ? ` · ${hidden} hidden in menus or pop-ups` : ''}`;
   flag.hidden = false;
   addEventListener('scroll', onMarkScroll, true);
