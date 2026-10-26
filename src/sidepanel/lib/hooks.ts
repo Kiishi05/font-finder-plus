@@ -1,0 +1,147 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { sendToTab, type PingReply, type ScanReply, type ToExtension } from '../../shared/messages';
+import { DEFAULT_SETTINGS, getSettings, onSettingsChanged, setSettings, type Settings } from '../../shared/settings';
+import type { ElementFontInfo, PageScan } from '../../shared/types';
+
+export interface TabState {
+  tabId: number | null;
+  ping: PingReply | null;
+  injectError: string | null;
+  inspecting: boolean;
+  pinned: ElementFontInfo | null;
+  refresh: () => void;
+}
+
+/** Follows the active tab of this window and whether our script is running in it. */
+export function useActiveTab(): TabState {
+  const [tabId, setTabId] = useState<number | null>(null);
+  const [ping, setPing] = useState<PingReply | null>(null);
+  const [injectError, setInjectError] = useState<string | null>(null);
+  const [inspecting, setInspecting] = useState(false);
+  const [pinned, setPinned] = useState<ElementFontInfo | null>(null);
+  const tabRef = useRef<number | null>(null);
+
+  const check = useCallback(async (id: number | null) => {
+    if (id == null) return;
+    const p = await sendToTab<PingReply>(id, { type: 'ffp:ping' }, 800);
+    if (tabRef.current !== id) return;
+    setPing(p);
+    setInspecting(!!p?.inspecting);
+    const key = `injectError:${id}`;
+    const st = await chrome.storage.session.get(key).catch(() => ({} as Record<string, string>));
+    setInjectError(p ? null : (st[key] as string | undefined) ?? null);
+  }, []);
+
+  const follow = useCallback(async () => {
+    // ?tab=<id> pins the panel to one tab. Used by the automated tests, which
+    // open the panel as a normal page.
+    const forced = Number(new URLSearchParams(location.search).get('tab'));
+    const [tab] = forced ? [{ id: forced }] : await chrome.tabs.query({ active: true, currentWindow: true });
+    const id = tab?.id ?? null;
+    tabRef.current = id;
+    setTabId(id);
+    setPinned(null);
+    check(id);
+  }, [check]);
+
+  useEffect(() => {
+    follow();
+    const onActivated = () => follow();
+    const onUpdated = (id: number, info: chrome.tabs.TabChangeInfo) => {
+      if (id !== tabRef.current) return;
+      if (info.status === 'loading') {
+        setPing(null);
+        setInspecting(false);
+        setPinned(null);
+      }
+      if (info.status === 'complete') check(id);
+    };
+    const onMsg = (msg: ToExtension, sender: chrome.runtime.MessageSender) => {
+      if (sender.tab?.id !== tabRef.current) return;
+      if (msg.type === 'ffp:inspector-state') {
+        setInspecting(msg.on);
+        check(tabRef.current);
+      }
+      if (msg.type === 'ffp:pinned') setPinned(msg.info);
+      if (msg.type === 'ffp:page-changed') check(tabRef.current);
+    };
+    const onSession = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === 'session' && tabRef.current != null && changes[`injectError:${tabRef.current}`]) check(tabRef.current);
+    };
+    chrome.tabs.onActivated.addListener(onActivated);
+    chrome.tabs.onUpdated.addListener(onUpdated);
+    chrome.runtime.onMessage.addListener(onMsg);
+    chrome.storage.onChanged.addListener(onSession);
+    return () => {
+      chrome.tabs.onActivated.removeListener(onActivated);
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      chrome.runtime.onMessage.removeListener(onMsg);
+      chrome.storage.onChanged.removeListener(onSession);
+    };
+  }, [follow, check]);
+
+  return { tabId, ping, injectError, inspecting, pinned, refresh: () => check(tabRef.current) };
+}
+
+export function usePageScan(tabId: number | null, ready: boolean, url: string | undefined) {
+  const [scan, setScan] = useState<PageScan | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = useCallback(async () => {
+    if (tabId == null || !ready) return;
+    setLoading(true);
+    setError(null);
+    const r = await sendToTab<ScanReply>(tabId, { type: 'ffp:scan' }, 30000);
+    setLoading(false);
+    if (!r) setError('The page did not answer. Reload the page and try again.');
+    else if (!r.ok) setError(r.error);
+    else setScan(r.scan);
+  }, [tabId, ready]);
+
+  useEffect(() => {
+    setScan(null);
+    if (ready) run();
+  }, [run, ready, url]);
+
+  return { scan, loading, error, rescan: run };
+}
+
+export function useSettings(): [Settings, (p: Partial<Settings>) => void] {
+  const [s, setS] = useState<Settings>(DEFAULT_SETTINGS);
+  useEffect(() => {
+    getSettings().then(setS);
+    return onSettingsChanged((patch) => setS((prev) => ({ ...prev, ...patch })));
+  }, []);
+  const update = useCallback((p: Partial<Settings>) => {
+    setS((prev) => ({ ...prev, ...p }));
+    setSettings(p);
+  }, []);
+  return [s, update];
+}
+
+export function useToast(): [string | null, (msg: string) => void] {
+  const [msg, setMsg] = useState<string | null>(null);
+  const timer = useRef<number>();
+  const show = useCallback((m: string) => {
+    setMsg(m);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setMsg(null), 1600);
+  }, []);
+  return [msg, show];
+}
+
+export async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  }
+}

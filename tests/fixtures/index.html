@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Journal · test page</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500&display=swap">
+<style>
+  @font-face {
+    font-family: 'House Mono';
+    src: url('fonts/HouseMono.woff2') format('woff2');
+    font-weight: 100 800;
+  }
+  @font-face {
+    font-family: 'Sohne Test';
+    src: url('fonts/does-not-exist.woff2') format('woff2');
+  }
+  body { margin: 0; background: #F4F1EC; color: #141414; font-family: 'Inter', sans-serif; }
+  header { display: flex; justify-content: space-between; padding: 22px 56px; border-bottom: 1px solid #DDD7CE; }
+  header b { font-family: 'Fraunces', serif; font-size: 18px; }
+  nav a { margin-left: 20px; color: #4A4640; text-decoration: none; font-size: 14px; }
+  main { padding: 48px 56px; max-width: 640px; }
+  h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 48px; line-height: 1.1; letter-spacing: -0.5px; margin: 0 0 18px; }
+  p { font-size: 17px; line-height: 1.6; }
+  code { font-family: 'House Mono', monospace; font-size: 14px; }
+  figcaption { font-family: 'Sohne Test', Arial, sans-serif; font-size: 13px; color: #6B655C; }
+  button { font-family: system-ui, sans-serif; font-size: 14px; padding: 8px 14px; }
+  .note { font-family: 'Nonexistent Serif', Georgia, serif; font-style: italic; }
+</style>
+</head>
+<body>
+<header><b>The Journal</b><nav><a href="#">Essays</a><a href="#">Type</a><a href="#">About</a></nav></header>
+<main>
+  <h1>Notes on slow, careful typography</h1>
+  <p>Good type rarely announces itself. It sets a pace, gives the eye somewhere to rest, and lets the words do their work. Ẹ káàárọ̀.</p>
+  <p>Install it with <code>npm install good-type</code> and read the docs.</p>
+  <figure><figcaption>Figure 1. A caption set in a font that never loads.</figcaption></figure>
+  <p class="note">A quiet aside in a font that is not installed.</p>
+  <button>Subscribe</button>
+</main>
+</body>
+</html>
