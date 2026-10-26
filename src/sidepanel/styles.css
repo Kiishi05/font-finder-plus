@@ -256,3 +256,7 @@ a.btn { text-decoration: none; }
 .langpick select { max-width: 92px; }
 .tester-input .viewtoggle button[aria-pressed='true'] { background: var(--card); box-shadow: var(--shadow); }
 .toggles { gap: 10px; } .toggles .t { white-space: nowrap; flex: none; } .langpick { flex: none; }
+/* the add-to-collection button stays top right; only the text wraps */
+.lhead { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; }
+.lhead .meta { min-width: 0; }
+.lhead > .iconbtn.sm { margin: -6px -6px 0 0; }

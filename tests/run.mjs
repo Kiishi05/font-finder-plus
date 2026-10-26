@@ -82,6 +82,7 @@ try {
   check('font that failed to load is reported', !!sohne, sohne ? `fell back to ${sohne.fellBackTo}` : '');
   const nonexist = scan.notLoaded.find((n) => n.family === 'Nonexistent Serif');
   check('missing local font is reported', !!nonexist, nonexist ? `fell back to ${nonexist.fellBackTo}` : '');
+  check('icon font left out of the list', !scan.fonts.some((f) => /Icons/.test(f.family)) && scan.iconFonts.includes('Site Icons'), JSON.stringify(scan.iconFonts));
   check('system font detected for button', scan.fonts.some((f) => f.roles.button && (f.kind === 'local' || f.kind === 'generic')));
 
   // Hover card on the heading
@@ -89,8 +90,8 @@ try {
   await page.mouse.move(h1.x + 40, h1.y + 20);
   await page.waitForTimeout(400);
   await page.screenshot({ path: path.join(out, 'tooltip-hover.png') });
-  // Pin with Space and copy the size row
-  await page.keyboard.press('Space');
+  // Click pins the card
+  await page.mouse.click(h1.x + 40, h1.y + 20);
   await page.waitForTimeout(200);
   await page.screenshot({ path: path.join(out, 'tooltip-pinned.png') });
   const ui = (sel) => page.evaluate((s) => {
@@ -111,7 +112,9 @@ try {
   await page.mouse.move(h1.x + 40, h1.y + 20);
   await page.mouse.move(h1.x + 60, h1.y + 24);
   await page.waitForTimeout(300);
-  await page.keyboard.press('Space');
+  await page.mouse.click(h1.x + 60, h1.y + 24);
+  await page.waitForTimeout(100);
+  check('click pins the card', await page.evaluate(() => document.getElementById('ffp-root').shadowRoot.querySelector('.card').classList.contains('pinned')));
 
   // Side panel as a page, pinned to the fixture tab
   const panel = await ctx.newPage();
@@ -222,9 +225,13 @@ try {
 
   // Save from the hover card (code element, self-hosted)
   await page.bringToFront();
-  await page.keyboard.press('Space'); // unpin
   const code = await page.locator('code').boundingBox();
-  await page.mouse.click(code.x + 10, code.y + 6);
+  const about = await page.locator('nav a', { hasText: 'About' }).boundingBox();
+  await page.mouse.click(about.x + 5, about.y + 5); // unpins (and the link is not followed)
+  await page.waitForTimeout(100);
+  check('second click unpins the card', !(await page.evaluate(() => document.getElementById('ffp-root').shadowRoot.querySelector('.card').classList.contains('pinned'))));
+  check('links are not followed while inspecting', !page.url().includes('#'));
+  await page.mouse.click(code.x + 10, code.y + 6); // pins on the code
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(out, 'tooltip-code.png') });
   const saved = await sw.evaluate(async () => {

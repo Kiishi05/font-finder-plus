@@ -1,8 +1,23 @@
+import { cleanFamilyName } from '../shared/catalog';
 import type { NotLoadedFont, PageFontUsage, PageScan, Role, TypeSample } from '../shared/types';
 import { clearRenderCache, facesFor, fontFacts, isGeneric, loadFaceMap, parseFamilyList, resolveRendered, roleOf, type Rendered } from './detect';
 
 const SKIP = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'SVG', 'MATH', 'IFRAME', 'CANVAS', 'VIDEO', 'AUDIO']);
 export const MAX_ELEMENTS = 6000;
+
+// Names that icon fonts use. These draw symbols, not text, so they are left
+// out of the font list and out of "Show on page".
+const ICON_NAME = /(^|[\s_-])(icons?|iconfont|glyphs?|symbols?)([\s_-]|$)|font ?awesome|material ?(icons|symbols)|ionicons|feather|dashicons|glyphicons|lucide|phosphor|remixicon|codicon|tabler|bootstrap-icons|icomoon/i;
+// Text made only of Private Use Area characters is how most icon fonts draw icons.
+const ONLY_PUA = /^[\s\uE000-\uF8FF\u{F0000}-\u{FFFFD}\u{100000}-\u{10FFFD}]+$/u;
+
+export function isIconFamily(family: string): boolean {
+  return ICON_NAME.test(family);
+}
+
+export function isIconText(text: string): boolean {
+  return !!text.trim() && ONLY_PUA.test(text);
+}
 
 export function isOurNode(node: Node | null): boolean {
   let n: Node | null = node;
@@ -84,10 +99,15 @@ export async function scanPage(): Promise<PageScan> {
 
   const fonts = new Map<string, PageFontUsage & { _sampleCounts: Map<string, number> }>();
   const notLoaded = new Map<string, NotLoadedFont>();
+  const iconFonts = new Set<string>();
   let elementCount = 0;
 
   for (const combo of combos.values()) {
     const r: Rendered = resolveRendered(combo.fontFamily, combo.weight, combo.style, combo.text);
+    if (isIconFamily(r.family) || isIconFamily(parseFamilyList(combo.fontFamily)[0] ?? '') || isIconText(combo.text)) {
+      iconFonts.add(cleanFamilyName(parseFamilyList(combo.fontFamily)[0] ?? r.family));
+      continue;
+    }
     // Invisible text whose font has not been added yet (sites often add it on scroll): not evidence of a failure.
     if (combo.allHidden && r.fellBackFrom.length) continue;
     const key = `${r.family}::${r.kind}`;
@@ -167,6 +187,7 @@ export async function scanPage(): Promise<PageScan> {
     truncated,
     fonts: out,
     notLoaded: [...notLoaded.values()].sort((a, b) => b.count - a.count),
+    iconFonts: [...iconFonts],
   };
 }
 
@@ -211,7 +232,9 @@ export function elementsForKey(key: string, limit = 300): Element[] {
   const out: Element[] = [];
   for (const el of els) {
     const cs = getComputedStyle(el);
-    const r = resolveRendered(cs.fontFamily, cs.fontWeight, cs.fontStyle, ownText(el));
+    const text = ownText(el);
+    if (isIconText(text)) continue;
+    const r = resolveRendered(cs.fontFamily, cs.fontWeight, cs.fontStyle, text);
     if (`${r.family}::${r.kind}` === key) out.push(el);
     if (out.length >= limit) break;
   }

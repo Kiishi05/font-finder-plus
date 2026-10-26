@@ -72,7 +72,7 @@ function ensureUi() {
           <div class="fallback" hidden></div>
         </div>
         <span class="chip"></span>
-        <button class="iconbtn pin" aria-label="Pin this card" title="Pin (Space)">${iconSvg(PinIcon, 15)}</button>
+        <button class="iconbtn pin" aria-label="Pin this card" title="Pin or unpin (or click the page)">${iconSvg(PinIcon, 15)}</button>
         <button class="iconbtn close" aria-label="Close the card" title="Close the card">${iconSvg(Cancel01Icon, 14)}</button>
       </div>
       <canvas class="metrics" width="576" height="208"></canvas>
@@ -85,7 +85,7 @@ function ensureUi() {
     <div class="bar" role="toolbar" aria-label="Font Finder Plus" hidden>
       <span class="live"></span>
       <span class="what">Hover any text to see its font</span>
-      <span class="keys"><kbd>Space</kbd> or click pins the card</span>
+      <span class="keys">Click to pin the card, click again to unpin</span>
       <button class="stop" title="Stop inspecting (Alt + Shift + F)">${iconSvg(StopCircleIcon, 15)}<span>Stop</span></button>
     </div>
     <div class="flag" hidden></div>`;
@@ -395,19 +395,7 @@ function onMove(e: MouseEvent) {
   });
 }
 
-function isTyping(e: KeyboardEvent) {
-  const t = e.composedPath()[0] as HTMLElement | undefined;
-  return !!t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName));
-}
 
-function onKey(e: KeyboardEvent) {
-  // Esc is left alone: Chrome also uses it to leave full screen.
-  if ((e.key === ' ' || e.code === 'Space') && !isTyping(e) && current) {
-    e.preventDefault();
-    e.stopPropagation();
-    setPinned(!pinned);
-  }
-}
 
 function onClick(e: MouseEvent) {
   if (isOurNode(e.composedPath()[0] as Node)) return;
@@ -415,10 +403,18 @@ function onClick(e: MouseEvent) {
   e.preventDefault();
   e.stopPropagation();
   lastMouse = { x: e.clientX, y: e.clientY };
+  // Pinned: a click unpins and the card follows the mouse again.
+  if (pinned) {
+    setPinned(false);
+    const el = targetAt(e.clientX, e.clientY);
+    current = null;
+    if (el) show(el);
+    return;
+  }
   const el = targetAt(e.clientX, e.clientY);
   if (!el) return;
-  pinned = false;
   current = null;
+  hiddenUntilMove = false;
   show(el);
   setPinned(true);
 }
@@ -442,7 +438,6 @@ export async function start() {
   loadUiFonts();
   loadFaceMap();
   addEventListener('mousemove', onMove, true);
-  addEventListener('keydown', onKey, true);
   addEventListener('click', onClick, true);
   addEventListener('mousedown', block, true);
   addEventListener('mouseup', block, true);
@@ -457,7 +452,6 @@ export function stop() {
   pinned = false;
   current = null;
   removeEventListener('mousemove', onMove, true);
-  removeEventListener('keydown', onKey, true);
   removeEventListener('click', onClick, true);
   removeEventListener('mousedown', block, true);
   removeEventListener('mouseup', block, true);

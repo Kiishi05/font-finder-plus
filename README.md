@@ -18,10 +18,11 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
 - **Start:** click the toolbar icon or press `Alt` + `Shift` + `F`. The side panel opens and the hover inspector starts on that tab. You can also right-click anywhere on the web page and choose **Inspect fonts on this page**.
 - **Stop:** click **Stop** on the black bar at the bottom of the page, click the toolbar icon again, press `Alt` + `Shift` + `F`, use the switch in the panel, or close the side panel.
 - **Hover card:** shows the rendered font, weight, style, size, line height, letter spacing and colour, plus cap height and x-height measured from the real font. Click any value to copy it.
-  - `Space` pins the card so you can use its buttons. Clicking the page also pins it (links and buttons on the page are not followed while inspecting).
+  - Click to pin the card so you can use its buttons, click again to unpin. Links and buttons on the page are not followed while inspecting.
   - The card's close button hides it until you move to other text. `Esc` is not used, because Chrome also uses it to leave full screen.
 - **Page tab:** every font the page renders, how many elements use it and where (headings, body, buttons, links, navigation, code, captions). Fonts that are named in the CSS but never loaded are called out, with the font that shows instead.
 - **Font detail:** facts read from the font file itself (format, foundry, designer, version, glyph count, metrics, variable axes), the CSS stack, the source, and the licence type where it is known.
+- **Icon fonts** (for example Font Awesome, Material Symbols or a site's own icon font) are named in one line and left out of the list, because they draw symbols rather than text.
 - **Show on page:** outlines the text that uses a font, follows the page as it scrolls, and fades after 6 seconds.
 - **Library:** saved fonts in a grid or wide list, collections with colours (a font can be in several), search, and filters for style, licence, source and Google Fonts availability.
 - **Sample text:** each font's name, your own text, or a sample sentence in one of 16 languages.

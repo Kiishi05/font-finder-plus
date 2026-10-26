@@ -137,6 +137,12 @@ export function PageView({ tab, tester, onTester, onOpen, toast }: Props) {
         <FontCard key={f.key} f={f} tester={tester} tabId={tab.tabId} host={scan.host} onOpen={onOpen} toast={toast} />
       ))}
 
+      {!!scan?.iconFonts?.length && (
+        <div className="notice neutral">
+          Icon {scan.iconFonts.length === 1 ? 'font' : 'fonts'} on this page, not listed because {scan.iconFonts.length === 1 ? 'it draws' : 'they draw'} symbols rather than text: {scan.iconFonts.join(', ')}.
+        </div>
+      )}
+
       {scan && !scan.fonts.length && <div className="notice neutral">No visible text found on this page yet.</div>}
       {scan?.truncated && <div className="notice neutral">This page is very large. The first 6,000 text elements were checked.</div>}
 
@@ -243,7 +249,7 @@ function Guide({ force = false }: { force?: boolean }) {
       </div>
       <ol>
         <li><span className="n">1</span><span><b>Hover</b> any text on the web page. A card shows the font, size, weight and spacing.</span></li>
-        <li><span className="n">2</span><span>Press <kbd>Space</kbd> or <b>click</b> to pin the card. Click any value in it to copy it.</span></li>
+        <li><span className="n">2</span><span><b>Click</b> to pin the card in place, click again to unpin. While it is pinned, click any value in it to copy it.</span></li>
         <li><span className="n">3</span><span>To stop, click <b>Stop</b> on the black bar at the bottom of the web page, or close this panel. The switch at the top of this panel turns hovering on and off too.</span></li>
         <li><span className="n">4</span><span>This panel lists every font on the page. <b>Details</b> shows the file facts and a link to Google Fonts when it is there.</span></li>
       </ol>

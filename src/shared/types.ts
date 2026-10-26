@@ -83,6 +83,8 @@ export interface PageScan {
   truncated: boolean;
   fonts: PageFontUsage[];
   notLoaded: NotLoadedFont[];
+  /** Icon fonts (they draw symbols, not text). Named here, left out of the list. */
+  iconFonts: string[];
 }
 
 /** What the hover tooltip shows for one element. */

@@ -227,12 +227,13 @@ function LibraryCard({ f, savedId, tester, wide, onOpen }: { f: FontRecord; save
   if (wide) {
     return (
       <div className={`lrow${tester.invert ? ' invert' : ''}`} {...common}>
-        <span className="meta">
-          <b>{name}</b>
-          <span className={`lic ${badge.tone}`}><i />{badge.text}</span>
-          <span className="label">{CLASS_LABEL[f.classification]} · {SOURCE_LABEL[f.source]}</span>
-          {onGoogle && <span className="gtag">On Google Fonts</span>}
-          <span className="grow" />
+        <span className="lhead">
+          <span className="meta">
+            <b>{name}</b>
+            <span className={`lic ${badge.tone}`}><i />{badge.text}</span>
+            <span className="label">{CLASS_LABEL[f.classification]} · {SOURCE_LABEL[f.source]}</span>
+            {onGoogle && <span className="gtag">On Google Fonts</span>}
+          </span>
           {addBtn}
         </span>
         <span dir="auto" className={`prev specimen${tester.invert ? ' invert' : ''}`} style={{ fontFamily: preview.css, fontSize: tester.size, padding: 0, textAlign: tester.align === 'center' ? 'center' : 'left' }}>
