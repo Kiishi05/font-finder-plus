@@ -173,9 +173,13 @@ function FontCard({ f, tester, tabId, host, onOpen, toast }: { f: PageFontUsage;
     if (await copyToClipboard(declarationCss(parseFamilyList(f.declaredStacks[0] ?? f.family), f.sample))) toast(`Copied CSS for ${name}`);
   };
   const [picking, setPicking] = useState(false);
+  // Save and unsave. Right after saving, the collections appear so the font
+  // can go straight into one; clicking Saved removes it from the library.
   const save = async () => {
-    if (saved) {
-      setPicking(!picking);
+    if (saved?.id != null) {
+      await db.savedFonts.delete(saved.id);
+      setPicking(false);
+      toast(`Removed ${name} from your library`);
       return;
     }
     await saveFont(recordFromUsage(f, bestFileUrl(f, f.sample.fontWeight)), host, f.sample);
@@ -232,7 +236,7 @@ function FontCard({ f, tester, tabId, host, onOpen, toast }: { f: PageFontUsage;
         <button title="Copy the font-family, size, weight and line height as CSS" onClick={copyCss}>
           <Icon icon={SourceCodeIcon} size={16} />Copy CSS
         </button>
-        <button className={saved ? 'on' : ''} aria-expanded={picking} title={saved ? 'Saved. Click to add it to collections' : 'Save to your library'} onClick={save}>
+        <button className={saved ? 'on' : ''} aria-expanded={picking} title={saved ? 'Saved. Click to remove it from your library' : 'Save to your library'} onClick={save}>
           <Icon icon={Bookmark02Icon} size={16} filled={!!saved} />{saved ? 'Saved' : 'Save'}
         </button>
         <button className="primary" title="See everything about this font" onClick={() => onOpen(f, id)}>

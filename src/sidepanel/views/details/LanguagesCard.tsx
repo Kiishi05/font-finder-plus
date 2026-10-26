@@ -12,7 +12,10 @@ const FROM: Record<Coverage['from'], string> = {
 export function LanguagesCard({ coverage, loading, empty, fontCss }: { coverage: Coverage | null; loading: boolean; empty: string; fontCss: string }) {
   const results = useMemo(() => (coverage ? checkPacks(coverage.codepoints) : []), [coverage]);
   const [open, setOpen] = useState<string | null>(null);
+  const [showNone, setShowNone] = useState(false);
   const full = results.filter((r) => r.status === 'full').length;
+  const some = results.filter((r) => r.status !== 'none');
+  const none = results.filter((r) => r.status === 'none');
   return (
     <section className="section">
       <h2>[Languages] {coverage ? `${full} of ${results.length} supported` : ''}</h2>
@@ -21,7 +24,20 @@ export function LanguagesCard({ coverage, loading, empty, fontCss }: { coverage:
       {coverage && (
         <>
           <div className="langs">
-            {results.map((r) => (
+            {some.map((r) => (
+              <LangRow key={r.pack.code} r={r} open={open === r.pack.code} onToggle={() => setOpen(open === r.pack.code ? null : r.pack.code)} fontCss={fontCss} />
+            ))}
+            {none.length > 0 && (
+              <div className="lang">
+                <button className="langhead" aria-expanded={showNone} onClick={() => setShowNone(!showNone)}>
+                  <span>Not supported ({none.length})</span>
+                  <span className="grow" />
+                  <span className="muted" style={{ fontSize: 11.5 }}>{showNone ? 'Hide' : 'Show'}</span>
+                </button>
+                {!showNone && <p className="muted" style={{ margin: '0 0 10px', fontSize: 12 }}>{none.map((r) => r.pack.label).join(', ')}</p>}
+              </div>
+            )}
+            {showNone && none.map((r) => (
               <LangRow key={r.pack.code} r={r} open={open === r.pack.code} onToggle={() => setOpen(open === r.pack.code ? null : r.pack.code)} fontCss={fontCss} />
             ))}
           </div>

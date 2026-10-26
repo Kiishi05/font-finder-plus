@@ -591,14 +591,8 @@ export function highlightKey(key: string | null, label?: string): { shown: numbe
   const { shown, hidden, all } = elementsForKey(key);
   const flag = $<HTMLElement>('.flag');
   const name = label ?? 'This font';
-  if (!shown.length) {
-    flag.textContent = hidden
-      ? `${name} is only in parts of the page you cannot see right now, such as a closed menu or a pop-up`
-      : `${name} is not on the page right now`;
-    flag.hidden = false;
-    markTimer = window.setTimeout(clearMarks, 5000);
-    return { shown: 0, hidden };
-  }
+  // Nothing visible: the side panel explains it, so no pop-up on the page.
+  if (!shown.length) return { shown: 0, hidden };
   groupMarks(shown, all);
   markKey = key;
   flag.textContent = `${name} · ${shown.length} on the page${hidden ? ` · ${hidden} hidden in menus or pop-ups` : ''}`;

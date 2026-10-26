@@ -163,6 +163,13 @@ try {
   check('language sample shows Yoruba text', (await panel.locator('.fcard .specimen').first().innerText()).includes('káàárọ̀'));
   await panel.screenshot({ path: path.join(out, 'panel-page-yoruba.png'), fullPage: true });
   await panel.locator('.toggles button', { hasText: 'Font name' }).click();
+  const interCard = panel.locator('.fcard', { hasText: 'Inter' }).first();
+  await interCard.locator('.actions button', { hasText: 'Save' }).click();
+  await panel.waitForTimeout(300);
+  check('saving shows the collection picker', (await interCard.locator('.cardpicker').count()) === 1);
+  await interCard.locator('.actions button', { hasText: 'Saved' }).click();
+  await panel.waitForTimeout(300);
+  check('clicking Saved unsaves the font', (await interCard.locator('.actions button', { hasText: /^Save$/ }).count()) === 1 && (await interCard.locator('.cardpicker').count()) === 0);
   check('side panel shows not-loaded warning', (await panel.locator('.notice.amber').count()) >= 1);
 
   // Font detail for Fraunces
@@ -180,10 +187,11 @@ try {
   await panel.screenshot({ path: path.join(out, 'panel-detail-phase2.png'), fullPage: true });
   const d2 = await panel.locator('body').innerText();
   check('licence card in plain language', d2.includes('SIL Open Font License') && d2.includes('Websites') && d2.includes('This is a summary, not legal advice.'));
-  check('language coverage checked against Google Fonts', /\d+ of 13 supported/i.test(d2) && d2.includes('full family on Google Fonts'), (d2.match(/\d+ of 13 supported/i) || [''])[0]);
+  check('language coverage checked against Google Fonts', /\d+ of 35 supported/i.test(d2) && d2.includes('full family on Google Fonts'), (d2.match(/\d+ of 35 supported/i) || [''])[0]);
   check('Fraunces supports Vietnamese, not Arabic', await panel.evaluate(() => {
     const rows = [...document.querySelectorAll('.langhead')].map((r) => r.innerText.replace(/\s+/g, ' '));
-    return rows.some((r) => r.startsWith('Vietnamese') && r.includes('Supported')) && rows.some((r) => r.startsWith('Arabic') && r.includes('Not supported'));
+    const none = document.querySelector('.langs')?.innerText ?? '';
+    return rows.some((r) => r.startsWith('Vietnamese') && r.includes('Supported')) && /Not supported \(\d+\)[\s\S]*Arabic/.test(none);
   }));
   check('glyph grid shows the font\'s characters', (await panel.locator('.glyphs button').count()) > 100, String(await panel.locator('.glyphs button').count()));
   await panel.fill('input[aria-label="Find a character"]', 'é');

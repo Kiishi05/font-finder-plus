@@ -87,6 +87,11 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
   const isVariable = !!parsed?.axes.length || !!gf?.a.length;
 
   const doSave = async () => {
+    if (saved?.id != null) {
+      await db.savedFonts.delete(saved.id);
+      toast(`Removed ${name} from your library`);
+      return;
+    }
     if (!base) return;
     await saveFont(base, pageHost, sample);
     toast(`Saved ${name}`);
