@@ -1,10 +1,12 @@
 import { CLASS_LABEL, SOURCE_LABEL, licenseBadge } from '../shared/catalog';
 import { declarationCss, lineHeightLabel, rgbToHex, round, weightLabel } from '../shared/css';
-import { Bookmark02Icon, Cancel01Icon, Copy01Icon, KeyboardIcon, PinIcon, Tick02Icon, iconSvg } from '../shared/icons';
+import { Bookmark02Icon, Cancel01Icon, Copy01Icon, PinIcon, StopCircleIcon, Tick02Icon, iconSvg } from '../shared/icons';
 import type { ElementFontInfo } from '../shared/types';
 import { OWN_FONT_PREFIX, elementLabel, facesFor, familyCss, fontFacts, loadFaceMap, measureMetrics, resolveRendered, roleOf, type Rendered } from './detect';
 import { elementsForKey, isOurNode } from './scan';
 import { css } from './inspector-css';
+
+declare const __FFP_TEST__: boolean;
 
 interface Current {
   el: Element;
@@ -20,7 +22,6 @@ let pinned = false;
 let current: Current | null = null;
 let lastMouse = { x: 0, y: 0 };
 let rafPending = false;
-let tipDismissed = false;
 let copiedRow: string | null = null;
 let saved = false;
 let uiFontsLoaded = false;
@@ -57,7 +58,8 @@ function ensureUi() {
   host = document.createElement('div');
   host.id = 'ffp-root';
   host.style.cssText = 'all: initial; position: fixed; inset: 0; pointer-events: none; z-index: 2147483647;';
-  root = host.attachShadow({ mode: 'closed' });
+  // Closed so pages cannot reach in. The test build opens it so tests can check the card.
+  root = host.attachShadow({ mode: __FFP_TEST__ ? 'open' : 'closed' });
   root.innerHTML = `
     <style>${css}</style>
     <div class="hl" hidden></div>
@@ -71,6 +73,7 @@ function ensureUi() {
         </div>
         <span class="chip"></span>
         <button class="iconbtn pin" aria-label="Pin this card" title="Pin (Space)">${iconSvg(PinIcon, 15)}</button>
+        <button class="iconbtn close" aria-label="Close the card" title="Close the card">${iconSvg(Cancel01Icon, 14)}</button>
       </div>
       <canvas class="metrics" width="576" height="208"></canvas>
       <div class="rows"></div>
@@ -79,11 +82,13 @@ function ensureUi() {
         <button class="btn save">${iconSvg(Bookmark02Icon, 14)}<span>Save to library</span></button>
       </div>
     </div>
-    <div class="tip" hidden>
-      ${iconSvg(KeyboardIcon, 15)}
-      <span>Press <kbd>Space</kbd> to pin, <kbd>Esc</kbd> to stop</span>
-      <button class="iconbtn x" aria-label="Hide this tip">${iconSvg(Cancel01Icon, 12, 2)}</button>
-    </div>`;
+    <div class="bar" role="toolbar" aria-label="Font Finder Plus" hidden>
+      <span class="live"></span>
+      <span class="what">Hover any text to see its font</span>
+      <span class="keys"><kbd>Space</kbd> or click pins the card</span>
+      <button class="stop" title="Stop inspecting (Alt + Shift + F)">${iconSvg(StopCircleIcon, 15)}<span>Stop</span></button>
+    </div>
+    <div class="flag" hidden></div>`;
   document.documentElement.appendChild(host);
 
   $('.pin').addEventListener('click', (e) => {
@@ -116,6 +121,7 @@ function ensureUi() {
       ),
     );
     saved = !!reply?.ok;
+    if (saved) $('.save').innerHTML = `${iconSvg(Bookmark02Icon, 14, 1.5, true)}<span>Saved</span>`;
     flashButton('.save', saved ? 'Saved' : 'Could not save');
   });
   $('.rows').addEventListener('click', async (e) => {
@@ -130,11 +136,13 @@ function ensureUi() {
       renderRows();
     }, 1400);
   });
-  $('.tip .x').addEventListener('click', (e) => {
+  $('.close').addEventListener('click', (e) => {
     e.stopPropagation();
-    tipDismissed = true;
-    $<HTMLElement>('.tip').hidden = true;
-    chrome.storage.local.set({ tipDismissed: true });
+    hideCard();
+  });
+  $('.stop').addEventListener('click', (e) => {
+    e.stopPropagation();
+    stop();
   });
 }
 
@@ -308,7 +316,6 @@ function drawMetrics() {
 function position() {
   if (!current) return;
   const card = $<HTMLElement>('.card');
-  const tip = $<HTMLElement>('.tip');
   const w = card.offsetWidth;
   const h = card.offsetHeight;
   const vw = innerWidth;
@@ -316,13 +323,8 @@ function position() {
   let x = lastMouse.x + 18;
   let y = lastMouse.y + 18;
   if (x + w > vw - 8) x = Math.max(8, lastMouse.x - w - 18);
-  if (y + h + 46 > vh - 8) y = Math.max(8, lastMouse.y - h - 18);
+  if (y + h + 60 > vh - 8) y = Math.max(8, lastMouse.y - h - 18);
   card.style.transform = `translate(${x}px, ${y}px)`;
-  if (!tip.hidden) {
-    const below = y + h + 10;
-    const ty = below + 34 < vh ? below : Math.max(8, y - 44);
-    tip.style.transform = `translate(${x}px, ${ty}px)`;
-  }
   // highlight box
   const hl = $<HTMLElement>('.hl');
   const r = current.el.getBoundingClientRect();
@@ -342,10 +344,23 @@ function show(el: Element) {
   copiedRow = null;
   const card = $<HTMLElement>('.card');
   card.hidden = false;
-  $<HTMLElement>('.tip').hidden = tipDismissed;
   renderCard();
   position();
 }
+
+/** Hide the card until the mouse moves over other text. Inspecting keeps going. */
+function hideCard() {
+  pinned = false;
+  current = null;
+  const card = $<HTMLElement>('.card');
+  card.hidden = true;
+  card.classList.remove('pinned');
+  $<HTMLElement>('.pin').classList.remove('on');
+  $<HTMLElement>('.hl').hidden = true;
+  hiddenUntilMove = true;
+}
+
+let hiddenUntilMove = false;
 
 function setPinned(on: boolean) {
   pinned = on;
@@ -365,7 +380,12 @@ function targetAt(x: number, y: number): Element | null {
 }
 
 function onMove(e: MouseEvent) {
+  const moved = Math.abs(e.clientX - lastMouse.x) + Math.abs(e.clientY - lastMouse.y);
   lastMouse = { x: e.clientX, y: e.clientY };
+  if (hiddenUntilMove) {
+    if (moved < 12) return;
+    hiddenUntilMove = false;
+  }
   if (pinned || rafPending) return;
   rafPending = true;
   requestAnimationFrame(() => {
@@ -381,11 +401,8 @@ function isTyping(e: KeyboardEvent) {
 }
 
 function onKey(e: KeyboardEvent) {
-  if (e.key === 'Escape') {
-    e.preventDefault();
-    e.stopPropagation();
-    stop();
-  } else if ((e.key === ' ' || e.code === 'Space') && !isTyping(e) && current) {
+  // Esc is left alone: Chrome also uses it to leave full screen.
+  if ((e.key === ' ' || e.code === 'Space') && !isTyping(e) && current) {
     e.preventDefault();
     e.stopPropagation();
     setPinned(!pinned);
@@ -421,8 +438,7 @@ export async function start() {
   active = true;
   ensureUi();
   host!.hidden = false;
-  const st = await chrome.storage.local.get('tipDismissed');
-  tipDismissed = !!st.tipDismissed;
+  $<HTMLElement>('.bar').hidden = false;
   loadUiFonts();
   loadFaceMap();
   addEventListener('mousemove', onMove, true);
@@ -449,33 +465,83 @@ export function stop() {
   document.documentElement.style.removeProperty('cursor');
   if (root) {
     $<HTMLElement>('.card').hidden = true;
-    $<HTMLElement>('.tip').hidden = true;
+    $<HTMLElement>('.bar').hidden = true;
     $<HTMLElement>('.hl').hidden = true;
   }
   onStateChange(false);
 }
 
-/** Outline every element using a font, for a moment (triggered from the side panel). */
-export function highlightKey(key: string | null) {
-  ensureUi();
+// ------------------------------------------------------------------ show on page
+
+let markEls: Element[] = [];
+let markTimer = 0;
+let markRaf = 0;
+
+/** Rectangles around the text itself (not the whole block it sits in). */
+function textRects(el: Element): DOMRect[] {
+  const out: DOMRect[] = [];
+  el.childNodes.forEach((n) => {
+    if (n.nodeType !== Node.TEXT_NODE || !n.nodeValue?.trim()) return;
+    const range = document.createRange();
+    range.selectNodeContents(n);
+    for (const r of range.getClientRects()) if (r.width > 1 && r.height > 1) out.push(r);
+  });
+  return out;
+}
+
+function drawMarks() {
+  if (!root) return;
   const marks = $<HTMLElement>('.marks');
-  marks.innerHTML = '';
-  if (!key) return;
-  const els = elementsForKey(key);
   const frag = document.createDocumentFragment();
-  for (const el of els) {
-    const r = el.getBoundingClientRect();
-    if (r.bottom < 0 || r.top > innerHeight) continue;
-    const d = document.createElement('div');
-    d.className = 'mark';
-    d.style.transform = `translate(${r.left - 2}px, ${r.top - 2}px)`;
-    d.style.width = `${r.width + 4}px`;
-    d.style.height = `${r.height + 4}px`;
-    frag.appendChild(d);
+  for (const el of markEls) {
+    for (const r of textRects(el)) {
+      if (r.bottom < 0 || r.top > innerHeight) continue;
+      const d = document.createElement('div');
+      d.className = 'mark';
+      d.style.transform = `translate(${r.left - 3}px, ${r.top - 2}px)`;
+      d.style.width = `${r.width + 6}px`;
+      d.style.height = `${r.height + 4}px`;
+      frag.appendChild(d);
+    }
   }
-  marks.appendChild(frag);
-  setTimeout(() => {
-    if (marks) marks.innerHTML = '';
-  }, 2500);
-  els[0]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  marks.replaceChildren(frag);
+}
+
+function onMarkScroll() {
+  cancelAnimationFrame(markRaf);
+  markRaf = requestAnimationFrame(drawMarks);
+}
+
+function clearMarks() {
+  markEls = [];
+  clearTimeout(markTimer);
+  removeEventListener('scroll', onMarkScroll, true);
+  removeEventListener('resize', onMarkScroll);
+  if (root) {
+    $<HTMLElement>('.marks').replaceChildren();
+    $<HTMLElement>('.flag').hidden = true;
+  }
+}
+
+/**
+ * Outline the text that uses a font (from "Show on page" in the side panel).
+ * The outlines follow the page while it scrolls and fade after 6 seconds.
+ */
+export function highlightKey(key: string | null, label?: string): number {
+  ensureUi();
+  clearMarks();
+  if (!key) return 0;
+  host!.hidden = false;
+  markEls = elementsForKey(key);
+  if (!markEls.length) return 0;
+  const flag = $<HTMLElement>('.flag');
+  flag.textContent = `${label ?? 'This font'} · ${markEls.length} ${markEls.length === 1 ? 'place' : 'places'}`;
+  flag.hidden = false;
+  addEventListener('scroll', onMarkScroll, true);
+  addEventListener('resize', onMarkScroll);
+  const first = markEls[0].getBoundingClientRect();
+  if (first.top < 0 || first.bottom > innerHeight) markEls[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+  drawMarks();
+  markTimer = window.setTimeout(clearMarks, 6000);
+  return markEls.length;
 }

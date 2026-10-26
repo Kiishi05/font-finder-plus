@@ -18,7 +18,7 @@ await rm(outDir, { recursive: true, force: true });
 const common = {
   configFile: false,
   logLevel: 'warn',
-  define: { 'process.env.NODE_ENV': JSON.stringify('production') },
+  define: { 'process.env.NODE_ENV': JSON.stringify('production'), __FFP_TEST__: JSON.stringify(isTest) },
 };
 
 // 1. Side panel (copies public/ into outDir)

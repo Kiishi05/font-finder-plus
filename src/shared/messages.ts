@@ -6,7 +6,7 @@ export type ToContent =
   | { type: 'ffp:inspect'; on: boolean }
   | { type: 'ffp:scan' }
   | { type: 'ffp:fetch-font'; url: string }
-  | { type: 'ffp:highlight'; key: string | null };
+  | { type: 'ffp:highlight'; key: string | null; label?: string };
 
 export interface PingReply {
   ok: true;

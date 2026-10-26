@@ -37,11 +37,36 @@ async function toggleInspector(tabId: number, forceOn?: boolean) {
   return { ok: true, inspecting: on };
 }
 
+// Windows whose side panel is open (the panel keeps a port connected).
+const openPanels = new Set<number>();
+
+chrome.runtime.onConnect.addListener((port) => {
+  const m = /^ffp-panel:(\d+)$/.exec(port.name);
+  if (!m) return;
+  const windowId = Number(m[1]);
+  openPanels.add(windowId);
+  port.onDisconnect.addListener(async () => {
+    openPanels.delete(windowId);
+    // Give a reconnect (background restart) a moment before treating it as closed.
+    await new Promise((r) => setTimeout(r, 600));
+    if (openPanels.has(windowId)) return;
+    const tabs = await chrome.tabs.query({ windowId });
+    for (const t of tabs) {
+      if (t.id == null) continue;
+      sendToTab(t.id, { type: 'ffp:inspect', on: false }, 500);
+      sendToTab(t.id, { type: 'ffp:highlight', key: null }, 500);
+    }
+  });
+});
+
 chrome.action.onClicked.addListener((tab) => {
   if (tab.id == null) return;
   // Open the side panel first, while Chrome still counts this as a user gesture.
   chrome.sidePanel.open({ tabId: tab.id }).catch(() => undefined);
-  toggleInspector(tab.id);
+  // Panel closed: open it and start. Panel already open: the icon (and
+  // Alt + Shift + F) turns the hover card on and off.
+  const panelOpen = tab.windowId != null && openPanels.has(tab.windowId);
+  toggleInspector(tab.id, panelOpen ? undefined : true);
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {

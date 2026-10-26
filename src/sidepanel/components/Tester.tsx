@@ -1,25 +1,24 @@
-import { ContrastIcon, PencilEdit01Icon, TextAlignCenterIcon, TextAlignLeftIcon } from '../../shared/icons';
+import { ArrowReloadHorizontalIcon, ContrastIcon, LanguageSquareIcon, PencilEdit01Icon, TextAlignCenterIcon, TextAlignLeftIcon } from '../../shared/icons';
+import { LANGUAGE_SAMPLES, languageSample } from '../lib/samples';
 import { Icon } from './Icon';
 
-export type SampleMode = 'mine' | 'names' | 'pangram' | 'yoruba';
+/** "mine": the text you type. "names": each font's own name. "language": a sample sentence. */
+export type SampleMode = 'mine' | 'names' | 'language';
 
 export interface TesterState {
   mode: SampleMode;
   text: string;
+  lang: string;
   size: number;
   align: 'left' | 'center';
   invert: boolean;
 }
 
-export const DEFAULT_TESTER: TesterState = { mode: 'names', text: '', size: 32, align: 'left', invert: false };
-
-const PANGRAM = 'The quick brown fox jumps over the lazy dog';
-const YORUBA = 'Ẹ káàárọ̀. Ọmọ mi, ẹ ṣé o.';
+export const DEFAULT_TESTER: TesterState = { mode: 'names', text: '', lang: 'en', size: 32, align: 'left', invert: false };
 
 export function sampleText(t: TesterState, familyName: string): string {
   if (t.mode === 'mine') return t.text.trim() || familyName;
-  if (t.mode === 'pangram') return PANGRAM;
-  if (t.mode === 'yoruba') return YORUBA;
+  if (t.mode === 'language') return languageSample(t.lang).text;
   return familyName;
 }
 
@@ -50,23 +49,37 @@ export function Tester({ value, onChange, min = 12, max = 96, extra }: { value: 
         </div>
       </div>
       <div className="toggles">
-        {(['mine', 'names', 'pangram', 'yoruba'] as SampleMode[]).map((m) => (
-          <button key={m} className="t" aria-pressed={value.mode === m} onClick={() => set({ mode: m })}>
-            {m === 'mine' ? 'Mine' : m === 'names' ? 'Names' : m === 'pangram' ? 'Pangram' : 'Yoruba'}
-          </button>
-        ))}
+        <button className="t" aria-pressed={value.mode === 'names'} title="Show each font's own name" onClick={() => set({ mode: 'names' })}>Font name</button>
+        <button className="t" aria-pressed={value.mode === 'mine'} title="Show the text you typed above" onClick={() => set({ mode: 'mine' })}>Your text</button>
+        <label className={`langpick${value.mode === 'language' ? ' on' : ''}`} title="Show a sample sentence in a language">
+          <Icon icon={LanguageSquareIcon} size={15} />
+          <select
+            aria-label="Language sample"
+            value={value.mode === 'language' ? value.lang : ''}
+            onChange={(e) => set(e.target.value ? { mode: 'language', lang: e.target.value } : { mode: 'names' })}
+          >
+            <option value="">Language</option>
+            {LANGUAGE_SAMPLES.map((l) => (
+              <option key={l.code} value={l.code}>{l.label}</option>
+            ))}
+          </select>
+        </label>
         {extra}
         <span className="grow" />
-        <button className="iconbtn sm" style={{ width: 24, height: 24 }} aria-label="Align left" aria-pressed={value.align === 'left'} onClick={() => set({ align: 'left' })}>
-          <span style={{ color: value.align === 'left' ? 'var(--ink)' : 'var(--faint)', display: 'flex' }}><Icon icon={TextAlignLeftIcon} size={15} /></span>
-        </button>
-        <button className="iconbtn sm" style={{ width: 24, height: 24 }} aria-label="Align center" aria-pressed={value.align === 'center'} onClick={() => set({ align: 'center' })}>
-          <span style={{ color: value.align === 'center' ? 'var(--ink)' : 'var(--faint)', display: 'flex' }}><Icon icon={TextAlignCenterIcon} size={15} /></span>
-        </button>
-        <button className="iconbtn sm" style={{ width: 24, height: 24 }} aria-label="Invert preview" aria-pressed={value.invert} onClick={() => set({ invert: !value.invert })}>
-          <span style={{ color: value.invert ? 'var(--ink)' : 'var(--faint)', display: 'flex' }}><Icon icon={ContrastIcon} size={15} /></span>
-        </button>
-        <button className="t" onClick={() => onChange({ ...value, mode: 'names', text: '', size: 32, align: 'left', invert: false })}>Reset</button>
+        <span className="tools">
+          <button className="iconbtn sm" aria-label="Align left" title="Align left" aria-pressed={value.align === 'left'} onClick={() => set({ align: 'left' })}>
+            <Icon icon={TextAlignLeftIcon} size={15} />
+          </button>
+          <button className="iconbtn sm" aria-label="Align center" title="Align center" aria-pressed={value.align === 'center'} onClick={() => set({ align: 'center' })}>
+            <Icon icon={TextAlignCenterIcon} size={15} />
+          </button>
+          <button className="iconbtn sm" aria-label="Invert preview" title="Light text on dark" aria-pressed={value.invert} onClick={() => set({ invert: !value.invert })}>
+            <Icon icon={ContrastIcon} size={15} />
+          </button>
+          <button className="iconbtn sm" aria-label="Reset" title="Reset text, size and style" onClick={() => onChange({ ...DEFAULT_TESTER })}>
+            <Icon icon={ArrowReloadHorizontalIcon} size={15} />
+          </button>
+        </span>
       </div>
     </div>
   );

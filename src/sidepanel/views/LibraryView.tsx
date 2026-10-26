@@ -2,13 +2,13 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
 import { CLASS_LABEL, SOURCE_LABEL, licenseBadge } from '../../shared/catalog';
 import { db, deleteCollection } from '../../shared/db';
-import { GridViewIcon, Menu01Icon, Search01Icon } from '../../shared/icons';
+import { FolderAddIcon, GridViewIcon, Menu01Icon, PlusSignIcon, Search01Icon, Tick02Icon } from '../../shared/icons';
 import type { Classification, FontRecord, SavedFont, SourceKind } from '../../shared/types';
 import { Icon } from '../components/Icon';
 import { Select } from '../components/Select';
 import { Tester, sampleText, type TesterState } from '../components/Tester';
 import { usePreviewFamily } from '../lib/preview';
-import { NewCollectionInline } from './FontDetail';
+import { CollectionPicker, NewCollectionInline } from '../components/CollectionPicker';
 
 type LicenseFilter = 'all' | 'free' | 'system' | 'commercial' | 'unknown';
 type SourceFilter = SourceKind | 'all' | 'on-google';
@@ -16,9 +16,9 @@ type SourceFilter = SourceKind | 'all' | 'on-google';
 const VIEW_KEY = 'ffp-library-view';
 function readView(): 'list' | 'grid' {
   try {
-    return localStorage.getItem(VIEW_KEY) === 'grid' ? 'grid' : 'list';
+    return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'grid';
   } catch {
-    return 'list';
+    return 'grid';
   }
 }
 
@@ -44,6 +44,7 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
   const [collection, setCollection] = useState<number | 'all'>('all');
   const [renaming, setRenaming] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   const byId = useMemo(() => new Map(fonts.map((f) => [f.id, f])), [fonts]);
   const items = useMemo(() => {
@@ -86,6 +87,10 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
         <label className="tester-input" htmlFor="lib-search" style={{ borderBottom: '1px solid var(--line)' }}>
           <Icon icon={Search01Icon} size={15} />
           <input id="lib-search" placeholder={`Search ${saved.length} saved ${saved.length === 1 ? 'font' : 'fonts'}`} value={query} onChange={(e) => setQuery(e.target.value)} />
+        <div className="viewtoggle" style={{ background: 'var(--field)' }} role="group" aria-label="Layout">
+          <button aria-pressed={view === 'list'} aria-label="Wide list" title="Wide list" onClick={() => setView('list')}><Icon icon={Menu01Icon} size={15} /></button>
+          <button aria-pressed={view === 'grid'} aria-label="Grid" title="Grid" onClick={() => setView('grid')}><Icon icon={GridViewIcon} size={15} /></button>
+        </div>
         </label>
         <div className="filters" style={{ padding: '8px 0' }}>
           <Select<Classification | 'all'>
@@ -122,19 +127,14 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
       <Tester value={tester} onChange={onTester} min={14} max={72} />
 
       <div className="chips">
-        <button className={`chip${collection === 'all' ? ' on' : ''}`} onClick={() => setCollection('all')}>All <span className="mono">{saved.length}</span></button>
+        <button className={`chip${collection === 'all' ? ' on' : ''}`} onClick={() => { setCollection('all'); setAdding(false); }}>All <span className="mono">{saved.length}</span></button>
         {collections.map((c) => (
-          <button key={c.id} className={`chip${collection === c.id ? ' on' : ''}`} onClick={() => { setCollection(c.id!); setRenaming(null); setConfirmDelete(false); }}>
+          <button key={c.id} className={`chip${collection === c.id ? ' on' : ''}`} onClick={() => { setCollection(c.id!); setRenaming(null); setConfirmDelete(false); setAdding(false); }}>
             <span className="sq" style={{ background: c.color }} />
             {c.name} <span className="mono">{counts.get(c.id!) ?? 0}</span>
           </button>
         ))}
         <NewCollectionInline />
-        <span className="grow" />
-        <div className="viewtoggle" role="group" aria-label="Layout">
-          <button aria-pressed={view === 'list'} aria-label="Wide list" title="Wide list" onClick={() => setView('list')}><Icon icon={Menu01Icon} size={15} /></button>
-          <button aria-pressed={view === 'grid'} aria-label="Grid" title="Grid" onClick={() => setView('grid')}><Icon icon={GridViewIcon} size={15} /></button>
-        </div>
       </div>
 
       {activeCollection && (
@@ -154,11 +154,16 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
           ) : (
             <>
               <span className="grow" style={{ fontWeight: 500 }}>{activeCollection.name}</span>
+              <button className="btn sm primary" aria-expanded={adding} onClick={() => setAdding(!adding)}><Icon icon={PlusSignIcon} size={14} />Add fonts</button>
               <button className="linkbtn" onClick={() => setRenaming(activeCollection.name)}>Rename</button>
               <button className="linkbtn" onClick={() => setConfirmDelete(true)}>Delete</button>
             </>
           )}
         </div>
+      )}
+
+      {activeCollection && adding && (
+        <AddFonts collectionId={activeCollection.id!} name={activeCollection.name} saved={saved} byId={byId} onDone={() => setAdding(false)} />
       )}
 
       {saved.length === 0 ? (
@@ -167,11 +172,11 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
           <p>Save fonts from the Page tab or from the hover card on any website. They stay on this computer only.</p>
         </div>
       ) : items.length === 0 ? (
-        <div className="notice neutral">No saved fonts match these filters.</div>
+        <div className="notice neutral">{activeCollection && !query && cls === 'all' && lic === 'all' && src === 'all' ? 'This collection is empty. Click Add fonts above, or use Add to collection on any font.' : 'No saved fonts match these filters.'}</div>
       ) : (
         <div className={view === 'grid' ? 'grid2' : 'list'}>
           {items.map(({ s, f }) => (
-            <LibraryCard key={s.id} f={f} tester={tester} wide={view === 'list'} onOpen={() => onOpen(f.id)} />
+            <LibraryCard key={s.id} f={f} savedId={s.id!} tester={tester} wide={view === 'list'} onOpen={() => onOpen(f.id)} />
           ))}
         </div>
       )}
@@ -179,7 +184,8 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
   );
 }
 
-function LibraryCard({ f, tester, wide, onOpen }: { f: FontRecord; tester: TesterState; wide: boolean; onOpen: () => void }) {
+function LibraryCard({ f, savedId, tester, wide, onOpen }: { f: FontRecord; savedId: number; tester: TesterState; wide: boolean; onOpen: () => void }) {
+  const [picking, setPicking] = useState(false);
   const preview = usePreviewFamily(
     {
       family: f.family,
@@ -192,32 +198,98 @@ function LibraryCard({ f, tester, wide, onOpen }: { f: FontRecord; tester: Teste
   const badge = licenseBadge(f.licenseType);
   const name = f.displayName ?? f.family;
   const onGoogle = !!f.catalogFamily || f.source === 'google';
-  const tags = (
-    <>
-      <span className={`lic ${badge.tone}`}><i />{badge.text}</span>
-      <span className="label">{CLASS_LABEL[f.classification]} · {SOURCE_LABEL[f.source]}</span>
-      {onGoogle && <span className="gtag">On Google Fonts</span>}
-    </>
+  const addBtn = (
+    <button
+      className={`iconbtn sm${picking ? ' on' : ''}`}
+      aria-label="Add to collection"
+      title="Add to collection"
+      aria-expanded={picking}
+      onClick={(e) => { e.stopPropagation(); setPicking(!picking); }}
+    >
+      <Icon icon={FolderAddIcon} size={16} />
+    </button>
+  );
+  const open = (e: React.MouseEvent | React.KeyboardEvent) => {
+    if ((e.target as Element).closest('.picker, .cardpicker')) return;
+    onOpen();
+  };
+  const common = {
+    role: 'button',
+    tabIndex: 0,
+    onClick: open,
+    onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' && e.target === e.currentTarget) onOpen(); },
+  } as const;
+  const picker = picking && (
+    <div className="cardpicker" style={{ padding: wide ? '10px 0 0' : '10px' }}>
+      <CollectionPicker savedId={savedId} />
+    </div>
   );
   if (wide) {
     return (
-      <button className={`lrow${tester.invert ? ' invert' : ''}`} onClick={onOpen}>
-        <span className="meta"><b>{name}</b>{tags}</span>
-        <span className={`prev specimen${tester.invert ? ' invert' : ''}`} style={{ fontFamily: preview.css, fontSize: tester.size, padding: 0, textAlign: tester.align === 'center' ? 'center' : 'left' }}>
+      <div className={`lrow${tester.invert ? ' invert' : ''}`} {...common}>
+        <span className="meta">
+          <b>{name}</b>
+          <span className={`lic ${badge.tone}`}><i />{badge.text}</span>
+          <span className="label">{CLASS_LABEL[f.classification]} · {SOURCE_LABEL[f.source]}</span>
+          {onGoogle && <span className="gtag">On Google Fonts</span>}
+          <span className="grow" />
+          {addBtn}
+        </span>
+        <span dir="auto" className={`prev specimen${tester.invert ? ' invert' : ''}`} style={{ fontFamily: preview.css, fontSize: tester.size, padding: 0, textAlign: tester.align === 'center' ? 'center' : 'left' }}>
           {sampleText(tester, name)}
         </span>
-      </button>
+        {picker}
+      </div>
     );
   }
   return (
-    <button className={`lcard${tester.invert ? ' invert' : ''}`} onClick={onOpen}>
-      <span className={`prev specimen${tester.invert ? ' invert' : ''}`} style={{ fontFamily: preview.css, fontSize: Math.min(tester.size, 40), justifyContent: tester.align === 'center' ? 'center' : 'flex-start' }}>
+    <div className={`lcard${tester.invert ? ' invert' : ''}`} {...common}>
+      <span dir="auto" className={`prev specimen${tester.invert ? ' invert' : ''}`} style={{ fontFamily: preview.css, fontSize: Math.min(tester.size, 40), justifyContent: tester.align === 'center' ? 'center' : 'flex-start' }}>
         {sampleText(tester, name)}
       </span>
       <span className="meta">
-        <b>{name}</b>
-        <span className="row" style={{ gap: 6, flexWrap: 'wrap' }}>{tags}</span>
+        <span className="row" style={{ alignItems: 'flex-start', gap: 4 }}>
+          <b className="grow">{name}</b>
+          {addBtn}
+        </span>
+        <span className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+          <span className={`lic ${badge.tone}`}><i />{badge.text}</span>
+          <span className="label">{CLASS_LABEL[f.classification]}</span>
+          {onGoogle && <span className="gtag">On Google Fonts</span>}
+        </span>
       </span>
-    </button>
+      {picker}
+    </div>
+  );
+}
+
+/** Pick saved fonts to put in a collection. */
+function AddFonts({ collectionId, name, saved, byId, onDone }: { collectionId: number; name: string; saved: SavedFont[]; byId: Map<string, FontRecord>; onDone: () => void }) {
+  const toggle = async (s: SavedFont) => {
+    const has = s.collectionIds.includes(collectionId);
+    await db.savedFonts.update(s.id!, { collectionIds: has ? s.collectionIds.filter((c) => c !== collectionId) : [...s.collectionIds, collectionId], updatedAt: Date.now() });
+  };
+  return (
+    <div className="section">
+      <h2>[Add fonts to {name}]</h2>
+      {saved.length === 0 ? (
+        <span className="muted" style={{ fontSize: 12 }}>Save some fonts first, from the Page tab or the hover card.</span>
+      ) : (
+        <div className="chips">
+          {saved.map((s) => {
+            const f = byId.get(s.fontId);
+            if (!f) return null;
+            const on = s.collectionIds.includes(collectionId);
+            return (
+              <button key={s.id} className={`chip${on ? ' on' : ''}`} aria-pressed={on} onClick={() => toggle(s)}>
+                {on ? <Icon icon={Tick02Icon} size={13} stroke={2} /> : <Icon icon={PlusSignIcon} size={13} />}
+                {f.displayName ?? f.family}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={onDone}>Done</button>
+    </div>
   );
 }

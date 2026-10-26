@@ -176,7 +176,7 @@ input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: 13p
 /* library */
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .lcard { display: flex; flex-direction: column; border-radius: 14px; background: var(--card); overflow: hidden; border: none; padding: 0; text-align: left; color: var(--ink); }
-.lcard .prev { display: flex; align-items: center; justify-content: center; height: 104px; padding: 0 10px; overflow: hidden; white-space: nowrap; line-height: 1.05; }
+.lcard .prev { display: flex; align-items: center; justify-content: center; height: 116px; padding: 0 10px; overflow: hidden; white-space: nowrap; line-height: 1.05; }
 .lcard .meta { display: flex; flex-direction: column; gap: 1px; padding: 8px 10px 10px; border-top: 1px solid var(--line); }
 .lcard .meta b { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
@@ -223,7 +223,7 @@ kbd { padding: 1px 6px; border-radius: 5px; background: var(--field); font: 11px
 
 /* library list */
 .list { display: flex; flex-direction: column; gap: 8px; }
-.lrow { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; background: var(--card); border: none; text-align: left; color: var(--ink); width: 100%; }
+.lrow { display: flex; flex-direction: column; gap: 8px; padding: 18px 14px; border-radius: 14px; background: var(--card); border: none; text-align: left; color: var(--ink); width: 100%; }
 .lrow .prev { line-height: 1.08; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .lrow .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
 .lrow .meta b { font-weight: 600; }
@@ -234,3 +234,25 @@ kbd { padding: 1px 6px; border-radius: 5px; background: var(--field); font: 11px
 .viewtoggle button[aria-pressed='true'] { background: var(--field); color: var(--ink); }
 .gtag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 99px; background: var(--field); font-size: 11px; color: var(--ink); white-space: nowrap; }
 a.btn { text-decoration: none; }
+
+/* language sample picker inside the tester */
+.langpick { position: relative; display: inline-flex; align-items: center; gap: 4px; color: var(--faint); font-size: 12.5px; }
+.langpick.on { color: var(--ink); }
+.langpick select { -webkit-appearance: none; appearance: none; border: none; background: transparent; color: inherit; font: inherit; padding: 0; cursor: pointer; max-width: 120px; text-overflow: ellipsis; }
+.langpick select:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+.picker { display: flex; flex-direction: column; gap: 8px; }
+.cardpicker { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px 12px; border-top: 1px solid var(--line); }
+.chip[aria-pressed='true'] svg { flex: none; }
+
+.lcard, .lrow { cursor: pointer; }
+.lcard:focus-visible, .lrow:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.lcard .meta .iconbtn.sm, .lrow .meta .iconbtn.sm { margin: -4px -4px 0 0; }
+.iconbtn.sm.on { background: var(--field); }
+
+.toggles { gap: 12px; flex-wrap: nowrap; }
+.tools { display: flex; gap: 0; flex: none; }
+.tools .iconbtn.sm { width: 24px; height: 24px; color: var(--faint); }
+.tools .iconbtn.sm[aria-pressed='true'] { color: var(--ink); }
+.langpick select { max-width: 92px; }
+.tester-input .viewtoggle button[aria-pressed='true'] { background: var(--card); box-shadow: var(--shadow); }
+.toggles { gap: 10px; } .toggles .t { white-space: nowrap; flex: none; } .langpick { flex: none; }

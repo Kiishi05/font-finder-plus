@@ -12,8 +12,10 @@ export const css = `
 }
 .marks .mark {
   position: fixed; left: 0; top: 0; pointer-events: none;
-  border: 2px solid #19C05A; border-radius: 4px; background: rgba(25,192,90,0.10);
+  border: 2px solid #19C05A; border-radius: 4px; background: rgba(25,192,90,0.16);
+  animation: ffp-pop 240ms ease-out;
 }
+@keyframes ffp-pop { from { opacity: 0; } }
 .card {
   position: fixed; left: 0; top: 0; width: 312px;
   display: flex; flex-direction: column; gap: 10px; padding: 12px;
@@ -54,12 +56,21 @@ button:focus-visible { outline: 2px solid #111111; outline-offset: 2px; }
 .btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; border-radius: 10px; border: 1px solid #DCDCDA; background: #FFFFFF; color: #111111; font-size: 12px; font-weight: 500; }
 .btn.primary { border: none; background: #111111; color: #FFFFFF; }
 .btn.done { background: #E8F8EE; color: #0B7A37; border-color: #E8F8EE; }
-.tip {
-  position: fixed; left: 0; top: 0; display: inline-flex; align-items: center; gap: 8px;
-  height: 34px; padding: 0 6px 0 12px; border-radius: 12px; background: #111111; color: #FFFFFF;
-  font: 12px "FFP Inter", system-ui, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,0.18); pointer-events: auto;
+.bar {
+  position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 5px 0 14px;
+  border-radius: 14px; background: #111111; color: #FFFFFF; white-space: nowrap;
+  font: 12px "FFP Inter", system-ui, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,0.22); pointer-events: auto;
 }
-.tip kbd { padding: 1px 6px; border-radius: 5px; background: #2A2A2A; font: 10.5px "FFP JetBrains Mono", ui-monospace, monospace; }
-.tip .iconbtn { width: 24px; height: 24px; border-radius: 8px; background: #2A2A2A; color: #FFFFFF; }
-@media (prefers-reduced-motion: reduce) { .hl { transition: none; } }
+.bar .live { width: 8px; height: 8px; border-radius: 50%; background: #19C05A; box-shadow: 0 0 0 3px rgba(25,192,90,0.25); flex: none; }
+.bar .keys { color: #A8A8A4; }
+.bar kbd { padding: 1px 6px; border-radius: 5px; background: #2A2A2A; color: #FFFFFF; font: 10.5px "FFP JetBrains Mono", ui-monospace, monospace; }
+.bar .stop { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: none; border-radius: 10px; background: #FFFFFF; color: #111111; font-size: 12px; font-weight: 600; }
+@media (max-width: 640px) { .bar .keys { display: none; } }
+.flag {
+  position: fixed; left: 50%; top: 14px; transform: translateX(-50%);
+  padding: 7px 12px; border-radius: 10px; background: #19C05A; color: #04210F;
+  font: 600 12px "FFP Inter", system-ui, sans-serif; box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+}
+@media (prefers-reduced-motion: reduce) { .hl { transition: none; } .marks .mark { animation: none; } }
 `;

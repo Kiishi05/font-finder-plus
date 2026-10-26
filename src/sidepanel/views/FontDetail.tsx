@@ -2,18 +2,19 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CLASS_LABEL, LICENSE_LABEL, SOURCE_LABEL, googleFamily, googleFontsUrl, licenseBadge } from '../../shared/catalog';
 import { declarationCss, round } from '../../shared/css';
-import { COLLECTION_COLORS, db, saveFont } from '../../shared/db';
+import { db, saveFont } from '../../shared/db';
 import { Alert02Icon, ArrowLeft01Icon, ArrowUpRight01Icon, Bookmark02Icon, Copy01Icon, Delete02Icon, SourceCodeIcon } from '../../shared/icons';
 import { bestFileUrl, recordFromUsage } from '../../shared/records';
 import { FORMAT_LABEL } from '../../shared/sources';
 import type { FontRecord, PageFontUsage, ParsedFontFile } from '../../shared/types';
 import { Icon } from '../components/Icon';
-import { Tester, sampleText, type TesterState } from '../components/Tester';
+import { DEFAULT_TESTER, Tester, sampleText, type TesterState } from '../components/Tester';
 import { analyzeFont } from '../lib/analyze';
 import { copyToClipboard } from '../lib/hooks';
 import { usePreviewFamily, type PreviewSource } from '../lib/preview';
 import { parseFamilyList } from '../lib/stack';
 import { roleSummary } from './PageView';
+import { CollectionPicker } from '../components/CollectionPicker';
 
 interface Props {
   fontId: string;
@@ -27,7 +28,6 @@ interface Props {
 export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Props) {
   const record = useLiveQuery(() => db.fonts.get(fontId).then((r) => r ?? null), [fontId]);
   const saved = useLiveQuery(() => db.savedFonts.where('fontId').equals(fontId).first(), [fontId]);
-  const collections = useLiveQuery(() => db.collections.orderBy('createdAt').toArray(), []) ?? [];
   const [busy, setBusy] = useState<'reading' | null>(null);
   const attempted = useRef(false);
 
@@ -72,7 +72,7 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
   }, [wghtAxis, usage, sample]);
   const [weight, setWeight] = useState<string>(sample?.fontWeight ?? '400');
   const [italic, setItalic] = useState(false);
-  const [tester, setTester] = useState<TesterState>({ mode: 'mine', text: '', size: 36, align: 'left', invert: false });
+  const [tester, setTester] = useState<TesterState>({ ...DEFAULT_TESTER, mode: 'language', lang: 'en', size: 36 });
 
   const declared = parseFamilyList(usage?.declaredStacks[0] ?? data.declaredStack ?? `"${family}"`);
   const badge = licenseBadge(data.licenseType ?? 'unknown');
@@ -85,11 +85,6 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
     toast(`Saved ${name}`);
   };
 
-  const toggleCollection = async (id: number) => {
-    if (!saved?.id) return;
-    const has = saved.collectionIds.includes(id);
-    await db.savedFonts.update(saved.id, { collectionIds: has ? saved.collectionIds.filter((c) => c !== id) : [...saved.collectionIds, id], updatedAt: Date.now() });
-  };
 
   const designerText = gf?.d.length ? gf.d.join(', ') : parsed?.designer ?? null;
   const foundryText = parsed?.manufacturer ?? null;
@@ -100,7 +95,7 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
         <button className="iconbtn" aria-label="Back" onClick={onBack}><Icon icon={ArrowLeft01Icon} /></button>
         <span className="label grow" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>[{usage ? 'Page' : 'Library'}] / [{name}]</span>
         <button className={`btn${saved ? ' done' : ' primary'}`} style={{ height: 38, borderRadius: 12 }} onClick={doSave}>
-          <Icon icon={Bookmark02Icon} size={15} />
+          <Icon icon={Bookmark02Icon} size={15} filled={!!saved} />
           {saved ? 'Saved' : 'Save'}
         </button>
       </div>
@@ -158,10 +153,10 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
           <button className="t" style={{ fontStyle: 'italic' }} aria-pressed={italic} onClick={() => setItalic(!italic)}>Italic</button>
         </div>
         <p
-          className={`specimen wrap${tester.align === 'center' ? ' center' : ''}${tester.invert ? ' invert' : ''}`}
+          dir="auto" className={`specimen wrap${tester.align === 'center' ? ' center' : ''}${tester.invert ? ' invert' : ''}`}
           style={{ margin: 0, padding: '14px', fontFamily: preview.css, fontSize: tester.size, fontWeight: Number(weight) || 400, fontStyle: italic ? 'italic' : 'normal', lineHeight: 1.15 }}
         >
-          {sampleText(tester, tester.mode === 'names' ? name : 'Ọmọ mi, ẹ ṣé o. The quick brown fox jumps over the lazy dog.')}
+          {sampleText(tester, name)}
         </p>
         {preview.failed && <p className="muted" style={{ margin: 0, padding: '0 14px 12px', fontSize: 11.5 }}>The font file could not be loaded in the panel, so a fallback font is shown.</p>}
       </section>
@@ -219,16 +214,8 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
 
       {saved && (
         <section className="section">
-          <h2>[In your library]</h2>
-          <div className="chips">
-            {collections.map((c) => (
-              <button key={c.id} className={`chip${saved.collectionIds.includes(c.id!) ? ' on' : ''}`} onClick={() => toggleCollection(c.id!)}>
-                <span className="sq" style={{ background: c.color }} />
-                {c.name}
-              </button>
-            ))}
-            <NewCollectionInline onCreated={(id) => toggleCollection(id)} />
-          </div>
+          <h2>[In your library] Collections</h2>
+          <CollectionPicker savedId={saved.id!} />
           <label className="label" htmlFor="notes" style={{ marginTop: 6 }}>[Notes]</label>
           <NotesField id={saved.id!} initial={saved.notes} />
           {saved.sitesSeen.length > 0 && <span className="muted" style={{ fontSize: 12 }}>Seen on {saved.sitesSeen.join(', ')}</span>}
@@ -267,40 +254,6 @@ function NotesField({ id, initial }: { id: number; initial: string }) {
         timer.current = window.setTimeout(() => db.savedFonts.update(id, { notes: v, updatedAt: Date.now() }), 400);
       }}
     />
-  );
-}
-
-export function NewCollectionInline({ onCreated }: { onCreated?: (id: number) => void }) {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [color, setColor] = useState(COLLECTION_COLORS[0]);
-  if (!open) {
-    return (
-      <button className="chip" onClick={() => setOpen(true)}>+ New collection</button>
-    );
-  }
-  const create = async () => {
-    const n = name.trim();
-    if (!n) return;
-    const id = await db.collections.add({ name: n, color, createdAt: Date.now() });
-    setOpen(false);
-    setName('');
-    onCreated?.(id);
-  };
-  return (
-    <div className="stack" style={{ gap: 6, width: '100%' }}>
-      <input className="field" autoFocus placeholder="Collection name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} aria-label="Collection name" />
-      <div className="row">
-        <div className="swatches" role="group" aria-label="Collection colour">
-          {COLLECTION_COLORS.map((c) => (
-            <button key={c} className="swatch" style={{ background: c }} aria-label={`Colour ${c}`} aria-pressed={color === c} onClick={() => setColor(c)} />
-          ))}
-        </div>
-        <span className="grow" />
-        <button className="btn sm ghost" onClick={() => setOpen(false)}>Cancel</button>
-        <button className="btn sm primary" onClick={create} disabled={!name.trim()}>Create</button>
-      </div>
-    </div>
   );
 }
 

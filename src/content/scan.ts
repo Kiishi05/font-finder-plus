@@ -8,7 +8,7 @@ export function isOurNode(node: Node | null): boolean {
   let n: Node | null = node;
   while (n) {
     if (n instanceof Element && n.id === 'ffp-root') return true;
-    n = n.parentNode;
+    n = n instanceof ShadowRoot ? n.host : n.parentNode;
   }
   return false;
 }

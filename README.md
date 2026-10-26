@@ -15,13 +15,16 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
 
 ## Using it
 
-- **Start:** click the toolbar icon or press `Alt` + `Shift` + `F`. The side panel opens and the hover inspector starts on that tab. You can also right-click a page and choose **Inspect fonts on this page**.
+- **Start:** click the toolbar icon or press `Alt` + `Shift` + `F`. The side panel opens and the hover inspector starts on that tab. You can also right-click anywhere on the web page and choose **Inspect fonts on this page**.
+- **Stop:** click **Stop** on the black bar at the bottom of the page, click the toolbar icon again, press `Alt` + `Shift` + `F`, use the switch in the panel, or close the side panel.
 - **Hover card:** shows the rendered font, weight, style, size, line height, letter spacing and colour, plus cap height and x-height measured from the real font. Click any value to copy it.
   - `Space` pins the card so you can use its buttons. Clicking the page also pins it (links and buttons on the page are not followed while inspecting).
-  - `Esc` stops inspecting.
+  - The card's close button hides it until you move to other text. `Esc` is not used, because Chrome also uses it to leave full screen.
 - **Page tab:** every font the page renders, how many elements use it and where (headings, body, buttons, links, navigation, code, captions). Fonts that are named in the CSS but never loaded are called out, with the font that shows instead.
 - **Font detail:** facts read from the font file itself (format, foundry, designer, version, glyph count, metrics, variable axes), the CSS stack, the source, and the licence type where it is known.
-- **Library:** saved fonts, collections with colours, search, and filters for style, licence and source.
+- **Show on page:** outlines the text that uses a font, follows the page as it scrolls, and fades after 6 seconds.
+- **Library:** saved fonts in a grid or wide list, collections with colours (a font can be in several), search, and filters for style, licence, source and Google Fonts availability.
+- **Sample text:** each font's name, your own text, or a sample sentence in one of 16 languages.
 
 ## Permissions, and why each one is needed
 
@@ -30,7 +33,7 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
 | `activeTab` | Lets the extension read the page you are on, but only after you click its icon, press its shortcut or use its right-click menu on that tab. No access to other tabs. |
 | `scripting` | Starts the inspector on that page (injects the content script) when you ask it to. |
 | `sidePanel` | Shows the main workspace in Chrome's side panel. |
-| `storage` | Saves settings (theme, your Google Fonts API key, whether the keyboard tip is hidden) in Chrome's local storage on this computer. |
+| `storage` | Saves settings (theme, your Google Fonts API key, whether the guide is hidden) in Chrome's local storage on this computer. |
 | `contextMenus` | Adds **Inspect fonts on this page** to the right-click menu. |
 | `<all_urls>` (optional, off by default) | Only if you turn it on in Settings. Lets the extension download font files from sites that block other pages from reading them, so foundry, format and metrics can be shown there, and lets you start inspecting from the side panel. Chrome asks you first, and you can turn it off again in Settings. |
 

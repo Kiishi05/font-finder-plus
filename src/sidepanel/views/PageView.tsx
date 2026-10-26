@@ -8,6 +8,7 @@ import { sendToExtension, sendToTab } from '../../shared/messages';
 import { bestFileUrl, fontId, recordFromUsage } from '../../shared/records';
 import { hasAllSitesAccess } from '../../shared/settings';
 import type { PageFontUsage, Role } from '../../shared/types';
+import { CollectionPicker } from '../components/CollectionPicker';
 import { Icon } from '../components/Icon';
 import { Tester, sampleText, type TesterState } from '../components/Tester';
 import { copyToClipboard, usePageScan, useSettings, type TabState } from '../lib/hooks';
@@ -165,9 +166,20 @@ function FontCard({ f, tester, tabId, host, onOpen, toast }: { f: PageFontUsage;
   const copyCss = async () => {
     if (await copyToClipboard(declarationCss(parseFamilyList(f.declaredStacks[0] ?? f.family), f.sample))) toast(`Copied CSS for ${name}`);
   };
+  const [picking, setPicking] = useState(false);
   const save = async () => {
+    if (saved) {
+      setPicking(!picking);
+      return;
+    }
     await saveFont(recordFromUsage(f, bestFileUrl(f, f.sample.fontWeight)), host, f.sample);
     toast(`Saved ${name} to your library`);
+    setPicking(true);
+  };
+  const show = async () => {
+    if (tabId == null) return;
+    const r = await sendToTab<{ count: number }>(tabId, { type: 'ffp:highlight', key: f.key, label: name });
+    if (r && !r.count) toast(`${name} is not visible on the page right now`);
   };
 
   return (
@@ -180,6 +192,7 @@ function FontCard({ f, tester, tabId, host, onOpen, toast }: { f: PageFontUsage;
         <span className={`lic ${badge.tone}`}><i />{badge.text}</span>
       </div>
       <div
+        dir="auto"
         className={`specimen clamp${tester.align === 'center' ? ' center' : ''}`}
         style={{ fontFamily: preview.css, fontSize: tester.size, fontWeight: Number(f.sample.fontWeight) || 400, fontStyle: f.sample.fontStyle }}
         title={preview.failed ? 'The font file could not be loaded here, so a fallback is shown.' : undefined}
@@ -191,19 +204,25 @@ function FontCard({ f, tester, tabId, host, onOpen, toast }: { f: PageFontUsage;
         {name !== f.family && <> · CSS name {f.family}</>}
       </div>
       <div className="actions">
-        <button title="Outline every element on the page that uses this font" onClick={() => tabId != null && sendToTab(tabId, { type: 'ffp:highlight', key: f.key })}>
+        <button title="Outline the text on the page that uses this font" onClick={show}>
           <Icon icon={Target02Icon} size={16} />Show on page
         </button>
         <button title="Copy the font-family, size, weight and line height as CSS" onClick={copyCss}>
           <Icon icon={SourceCodeIcon} size={16} />Copy CSS
         </button>
-        <button className={saved ? 'on' : ''} title={saved ? 'Already in your library' : 'Save to your library'} onClick={save}>
-          <Icon icon={Bookmark02Icon} size={16} stroke={saved ? 2.2 : 1.5} />{saved ? 'Saved' : 'Save'}
+        <button className={saved ? 'on' : ''} aria-expanded={picking} title={saved ? 'Saved. Click to add it to collections' : 'Save to your library'} onClick={save}>
+          <Icon icon={Bookmark02Icon} size={16} filled={!!saved} />{saved ? 'Saved' : 'Save'}
         </button>
         <button className="primary" title="See everything about this font" onClick={() => onOpen(f, id)}>
           <Icon icon={ArrowRight01Icon} size={16} />Details
         </button>
       </div>
+      {picking && saved?.id != null && (
+        <div className="cardpicker">
+          <CollectionPicker savedId={saved.id} />
+          <button className="linkbtn" style={{ alignSelf: 'flex-start', fontSize: 12 }} onClick={() => setPicking(false)}>Done</button>
+        </div>
+      )}
     </article>
   );
 }
@@ -225,7 +244,7 @@ function Guide({ force = false }: { force?: boolean }) {
       <ol>
         <li><span className="n">1</span><span><b>Hover</b> any text on the web page. A card shows the font, size, weight and spacing.</span></li>
         <li><span className="n">2</span><span>Press <kbd>Space</kbd> or <b>click</b> to pin the card. Click any value in it to copy it.</span></li>
-        <li><span className="n">3</span><span>Press <kbd>Esc</kbd> to stop. The switch at the top of this panel turns hovering on and off.</span></li>
+        <li><span className="n">3</span><span>To stop, click <b>Stop</b> on the black bar at the bottom of the web page, or close this panel. The switch at the top of this panel turns hovering on and off too.</span></li>
         <li><span className="n">4</span><span>This panel lists every font on the page. <b>Details</b> shows the file facts and a link to Google Fonts when it is there.</span></li>
       </ol>
       <p className="hint" style={{ margin: 0 }}>

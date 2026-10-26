@@ -26,6 +26,10 @@ export {
   Cursor01Icon,
   Mouse01Icon,
   Cancel01Icon as CloseIcon,
+  FolderAddIcon,
+  ArrowReloadHorizontalIcon,
+  StopCircleIcon,
+  LanguageSquareIcon,
 } from '@hugeicons/core-free-icons';
 
 export type IconNode = readonly (readonly [string, Record<string, string | number>])[];
@@ -33,7 +37,7 @@ export type IconNode = readonly (readonly [string, Record<string, string | numbe
 const camelToKebab = (s: string) => s.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase());
 
 /** Render an icon as an SVG string (for the content script, which has no React). */
-export function iconSvg(icon: unknown, size = 16, strokeWidth = 1.5): string {
+export function iconSvg(icon: unknown, size = 16, strokeWidth = 1.5, filled = false): string {
   const nodes = icon as IconNode;
   const inner = nodes
     .map(([tag, attrs]) => {
@@ -45,6 +49,7 @@ export function iconSvg(icon: unknown, size = 16, strokeWidth = 1.5): string {
           return `${name}="${val}"`;
         })
         .join(' ');
+      if (filled && tag === 'path') return `<${tag} ${a} fill="currentColor"></${tag}>`;
       return `<${tag} ${a}></${tag}>`;
     })
     .join('');

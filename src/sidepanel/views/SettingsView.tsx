@@ -110,12 +110,6 @@ export function SettingsView({ settings, update, toast }: Props) {
             {settings.guideDismissed ? 'Show again' : 'Showing'}
           </button>
         </div>
-        <div className="row">
-          <span className="grow" style={{ fontSize: 12.5 }}>Keyboard tip under the hover card</span>
-          <button className="btn sm" disabled={!settings.tipDismissed} onClick={() => update({ tipDismissed: false })}>
-            {settings.tipDismissed ? 'Show again' : 'Showing'}
-          </button>
-        </div>
       </section>
 
       <section className="section">

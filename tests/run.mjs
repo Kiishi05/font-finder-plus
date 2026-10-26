@@ -93,6 +93,25 @@ try {
   await page.keyboard.press('Space');
   await page.waitForTimeout(200);
   await page.screenshot({ path: path.join(out, 'tooltip-pinned.png') });
+  const ui = (sel) => page.evaluate((s) => {
+    const el = document.getElementById('ffp-root')?.shadowRoot?.querySelector(s);
+    return el ? { hidden: el.hidden, text: el.textContent, n: el.children.length } : null;
+  }, sel);
+  check('control bar with Stop is shown while inspecting', (await ui('.bar'))?.hidden === false && /Stop/.test((await ui('.bar')).text));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(150);
+  check('Esc does not stop inspecting (Chrome uses it for full screen)', (await ui('.bar'))?.hidden === false);
+  await page.evaluate(() => document.getElementById('ffp-root').shadowRoot.querySelector('.close').click());
+  await page.waitForTimeout(100);
+  check('close button hides the card', (await ui('.card'))?.hidden === true);
+  await page.evaluate(() => document.getElementById('ffp-root').shadowRoot.querySelector('.stop').click());
+  await page.waitForTimeout(100);
+  check('Stop button turns inspecting off', (await ui('.bar'))?.hidden === true);
+  await sw.evaluate(async (id) => chrome.tabs.sendMessage(id, { type: 'ffp:inspect', on: true }), tabId);
+  await page.mouse.move(h1.x + 40, h1.y + 20);
+  await page.mouse.move(h1.x + 60, h1.y + 24);
+  await page.waitForTimeout(300);
+  await page.keyboard.press('Space');
 
   // Side panel as a page, pinned to the fixture tab
   const panel = await ctx.newPage();
@@ -108,6 +127,23 @@ try {
   await panel.waitForFunction(() => [...document.querySelectorAll('.fcard')].some((c) => c.textContent.includes('Libre Caslon Condensed')), null, { timeout: 15000 }).catch(() => {});
   check('font renamed in CSS confirmed from its file', (await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).count()) === 1);
   check('how it works guide is shown', (await panel.locator('.guide').count()) === 1);
+  // Show on page: outlines sit on the heading text itself
+  await panel.locator('.fcard', { hasText: 'Fraunces' }).locator('button', { hasText: 'Show on page' }).click();
+  await page.waitForTimeout(300);
+  const marks = await page.evaluate(() => {
+    const sr = document.getElementById('ffp-root').shadowRoot;
+    const h = document.querySelector('h1').getBoundingClientRect();
+    const ms = [...sr.querySelectorAll('.mark')].map((m) => m.getBoundingClientRect());
+    return { n: ms.length, onHeading: ms.some((m) => m.top >= h.top - 6 && m.bottom <= h.bottom + 6 && m.width <= h.width + 8), flag: sr.querySelector('.flag').textContent };
+  });
+  check('Show on page outlines the text', marks.n >= 2 && marks.onHeading, JSON.stringify(marks));
+  await page.screenshot({ path: path.join(out, 'show-on-page.png') });
+  // Language sample
+  await panel.selectOption('select[aria-label="Language sample"]', 'yo');
+  await panel.waitForTimeout(150);
+  check('language sample shows Yoruba text', (await panel.locator('.fcard .specimen').first().innerText()).includes('káàárọ̀'));
+  await panel.screenshot({ path: path.join(out, 'panel-page-yoruba.png'), fullPage: true });
+  await panel.locator('.toggles button', { hasText: 'Font name' }).click();
   check('side panel shows not-loaded warning', (await panel.locator('.notice.amber').count()) >= 1);
 
   // Font detail for Fraunces
@@ -131,12 +167,35 @@ try {
   await panel.waitForTimeout(400);
   await panel.locator('button[aria-label="Back"]').click();
   await panel.locator('.tabs button', { hasText: 'Library' }).click();
-  await panel.waitForSelector('.lrow');
+  await panel.waitForSelector('.lcard');
   await panel.waitForTimeout(1200);
   await panel.screenshot({ path: path.join(out, 'panel-library.png'), fullPage: true });
   const libText = await panel.locator('body').innerText();
   check('library shows saved font', libText.includes('Fraunces'));
   check('collection created with count', /Editorial\s*1/.test(libText));
+
+  check('library shows a grid by default', (await panel.locator('.grid2 .lcard').count()) === 1);
+  // Add to a second collection from the library card
+  await panel.locator('.lcard button[aria-label="Add to collection"]').click();
+  await panel.locator('.lcard .chip', { hasText: '+ New collection' }).click();
+  await panel.fill('.lcard input[aria-label="Collection name"]', 'Client B');
+  await panel.locator('.lcard button', { hasText: 'Create' }).click();
+  await panel.waitForTimeout(400);
+  const inBoth = await panel.locator('.chips').first().innerText();
+  check('a font can be in two collections', /Editorial\s*1/.test(inBoth) && /Client B\s*1/.test(inBoth), inBoth.replace(/\n/g, ' '));
+  await panel.screenshot({ path: path.join(out, 'panel-library-picker.png'), fullPage: true });
+  // Add fonts from inside a collection
+  await panel.locator('.chips').first().locator('button', { hasText: 'Client B' }).click();
+  await panel.locator('button', { hasText: 'Add fonts' }).click();
+  check('Add fonts lists saved fonts', (await panel.locator('.section .chip', { hasText: 'Fraunces' }).count()) === 1);
+  await panel.locator('.section .chip', { hasText: 'Fraunces' }).click();
+  await panel.waitForTimeout(200);
+  check('Add fonts can remove a font too', (await panel.locator('.grid2 .lcard').count()) === 0);
+  await panel.locator('.section .chip', { hasText: 'Fraunces' }).click();
+  await panel.locator('.section button', { hasText: 'Done' }).click();
+  await panel.locator('.chips').first().locator('button', { hasText: 'All' }).click();
+  await panel.locator('.viewtoggle button[aria-label="Wide list"]').click();
+  await panel.waitForSelector('.lrow');
 
   // Filters: classification Mono should hide Fraunces
   await panel.selectOption('select[aria-label="Style"]', 'mono');
@@ -156,10 +215,10 @@ try {
     return i.right <= a.right - 4 && i.left >= a.left;
   }));
   check('dropdown arrows sit inside their boxes', arrowInside);
-  await panel.locator('.viewtoggle button[aria-label="Grid"]').click();
+  await panel.fill('#lib-search', '');
   await panel.waitForTimeout(300);
-  await panel.screenshot({ path: path.join(out, 'panel-library-grid.png'), fullPage: true });
-  await panel.locator('.viewtoggle button[aria-label="Wide list"]').click();
+  await panel.screenshot({ path: path.join(out, 'panel-library-list.png'), fullPage: true });
+  await panel.locator('.viewtoggle button[aria-label="Grid"]').click();
 
   // Save from the hover card (code element, self-hosted)
   await page.bringToFront();
