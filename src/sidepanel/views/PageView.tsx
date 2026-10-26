@@ -9,6 +9,8 @@ import { bestFileUrl, fontId, recordFromUsage } from '../../shared/records';
 import { hasAllSitesAccess } from '../../shared/settings';
 import type { PageFontUsage, Role } from '../../shared/types';
 import { CollectionPicker } from '../components/CollectionPicker';
+import { similarTo, type Match } from '../../shared/similar';
+import { trySwap, undoSwap, useSwaps } from '../lib/google';
 import { Icon } from '../components/Icon';
 import { Tester, sampleText, type TesterState } from '../components/Tester';
 import { copyToClipboard, usePageScan, useSettings, type TabState } from '../lib/hooks';
@@ -46,6 +48,7 @@ export function PageView({ tab, tester, onTester, onOpen, toast }: Props) {
   const ready = !!tab.ping;
   const { scan, loading, error, rescan } = usePageScan(tab.tabId, ready, tab.ping?.url);
   const [canInject, setCanInject] = useState(false);
+  const swaps = useSwaps(ready ? tab.tabId : null);
 
   useEffect(() => {
     hasAllSitesAccess().then(setCanInject);
@@ -133,8 +136,10 @@ export function PageView({ tab, tester, onTester, onOpen, toast }: Props) {
         </div>
       ))}
 
+      {scan && <MakeItFree fonts={scan.fonts} tabId={tab.tabId} swaps={swaps} toast={toast} />}
+
       {scan?.fonts.map((f) => (
-        <FontCard key={f.key} f={f} tester={tester} tabId={tab.tabId} host={scan.host} onOpen={onOpen} toast={toast} />
+        <FontCard key={f.key} f={f} tester={tester} tabId={tab.tabId} host={scan.host} swappedTo={swaps[f.key] ?? null} onOpen={onOpen} toast={toast} />
       ))}
 
       {!!scan?.iconFonts?.length && (
@@ -156,7 +161,7 @@ export function PageView({ tab, tester, onTester, onOpen, toast }: Props) {
   );
 }
 
-function FontCard({ f, tester, tabId, host, onOpen, toast }: { f: PageFontUsage; tester: TesterState; tabId: number | null; host: string; onOpen: Props['onOpen']; toast: (m: string) => void }) {
+function FontCard({ f, tester, tabId, host, swappedTo, onOpen, toast }: { f: PageFontUsage; tester: TesterState; tabId: number | null; host: string; swappedTo: string | null; onOpen: Props['onOpen']; toast: (m: string) => void }) {
   const id = fontId(f.family, f.source);
   const saved = useLiveQuery(() => db.savedFonts.where('fontId').equals(id).first(), [id]);
   const record = useLiveQuery(() => db.fonts.get(id), [id]);
@@ -229,6 +234,12 @@ function FontCard({ f, tester, tabId, host, onOpen, toast }: { f: PageFontUsage;
         {f.hiddenCount > 0 && (f.hiddenCount === f.elementCount ? ' · all hidden right now (menus or pop-ups)' : ` · ${f.hiddenCount} hidden right now`)}
         {name !== f.family && <> · CSS name {f.family}</>}
       </div>
+      {swappedTo && tabId != null && (
+        <div className="swapnote">
+          <span>Showing <b>{swappedTo}</b> on the page instead</span>
+          <button className="linkbtn" onClick={() => undoSwap(tabId, f.key)}>Undo</button>
+        </div>
+      )}
       <div className="actions">
         <button className={outlined ? 'on' : ''} aria-pressed={outlined} title={outlined ? 'Remove the outlines' : 'Outline the text on the page that uses this font'} onClick={show}>
           <Icon icon={Target02Icon} size={16} />{outlined ? 'Hide outlines' : 'Show on page'}
@@ -276,6 +287,68 @@ function Guide({ force = false }: { force?: boolean }) {
       <p className="hint" style={{ margin: 0 }}>
         Another way to start: right-click anywhere on the web page itself (not in this panel) and choose <b>Inspect fonts on this page</b>.
       </p>
+    </section>
+  );
+}
+
+/**
+ * Swap paid or unknown-licence web fonts for their closest free Google Fonts
+ * match, live on the page, to preview the site with free fonts.
+ */
+function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; tabId: number | null; swaps: Record<string, string>; toast: (m: string) => void }) {
+  const candidates = fonts.filter((f) => f.kind === 'web' && !f.catalogFamily);
+  const ids = candidates.map((f) => fontId(f.family, f.source));
+  const records = useLiveQuery(() => db.fonts.bulkGet(ids), [ids.join('|')]) ?? [];
+  const [busy, setBusy] = useState(false);
+  const rows = candidates
+    .map((f, i) => {
+      const r = records[i];
+      const lic = r?.licenseType ?? f.licenseType;
+      if (lic !== 'commercial' && lic !== 'unknown') return null;
+      if (r?.catalogFamily) return null;
+      const shape = r?.parsed?.shape;
+      const wc = r?.parsed?.weightClass ?? 400;
+      const match: Match | null = shape ? similarTo(shape, { classification: r?.classification ?? f.classification, limit: 1, ignoreWeight: wc < 350 || wc > 450 })[0] ?? null : null;
+      return { f, name: r?.displayName ?? f.displayName ?? f.family, lic, match, aspect: shape?.x ?? null };
+    })
+    .filter((x): x is NonNullable<typeof x> => !!x);
+  if (!rows.length || tabId == null) return null;
+  const anySwapped = rows.some((r) => swaps[r.f.key]);
+  const swapAll = async () => {
+    setBusy(true);
+    let n = 0;
+    for (const r of rows) {
+      if (!r.match) continue;
+      try {
+        await trySwap(tabId, r.f.key, r.match.family, r.aspect);
+        n++;
+      } catch {
+        /* keep going */
+      }
+    }
+    setBusy(false);
+    toast(n ? `Showing ${n} free ${n === 1 ? 'font' : 'fonts'} on the page` : 'Could not swap these fonts');
+  };
+  return (
+    <section className="section">
+      <h2>[Make it free]</h2>
+      <span style={{ fontSize: 12.5 }}>
+        {rows.length === 1 ? 'One font on this page is' : `${rows.length} fonts on this page are`} paid or have an unknown licence. Preview the page with the closest free Google Fonts instead.
+      </span>
+      <div className="freelist">
+        {rows.map((r) => (
+          <div key={r.f.key} className="freerow">
+            <span className="grow">{r.name}</span>
+            <span className="muted">to</span>
+            <span className="grow" style={{ textAlign: 'right' }}>{r.match ? <><b>{r.match.family}</b> <span className="mono muted" style={{ fontSize: 11 }}>{r.match.score}%</span></> : <span className="muted">Not measured yet</span>}</span>
+          </div>
+        ))}
+      </div>
+      <div className="row" style={{ gap: 6 }}>
+        <button className="btn sm primary" onClick={swapAll} disabled={busy || !rows.some((r) => r.match)}>{busy ? 'Loading fonts…' : anySwapped ? 'Swap again' : 'Swap all on the page'}</button>
+        {anySwapped && <button className="btn sm" onClick={() => undoSwap(tabId, null)}>Undo all</button>}
+      </div>
+      <span className="muted" style={{ fontSize: 11.5 }}>Nothing changes on the real site. Reloading the page also undoes it.</span>
     </section>
   );
 }

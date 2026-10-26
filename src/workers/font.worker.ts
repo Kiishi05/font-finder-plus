@@ -3,6 +3,7 @@
 // from the file's own tables (name, OS/2, post, fvar). Nothing is guessed.
 import * as fontkit from 'fontkit';
 import { sniffFormat } from '../shared/sources';
+import { shapeFromFont } from '../shared/shape';
 import type { Classification, ParsedFontFile } from '../shared/types';
 
 interface Req {
@@ -86,6 +87,7 @@ function parse(bytes: ArrayBuffer): ParsedFontFile {
     glyphCount: f.numGlyphs,
     characterCount,
     codepoints,
+    shape: (() => { try { return shapeFromFont(f); } catch { return null; } })(),
     isFixedPitch,
     panose,
     familyClass,

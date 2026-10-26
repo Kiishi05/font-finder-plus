@@ -19,6 +19,11 @@ export function isIconText(text: string): boolean {
   return !!text.trim() && ONLY_PUA.test(text);
 }
 
+/** The page's own font stack, even while the extension is showing a trial font on this element. */
+export function familyOf(el: Element, cs: CSSStyleDeclaration): string {
+  return el.getAttribute('data-ffp-orig') ?? cs.fontFamily;
+}
+
 export function isOurNode(node: Node | null): boolean {
   let n: Node | null = node;
   while (n) {
@@ -104,10 +109,11 @@ export async function scanPage(): Promise<PageScan> {
   for (const el of els) {
     const cs = getComputedStyle(el);
     if (cs.visibility === 'hidden') continue;
-    const key = `${cs.fontFamily}|${cs.fontWeight}|${cs.fontStyle}`;
+    const ff = familyOf(el, cs);
+    const key = `${ff}|${cs.fontWeight}|${cs.fontStyle}`;
     let c = combos.get(key);
     if (!c) {
-      c = { fontFamily: cs.fontFamily, weight: cs.fontWeight, style: cs.fontStyle, text: '', els: [], allHidden: true };
+      c = { fontFamily: ff, weight: cs.fontWeight, style: cs.fontStyle, text: '', els: [], allHidden: true };
       combos.set(key, c);
     }
     if (c.text.length < 300) c.text += ownText(el).slice(0, 120) + ' ';
@@ -250,18 +256,21 @@ async function settleLazyFonts(combos: Combo[]): Promise<void> {
 }
 
 /** Elements on the page that render with the given font key, split into ones you can see and ones you cannot. */
-export function elementsForKey(key: string, limit = 400): { shown: Element[]; hidden: number; all: Element[] } {
+export function elementsForKey(key: string, limit = 400): { shown: Element[]; hidden: number; hiddenEls: Element[]; all: Element[] } {
   const { els, hidden } = textElements();
   const shown: Element[] = [];
+  const hiddenEls: Element[] = [];
   let hiddenCount = 0;
   for (const el of els) {
     const text = ownText(el);
     if (isIconText(text)) continue;
     const cs = getComputedStyle(el);
-    const r = resolveRendered(cs.fontFamily, cs.fontWeight, cs.fontStyle, text);
+    const r = resolveRendered(familyOf(el, cs), cs.fontWeight, cs.fontStyle, text);
     if (`${r.family}::${r.kind}` !== key) continue;
-    if (hidden.has(el) || isClipped(el)) hiddenCount++;
-    else if (shown.length < limit) shown.push(el);
+    if (hidden.has(el) || isClipped(el)) {
+      hiddenCount++;
+      hiddenEls.push(el);
+    } else if (shown.length < limit) shown.push(el);
   }
-  return { shown, hidden: hiddenCount, all: els };
+  return { shown, hidden: hiddenCount, hiddenEls, all: els };
 }

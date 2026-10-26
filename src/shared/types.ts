@@ -137,6 +137,8 @@ export interface ParsedFontFile {
   characterCount: number;
   /** Every Unicode code point the file has a glyph for (sorted). */
   codepoints?: number[];
+  /** Measured proportions (see shape.ts). Null when the file lacks the letters needed. */
+  shape?: import('./shape').Shape | null;
   isFixedPitch: boolean;
   panose: number[] | null;
   familyClass: number | null;

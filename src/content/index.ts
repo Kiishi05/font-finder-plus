@@ -3,6 +3,7 @@ import { arrayBufferToBase64 } from '../shared/messages';
 import { clearRenderCache } from './detect';
 import { highlightKey, isInspecting, setStateListener, start, stop } from './inspector';
 import { scanPage } from './scan';
+import { activeSwaps, swapFont, unswap, varyFont } from './swap';
 
 declare global {
   interface Window {
@@ -40,6 +41,21 @@ if (!window.__ffpLoaded) {
       case 'ffp:fetch-font':
         fetchFont(msg.url).then(reply);
         return true;
+      case 'ffp:swap':
+        swapFont(msg.key, msg.family, msg.faces, msg.generic, msg.aspect)
+          .then((count) => reply({ ok: true, count }))
+          .catch((err) => reply({ ok: false, error: String(err?.message ?? err) }));
+        return true;
+      case 'ffp:unswap':
+        unswap(msg.key);
+        reply({ ok: true });
+        return false;
+      case 'ffp:vary':
+        reply({ ok: true, count: varyFont(msg.key, msg.settings, msg.weight) });
+        return false;
+      case 'ffp:swaps':
+        reply({ ok: true, swaps: activeSwaps() });
+        return false;
       case 'ffp:highlight':
         reply({ ok: true, ...highlightKey(msg.key, msg.label) });
         return false;

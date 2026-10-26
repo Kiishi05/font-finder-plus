@@ -19,7 +19,7 @@ export function analyzeFont(base: Omit<FontRecord, 'updatedAt'>, tabId: number |
   const job = (async () => {
     const cached = await db.fonts.get(base.id);
     // Files read by an older version lack the character list; read them again.
-    if (cached?.parsed?.codepoints) {
+    if (cached?.parsed?.codepoints && cached.parsed.shape !== undefined) {
       // Records saved by an older version may lack the Google Fonts match.
       if (cached.catalogFamily === undefined) {
         const gf = cached.parsed.familyName ? googleFamily(cached.parsed.familyName) : googleFamily(cached.family);

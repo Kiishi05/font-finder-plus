@@ -21,6 +21,10 @@ import { GlyphsCard } from './details/GlyphsCard';
 import { InstalledCard } from './details/InstalledCard';
 import { LanguagesCard } from './details/LanguagesCard';
 import { LicenceCard } from './details/LicenceCard';
+import { PairsCard } from './details/PairsCard';
+import { PlaygroundCard, type Axis } from './details/PlaygroundCard';
+import { SimilarCard } from './details/SimilarCard';
+import { shapeFor, type ShapeResult } from '../lib/shapes';
 import { CollectionPicker } from '../components/CollectionPicker';
 
 interface Props {
@@ -47,7 +51,7 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
   useEffect(() => {
     if (!base || attempted.current || record === undefined) return;
     const fileUrl = base.fileUrl ?? record?.fileUrl;
-    if (!fileUrl || record?.parsed?.codepoints) return;
+    if (!fileUrl || (record?.parsed?.codepoints && record.parsed.shape !== undefined)) return;
     attempted.current = true;
     setBusy('reading');
     analyzeFont({ ...base, fileUrl }, tabId).finally(() => setBusy(null));
@@ -136,6 +140,23 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
     }
   };
   const langCoverage = gfCov ?? localCov ?? fileCov;
+
+  // Shape, for similar fonts and pairs.
+  const [shape, setShape] = useState<ShapeResult | null>(null);
+  const [shapeLoading, setShapeLoading] = useState(true);
+  useEffect(() => {
+    let off = false;
+    setShapeLoading(true);
+    shapeFor({ catalogFamily: gf?.family ?? null, files, kind, family }, tabId)
+      .then((r) => !off && setShape(r))
+      .catch(() => !off && setShape(null))
+      .finally(() => !off && setShapeLoading(false));
+    return () => { off = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gf?.family, filesKey, kind, family, tabId]);
+  const axes: Axis[] = parsed?.axes.length
+    ? parsed.axes
+    : (gf?.a ?? []).map(([tag, min, max, def]) => ({ tag, name: tag, min, max, default: def }));
   const glyphSet = fileCov?.codepoints ?? localCov?.codepoints ?? null;
   const glyphCss = kind === 'web' ? preview.css : `"${parsed?.familyName ?? family}", "FFP NotDef"`;
 
@@ -189,6 +210,12 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
         )}
       </section>
 
+      <nav className="jump" aria-label="Jump to">
+        {[['sec-licence', 'Licence'], ['sec-similar', 'Similar'], ['sec-pairs', 'Pairs'], ...(axes.length ? [['sec-variable', 'Variable']] : []), ['sec-languages', 'Languages'], ['sec-glyphs', 'Glyphs']].map(([id, label]) => (
+          <button key={id} onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{label}</button>
+        ))}
+      </nav>
+
       <Tester
         value={tester}
         onChange={setTester}
@@ -214,14 +241,29 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
         {preview.failed && <p className="muted" style={{ margin: 0, padding: '0 14px 12px', fontSize: 11.5 }}>The font file could not be loaded in the panel, so a fallback font is shown.</p>}
       </section>
 
-      <LicenceCard name={name} licenseType={data.licenseType ?? 'unknown'} source={data.source ?? 'unknown'} parsed={parsed} fromCatalogue={!!gf?.l} />
+      <div id="sec-licence" className="stack" style={{ gap: 0 }}><LicenceCard name={name} licenseType={data.licenseType ?? 'unknown'} source={data.source ?? 'unknown'} parsed={parsed} fromCatalogue={!!gf?.l} /></div>
 
-      <LanguagesCard
+      <div id="sec-similar" className="stack" style={{ gap: 0 }}><SimilarCard
+        shape={shape}
+        loading={shapeLoading}
+        exclude={gf?.family ?? name}
+        classification={classification}
+        pageKey={usage?.key ?? null}
+        tabId={tabId}
+        sampleText={sampleText(tester, '')}
+        toast={toast}
+      /></div>
+
+      <div id="sec-pairs" className="stack" style={{ gap: 0 }}><PairsCard shape={shape} classification={classification} name={name} fontCss={preview.css} exclude={gf?.family ?? name} toast={toast} /></div>
+
+      <div id="sec-variable" className="stack" style={{ gap: 0 }}><PlaygroundCard axes={axes} fromFile={!!parsed?.axes.length} fontCss={preview.css} googleFamily={gf?.family ?? null} pageKey={usage?.key ?? null} tabId={tabId} text={sampleText(tester, name)} toast={toast} /></div>
+
+      <div id="sec-languages" className="stack" style={{ gap: 0 }}><LanguagesCard
         coverage={langCoverage}
         loading={covLoading || (!!gf && !gfCov)}
         fontCss={kind === 'web' ? preview.css : glyphCss}
         empty={kind === 'web' ? 'The font file could not be read, so its characters are unknown.' : 'Use "Show installed styles" below to read the installed copy and check its languages.'}
-      />
+      /></div>
 
       <MetricsCard fontCss={preview.css} weight={weight} parsed={parsed} />
 
@@ -256,25 +298,15 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
         </dl>
       </section>
 
-      {(parsed?.axes.length || gf?.a.length) ? (
-        <section className="section">
-          <h2>[Variable axes]</h2>
-          <dl className="kv">
-            {(parsed?.axes.length ? parsed.axes.map((a) => [a.tag, a.name, a.min, a.max, a.default] as const) : gf!.a.map(([t, mi, ma, de]) => [t, t, mi, ma, de] as const)).map(([tag, name, mi, ma, de]) => (
-              <FragmentRow key={tag} k={tag} v={`${name !== tag ? name + ' · ' : ''}${mi} to ${ma}, default ${de}`} />
-            ))}
-          </dl>
-        </section>
-      ) : null}
 
       <InstalledCard family={parsed?.familyName ?? name} onFaces={onInstalled} />
 
-      <GlyphsCard
+      <div id="sec-glyphs" className="stack" style={{ gap: 0 }}><GlyphsCard
         codepoints={glyphSet}
         fontCss={glyphCss}
         toast={toast}
         note={glyphSet ? (fileCov ? 'From the font files this site loads. Boxes mean the character is missing.' : 'From the copy installed on this computer.') : kind === 'web' ? 'The font file could not be read, so its characters cannot be shown.' : 'Use "Show installed styles" above to see the characters of the installed copy.'}
-      />
+      /></div>
 
       {saved && (
         <section className="section">
@@ -292,14 +324,6 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
   );
 }
 
-function FragmentRow({ k, v }: { k: string; v: string }) {
-  return (
-    <>
-      <dt className="mono" style={{ fontSize: 11.5 }}>{k}</dt>
-      <dd>{v}</dd>
-    </>
-  );
-}
 
 function NotesField({ id, initial }: { id: number; initial: string }) {
   const [value, setValue] = useState(initial);

@@ -6,7 +6,11 @@ export type ToContent =
   | { type: 'ffp:inspect'; on: boolean }
   | { type: 'ffp:scan' }
   | { type: 'ffp:fetch-font'; url: string }
-  | { type: 'ffp:highlight'; key: string | null; label?: string };
+  | { type: 'ffp:highlight'; key: string | null; label?: string }
+  | { type: 'ffp:swap'; key: string; family: string; faces: { base64: string; weight: string; style: string; unicodeRange: string | null }[]; generic: string; aspect: number | null }
+  | { type: 'ffp:unswap'; key: string | null }
+  | { type: 'ffp:vary'; key: string; settings: string | null; weight: string | null }
+  | { type: 'ffp:swaps' };
 
 export interface PingReply {
   ok: true;

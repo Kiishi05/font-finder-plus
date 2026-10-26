@@ -2,7 +2,7 @@
 
 A Chrome extension (Manifest V3) for designers and developers. Hover any text to see the font that is really rendering, see every font a page uses, save fonts to collections, and copy their CSS.
 
-Status: **Phase 1 (Identify)** and **Phase 2 (Understand)** are complete. Later phases add swapping and pairing, type systems, export, specimen boards and identifying fonts from images.
+Status: **Phase 1 (Identify)**, **Phase 2 (Understand)** and **Phase 3 (Swap and Pair)** are complete. Later phases add type systems, export, specimen boards and identifying fonts from images.
 
 ## Load it in Chrome
 
@@ -30,6 +30,11 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
 - **On this computer** (font detail): a quick yes or no, and, with Chrome's Local Font Access (Chrome asks once), the installed styles. The installed copy can then be used for the language check and glyphs.
 - **Glyphs** (font detail): every character in the font, grouped by Unicode block, searchable by letter or code point. Click one to copy it, or its CSS or HTML code.
 - Previews never borrow letters from another font: a missing character shows as a box (Adobe NotDef).
+- **Similar free fonts** (font detail): the closest Google Fonts families by measured shape (x-height, cap height, ascenders, descenders, width, weight, contrast and roundness of "o"), with a similarity score and a plain reason ("Similar x-height and width. A little bolder."). Only Google Fonts are suggested, so every suggestion is free.
+- **Try on page:** shows a suggestion on the real page in place of the original font, optionally keeping the original x-height (`font-size-adjust`). Undo puts it back; reloading the page also does. The font is added with the FontFace API and inline styles, so page security rules do not block it, and nothing on the site changes.
+- **Make it free** (Page tab): for paid or unknown-licence fonts, swaps each for its closest free match in one click, to preview the page with free fonts.
+- **Pairs well with** (font detail): suggested pairs with a heading and body preview and CSS to copy. Based on contrast in style, similar x-height ratio and widely used families. Suggestions, not rules.
+- **Variable playground** (font detail): a slider per axis and the CSS to copy. When the site's own file is variable, the settings can be applied live on the page.
 - **Sample text:** each font's name, your own text, or a sample sentence in one of 16 languages.
 
 ## Permissions, and why each one is needed
@@ -67,6 +72,7 @@ Fonts the browser has not fetched yet (pages often load fonts lazily) are given 
 
 ## Data sources
 
+- `src/shared/data/gf-shapes.json` holds the measured shape of 1,921 Google Fonts families (the rest are colour, emoji or symbol fonts without Latin letters). Rebuild it with `npm run build:shapes`; it asks the Google Fonts text API for only the letters needed, so each file is a few KB.
 - `src/shared/data/gf-catalog.json` holds all Google Fonts families with category, designers, axes and licence. Rebuild it with `npm run build:catalog`.
   - Families, categories, designers and axes come from the public metadata the Google Fonts website uses.
   - Licences are not in that metadata or in the Developer API. They are read from the official [google/fonts](https://github.com/google/fonts) repository, where each family sits in an `ofl/`, `apache/` or `ufl/` folder. Families that cannot be found there are stored as unknown, never guessed.

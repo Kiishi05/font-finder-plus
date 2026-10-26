@@ -200,6 +200,23 @@ try {
   await panel.locator('.glyphs button').first().click();
   check('glyph detail shows the code point', (await panel.locator('.glyphsel').innerText()).includes('U+00E9'));
   check('installed check answers', /Installed|Not installed/.test(d2));
+  // Phase 3: similar fonts, live swap, pairs, playground
+  await panel.waitForSelector('.match', { timeout: 15000 }).catch(() => {});
+  const sim = await panel.evaluate(() => [...document.querySelectorAll('.match b')].map((b) => b.textContent));
+  check('similar free fonts listed', sim.length >= 5 && !sim.includes('Fraunces'), sim.slice(0, 5).join(', '));
+  await panel.locator('.match button', { hasText: 'Try on page' }).first().click();
+  await page.waitForFunction(() => document.querySelector('h1')?.getAttribute('data-ffp-swap'), null, { timeout: 20000 }).catch(() => {});
+  const swapped = await page.evaluate(() => ({ attr: document.querySelector('h1').getAttribute('data-ffp-swap'), ff: getComputedStyle(document.querySelector('h1')).fontFamily, adj: getComputedStyle(document.querySelector('h1')).fontSizeAdjust }));
+  check('Try on page swaps the font live', !!swapped.attr && /FFP Swap/.test(swapped.ff), JSON.stringify(swapped));
+  await page.screenshot({ path: path.join(out, 'swap-on-page.png') });
+  const rescan = await sw.evaluate(async (id) => chrome.tabs.sendMessage(id, { type: 'ffp:scan' }), tabId);
+  check('a re-scan still reports the original font while swapped', rescan.scan.fonts.some((f) => f.family === 'Fraunces'));
+  await panel.locator('.match button', { hasText: 'Showing on page' }).first().click();
+  await page.waitForTimeout(300);
+  check('Undo puts the original font back', await page.evaluate(() => !document.querySelector('h1').hasAttribute('data-ffp-swap') && !/FFP Swap/.test(getComputedStyle(document.querySelector('h1')).fontFamily)));
+  check('pairs suggested', (await panel.locator('text=[Pairs well with]').count()) === 1 && (await panel.locator('.pairprev').count()) >= 3);
+  check('variable playground has sliders', (await panel.locator('.axis input[type=range]').count()) >= 2);
+  await panel.screenshot({ path: path.join(out, 'panel-detail-phase3.png'), fullPage: true });
   check('detail links to Google Fonts', (await panel.locator('a[href="https://fonts.google.com/specimen/Fraunces"]').count()) >= 1);
 
   // Save to library and create a collection

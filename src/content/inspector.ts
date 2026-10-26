@@ -3,7 +3,7 @@ import { declarationCss, lineHeightLabel, rgbToHex, round, weightLabel } from '.
 import { Bookmark02Icon, Cancel01Icon, Copy01Icon, PinIcon, StopCircleIcon, Tick02Icon, iconSvg } from '../shared/icons';
 import type { ElementFontInfo } from '../shared/types';
 import { OWN_FONT_PREFIX, elementLabel, facesFor, familyCss, fontFacts, loadFaceMap, measureMetrics, resolveRendered, roleOf, type Rendered } from './detect';
-import { elementsForKey, isOurNode } from './scan';
+import { elementsForKey, familyOf, isOurNode } from './scan';
 import { css } from './inspector-css';
 
 declare const __FFP_TEST__: boolean;
@@ -183,7 +183,7 @@ function infoFor(el: Element): Current {
     if (n.nodeType === Node.TEXT_NODE) text += n.nodeValue;
   });
   if (!text.trim()) text = (el.textContent ?? '').slice(0, 200);
-  const rendered = resolveRendered(cs.fontFamily, cs.fontWeight, cs.fontStyle, text);
+  const rendered = resolveRendered(familyOf(el, cs), cs.fontWeight, cs.fontStyle, text);
   const facts = fontFacts(rendered);
   const size = parseFloat(cs.fontSize);
   const m = measureMetrics(familyCss(rendered), cs.fontWeight, cs.fontStyle, size);
@@ -228,7 +228,8 @@ function renderCard() {
   name.style.fontWeight = info.weight;
   name.style.fontStyle = info.style;
   const src = info.kind === 'web' ? SOURCE_LABEL[info.source] : info.kind === 'generic' ? 'Browser default' : 'System font';
-  $<HTMLElement>('.meta').textContent = `[${info.tag} · ${src.toUpperCase()}${info.catalogFamily && info.source !== 'google' ? ' · ON GOOGLE FONTS' : ''}]`;
+  const trying = current.el.getAttribute('data-ffp-swap');
+  $<HTMLElement>('.meta').textContent = `[${info.tag} · ${src.toUpperCase()}${info.catalogFamily && info.source !== 'google' ? ' · ON GOOGLE FONTS' : ''}]${trying ? ` · TRYING ${trying.toUpperCase()}` : ''}`;
   const fb = $<HTMLElement>('.fallback');
   fb.hidden = !info.fellBackFrom.length;
   fb.textContent = info.fellBackFrom.length ? `Fallback: ${info.fellBackFrom.join(', ')} did not load` : '';

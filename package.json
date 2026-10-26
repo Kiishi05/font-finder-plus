@@ -10,7 +10,8 @@
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
     "build:catalog": "node scripts/build-gf-catalog.mjs",
-    "test": "node tests/run.mjs"
+    "test": "node tests/run.mjs",
+    "build:shapes": "node scripts/build-gf-shapes.mjs"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "4.3.5",
