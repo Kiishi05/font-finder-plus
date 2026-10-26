@@ -28,6 +28,7 @@ export {
   Mouse01Icon,
   Cancel01Icon as CloseIcon,
   FolderAddIcon,
+  Download01Icon,
   ArrowReloadHorizontalIcon,
   StopCircleIcon,
   LanguageSquareIcon,

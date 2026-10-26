@@ -3,7 +3,7 @@ import { declarationCss, lineHeightLabel, rgbToHex, round, weightLabel } from '.
 import { Bookmark02Icon, Cancel01Icon, Copy01Icon, PinIcon, StopCircleIcon, Tick02Icon, iconSvg } from '../shared/icons';
 import type { ElementFontInfo } from '../shared/types';
 import { OWN_FONT_PREFIX, elementLabel, facesFor, familyCss, fontFacts, loadFaceMap, measureMetrics, resolveRendered, roleOf, type Rendered } from './detect';
-import { elementsForKey, familyOf, isOurNode } from './scan';
+import { elementsForKey, familyOf, isClipped, isOurNode } from './scan';
 import { css } from './inspector-css';
 
 declare const __FFP_TEST__: boolean;
@@ -481,6 +481,12 @@ function textRects(el: Element): DOMRect[] {
     range.selectNodeContents(n);
     for (const r of range.getClientRects()) if (r.width > 1 && r.height > 1) out.push(r);
   });
+  if (!out.length) {
+    // A paragraph whose text sits in child elements: use all of its text.
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    for (const r of range.getClientRects()) if (r.width > 1 && r.height > 1) out.push(r);
+  }
   return out;
 }
 
@@ -581,6 +587,29 @@ function clearMarks() {
  * Outline the text that uses a font (from "Show on page" in the side panel).
  * The outlines follow the page while it scrolls and fade after 6 seconds.
  */
+/** Outline a given set of elements (readability issues). Same toggle and fade as fonts. */
+export function highlightElements(id: string, els: Element[], label: string): { shown: number; hidden: number; cleared?: boolean } {
+  ensureUi();
+  const was = markKey;
+  clearMarks();
+  if (was === id) return { shown: 0, hidden: 0, cleared: true };
+  host!.hidden = false;
+  const shown = els.filter((e) => e.getClientRects().length && !isClipped(e));
+  if (!shown.length) return { shown: 0, hidden: els.length };
+  markGroups = shown.map((root) => ({ root, members: [root], block: !getComputedStyle(root).display.startsWith('inline') }));
+  markKey = id;
+  const flag = $<HTMLElement>('.flag');
+  flag.textContent = `${label} · ${shown.length} on the page`;
+  flag.hidden = false;
+  addEventListener('scroll', onMarkScroll, true);
+  addEventListener('resize', onMarkScroll);
+  const first = shown[0].getBoundingClientRect();
+  if (first.top < 0 || first.bottom > innerHeight) shown[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+  drawMarks();
+  markTimer = window.setTimeout(clearMarks, 6000);
+  return { shown: shown.length, hidden: els.length - shown.length };
+}
+
 export function highlightKey(key: string | null, label?: string): { shown: number; hidden: number; cleared?: boolean } {
   ensureUi();
   // Clicking "Show on page" again for the same font removes the outlines.

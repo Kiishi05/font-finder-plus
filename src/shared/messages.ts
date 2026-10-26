@@ -10,7 +10,9 @@ export type ToContent =
   | { type: 'ffp:swap'; key: string; family: string; faces: { base64: string; weight: string; style: string; unicodeRange: string | null }[]; generic: string; aspect: number | null }
   | { type: 'ffp:unswap'; key: string | null }
   | { type: 'ffp:vary'; key: string; settings: string | null; weight: string | null }
-  | { type: 'ffp:swaps' };
+  | { type: 'ffp:swaps' }
+  | { type: 'ffp:system' }
+  | { type: 'ffp:highlight-issue'; id: string; label: string };
 
 export interface PingReply {
   ok: true;

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { sendToExtension, sendToTab, type PingReply, type ScanReply, type ToExtension } from '../../shared/messages';
 import { DEFAULT_SETTINGS, getSettings, hasAllSitesAccess, onSettingsChanged, setSettings, type Settings } from '../../shared/settings';
-import type { ElementFontInfo, PageScan } from '../../shared/types';
+import type { ElementFontInfo, PageScan, SystemScan } from '../../shared/types';
 
 export interface TabState {
   tabId: number | null;
@@ -96,8 +96,22 @@ export function useActiveTab(): TabState {
   return { tabId, ping, injectError, inspecting, pinned, refresh: () => check(tabRef.current) };
 }
 
+// One scan per tab and address, shared by the Page and System tabs.
+const scanCache = new Map<string, PageScan>();
+const systemCache = new Map<string, SystemScan>();
+
+/** Keep each tab's latest scan for this browser session, for Compare. */
+function remember(tabId: number, scan: PageScan, system?: SystemScan) {
+  const key = `compare:${tabId}`;
+  chrome.storage.session.get(key).then((st) => {
+    const prev = (st[key] as { system?: SystemScan } | undefined) ?? {};
+    chrome.storage.session.set({ [key]: { scan, system: system ?? prev.system ?? null, savedAt: Date.now() } }).catch(() => undefined);
+  });
+}
+
 export function usePageScan(tabId: number | null, ready: boolean, url: string | undefined) {
-  const [scan, setScan] = useState<PageScan | null>(null);
+  const cacheKey = `${tabId}|${url}`;
+  const [scan, setScan] = useState<PageScan | null>(() => scanCache.get(cacheKey) ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,15 +123,49 @@ export function usePageScan(tabId: number | null, ready: boolean, url: string | 
     setLoading(false);
     if (!r) setError('The page did not answer. Reload the page and try again.');
     else if (!r.ok) setError(r.error);
-    else setScan(r.scan);
-  }, [tabId, ready]);
+    else {
+      scanCache.set(`${tabId}|${url}`, r.scan);
+      remember(tabId, r.scan);
+      setScan(r.scan);
+    }
+  }, [tabId, ready, url]);
 
   useEffect(() => {
-    setScan(null);
-    if (ready) run();
-  }, [run, ready, url]);
+    const cached = scanCache.get(cacheKey);
+    setScan(cached ?? null);
+    if (ready && !cached) run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [run, ready, cacheKey]);
 
   return { scan, loading, error, rescan: run };
+}
+
+export function useSystemScan(tabId: number | null, ready: boolean, url: string | undefined, scan: PageScan | null) {
+  const cacheKey = `${tabId}|${url}`;
+  const [system, setSystem] = useState<SystemScan | null>(() => systemCache.get(cacheKey) ?? null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const run = useCallback(async () => {
+    if (tabId == null || !ready) return;
+    setLoading(true);
+    setError(null);
+    const r = await sendToTab<{ ok: boolean; system?: SystemScan; error?: string }>(tabId, { type: 'ffp:system' }, 30000);
+    setLoading(false);
+    if (!r) setError('The page did not answer. Reload the page and try again.');
+    else if (!r.ok || !r.system) setError(r.error ?? 'Could not read the page.');
+    else {
+      systemCache.set(`${tabId}|${url}`, r.system);
+      if (scan) remember(tabId, scan, r.system);
+      setSystem(r.system);
+    }
+  }, [tabId, ready, url, scan]);
+  useEffect(() => {
+    const cached = systemCache.get(cacheKey);
+    setSystem(cached ?? null);
+    if (ready && !cached && scan) run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, cacheKey, !!scan]);
+  return { system, loading, error, rerun: run };
 }
 
 export function useSettings(): [Settings, (p: Partial<Settings>) => void] {

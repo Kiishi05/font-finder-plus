@@ -1,8 +1,9 @@
 import type { FetchFontReply, PingReply, ScanReply, ToContent } from '../shared/messages';
 import { arrayBufferToBase64 } from '../shared/messages';
 import { clearRenderCache } from './detect';
-import { highlightKey, isInspecting, setStateListener, start, stop } from './inspector';
+import { highlightElements, highlightKey, isInspecting, setStateListener, start, stop } from './inspector';
 import { scanPage } from './scan';
+import { elementsForIssue, scanSystem } from './system';
 import { activeSwaps, swapFont, unswap, varyFont } from './swap';
 
 declare global {
@@ -55,6 +56,16 @@ if (!window.__ffpLoaded) {
         return false;
       case 'ffp:swaps':
         reply({ ok: true, swaps: activeSwaps() });
+        return false;
+      case 'ffp:system':
+        try {
+          reply({ ok: true, system: scanSystem() });
+        } catch (err) {
+          reply({ ok: false, error: String((err as Error)?.message ?? err) });
+        }
+        return false;
+      case 'ffp:highlight-issue':
+        reply({ ok: true, ...highlightElements(`issue:${msg.id}`, elementsForIssue(msg.id), msg.label) });
         return false;
       case 'ffp:highlight':
         reply({ ok: true, ...highlightKey(msg.key, msg.label) });

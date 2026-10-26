@@ -34,7 +34,7 @@ export function isOurNode(node: Node | null): boolean {
 }
 
 /** All rendered elements that directly contain text. `hidden` holds those not visible right now. */
-function textElements(): { els: Element[]; hidden: Set<Element>; truncated: boolean } {
+export function textElements(): { els: Element[]; hidden: Set<Element>; truncated: boolean } {
   const set = new Set<Element>();
   const hidden = new Set<Element>();
   const walker = document.createTreeWalker(document.body ?? document.documentElement, NodeFilter.SHOW_TEXT, {
@@ -83,7 +83,7 @@ export function isClipped(el: Element): boolean {
   return false;
 }
 
-function ownText(el: Element): string {
+export function ownText(el: Element): string {
   let t = '';
   el.childNodes.forEach((n) => {
     if (n.nodeType === Node.TEXT_NODE) t += n.nodeValue;

@@ -9,10 +9,12 @@ import { FontDetail } from './views/FontDetail';
 import { LibraryView } from './views/LibraryView';
 import { PageView } from './views/PageView';
 import { SettingsView } from './views/SettingsView';
+import { SystemView } from './views/SystemView';
 
 export type View =
   | { name: 'page' }
   | { name: 'library' }
+  | { name: 'system' }
   | { name: 'settings' }
   | { name: 'detail'; fontId: string; usage?: PageFontUsage; from: 'page' | 'library' };
 
@@ -39,6 +41,7 @@ export function App() {
           <div className="brand">{BRAND.shortName}</div>
           <nav className="tabs" aria-label="Sections">
             <button aria-current={top === 'page' ? 'page' : undefined} onClick={() => setView({ name: 'page' })}>Page</button>
+            <button aria-current={top === 'system' ? 'page' : undefined} onClick={() => setView({ name: 'system' })}>System</button>
             <button aria-current={top === 'library' ? 'page' : undefined} onClick={() => setView({ name: 'library' })}>Library</button>
           </nav>
           <button className="iconbtn" aria-label="Settings" aria-current={view.name === 'settings' ? 'page' : undefined} onClick={() => setView(view.name === 'settings' ? { name: 'page' } : { name: 'settings' })}>
@@ -53,6 +56,7 @@ export function App() {
       {view.name === 'library' && (
         <LibraryView tester={libTester} onTester={setLibTester} onOpen={(fontId) => setView({ name: 'detail', fontId, from: 'library' })} />
       )}
+      {view.name === 'system' && <SystemView tab={tab} toast={showToast} />}
       {view.name === 'settings' && <SettingsView settings={settings} update={updateSettings} toast={showToast} />}
       {view.name === 'detail' && (
         <FontDetail

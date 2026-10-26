@@ -38,6 +38,7 @@
   --amber-soft: #fff3da;
   --amber-text: #7a4e00;
   --red-text: #b42318;
+  --red-soft: #fdecea;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   --ui: 'FFP Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: 'FFP JetBrains Mono', ui-monospace, Menlo, monospace;
@@ -60,6 +61,7 @@
   --amber-soft: #2a2010;
   --amber-text: #f2be6b;
   --red-text: #ff8a80;
+  --red-soft: #3a1d1b;
   color-scheme: dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -80,6 +82,7 @@
     --amber-soft: #2a2010;
     --amber-text: #f2be6b;
     --red-text: #ff8a80;
+    --red-soft: #3a1d1b;
     color-scheme: dark;
   }
 }
@@ -317,3 +320,22 @@ a.btn { text-decoration: none; }
 /* only the card that opens the collection picker grows */
 .grid2 { align-items: start; }
 .pairprev .role { align-self: flex-start; padding: 2px 8px; border-radius: 99px; background: var(--field); color: var(--ink); font-size: 11px; font-weight: 600; }
+
+/* system tab */
+.scalebox { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--field); font-size: 12.5px; }
+.styles { display: flex; flex-direction: column; }
+.stylerow { display: flex; flex-direction: column; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.stylesample { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.tagname { padding: 2px 8px; border-radius: 6px; background: var(--ink); color: var(--card); font: 11px var(--mono); flex: none; }
+.issues { display: flex; flex-direction: column; gap: 8px; }
+.issue { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 12px; background: var(--field); }
+.pill { flex: none; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+.pill.bad { background: var(--red-soft, #FDE8E8); color: var(--red-text); }
+.pill.warn { background: var(--amber-soft); color: var(--amber-text); }
+.pill.neutral { background: var(--card); color: var(--muted); }
+.pill.good { background: var(--green-soft); color: var(--green-text); }
+.tips { display: flex; flex-direction: column; gap: 8px; }
+.code { margin: 0; max-height: 280px; overflow: auto; padding: 12px; border-radius: 12px; background: var(--field); font: 11px/1.5 var(--mono); white-space: pre; }
+.cmp { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
+.cmp th, .cmp td { text-align: left; padding: 7px 6px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+.cmp th { font: 10px var(--mono); text-transform: uppercase; color: var(--muted); font-weight: 400; }

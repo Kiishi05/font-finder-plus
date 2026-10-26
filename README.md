@@ -2,7 +2,7 @@
 
 A Chrome extension (Manifest V3) for designers and developers. Hover any text to see the font that is really rendering, see every font a page uses, save fonts to collections, and copy their CSS.
 
-Status: **Phase 1 (Identify)**, **Phase 2 (Understand)** and **Phase 3 (Swap and Pair)** are complete. Later phases add type systems, export, specimen boards and identifying fonts from images.
+Status: Phases 1 to 4 are complete (Identify, Understand, Swap and Pair, System and Export). Later phases add specimen boards, share cards, library export, and identifying fonts from images.
 
 ## Load it in Chrome
 
@@ -35,6 +35,14 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
 - **Make it free** (Page tab): for paid or unknown-licence fonts, swaps each for its closest free match in one click, to preview the page with free fonts.
 - **Pairs well with** (font detail): suggested pairs with a heading and body preview and CSS to copy. Based on contrast in style, similar x-height ratio and widely used families. Suggestions, not rules.
 - **Variable playground** (font detail): a slider per axis and the CSS to copy. When the site's own file is variable, the settings can be applied live on the page.
+- **System tab:**
+  - **Type styles:** every distinct text style on the page (font, size, line height, weight, letter spacing, case), named from the HTML (h1 to h6, body, lead, small, button, link, code), with a check for a modular size scale (1.125, 1.2, 1.25, 1.333, 1.414, 1.5, 1.618).
+  - **Readability:** contrast against WCAG 2.1 AA (4.5:1, or 3:1 for large text), very small text, thin text at small sizes, body text under 16px, tight or loose line height, line length (45 to 80 characters), and all-caps text. Each issue can be outlined on the page.
+  - **Developer:** font files downloaded, their size and format, font-display per family, fonts loaded but not used, extra weights, preloads, and Google Fonts links without a display parameter.
+  - **Export:** CSS variables and classes, Tailwind v4 `@theme`, Tailwind v3 config, W3C design tokens JSON (Tokens Studio for Figma) and a Framer text style list. Copy or download.
+  - **Compare:** this page against another tab you have inspected in this browser session.
+- **Copy CSS** keeps a short stack: the families up to the one that renders, then one generic fallback.
+- The side panel stays open across tabs in a window and follows the tab you are on. With access to all sites, the inspector starts by itself on each tab; without it, click the icon once on each tab (Chrome's rule).
 - **Sample text:** each font's name, your own text, or a sample sentence in one of 16 languages.
 
 ## Permissions, and why each one is needed

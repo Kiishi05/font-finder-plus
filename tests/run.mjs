@@ -310,6 +310,47 @@ try {
   });
   check('save from page stored in library DB', saved.includes('Fraunces::google'), saved.join(', '));
 
+  // Phase 4: System tab
+  const page2 = await ctx.newPage();
+  await page2.goto(`http://127.0.0.1:${PORT}/page2.html`, { waitUntil: 'networkidle' });
+  const tab2 = await sw.evaluate(async () => (await chrome.tabs.query({})).find((t) => t.url?.includes('page2.html'))?.id);
+  await sw.evaluate(async (id) => chrome.scripting.executeScript({ target: { tabId: id }, files: ['content.js'] }), tab2);
+  const panel2 = await ctx.newPage();
+  await panel2.goto(`chrome-extension://${extId}/sidepanel.html?tab=${tab2}`);
+  await panel2.waitForSelector('.fcard', { timeout: 20000 });
+  await panel2.locator('.tabs button', { hasText: 'System' }).click();
+  await panel2.waitForSelector('#sys-styles', { timeout: 20000 });
+  await panel2.close();
+
+  await panel.locator('.tabs button', { hasText: 'System' }).click();
+  await panel.waitForSelector('#sys-styles', { timeout: 20000 });
+  await panel.waitForTimeout(1200);
+  await panel.screenshot({ path: path.join(out, 'panel-system.png'), fullPage: true });
+  const sysText = await panel.locator('body').innerText();
+  const names = await panel.evaluate(() => [...document.querySelectorAll('.tagname')].map((n) => n.textContent));
+  check('type styles listed and named', names.includes('h1') && names.includes('body'), names.join(', '));
+  check('size scale reported', /scale|No single size scale/i.test(await panel.locator('.scalebox').innerText()));
+  check('readability flags low contrast', /Low contrast text/.test(sysText));
+  await panel.locator('.issue', { hasText: 'Low contrast text' }).locator('button', { hasText: 'Show on page' }).click();
+  await page.waitForTimeout(300);
+  check('readability Show on page outlines the text', await page.evaluate(() => document.getElementById('ffp-root').shadowRoot.querySelectorAll('.mark').length >= 1));
+  check('developer section counts font files', /\[Files\]\s*\n?\s*[1-9]/i.test(sysText) || /FILES\]\s*[1-9]/.test(sysText), (sysText.match(/FILES\][^\n]*\n?[^\n]*/i) || [''])[0]);
+  const exported = async () => panel.locator('pre.code').innerText();
+  const css = await exported();
+  check('CSS export has variables and a Google Fonts import', css.includes('--font-heading') && css.includes('fonts.googleapis.com/css2?family=Fraunces') && css.includes('.text-h1'));
+  await panel.selectOption('select[aria-label="Export format"]', 'tailwind4');
+  check('Tailwind v4 export uses @theme', (await exported()).includes('@theme {') && (await exported()).includes('--text-h1--line-height'));
+  await panel.selectOption('select[aria-label="Export format"]', 'tailwind3');
+  check('Tailwind v3 export is a config', (await exported()).includes('module.exports') && (await exported()).includes('fontSize'));
+  await panel.selectOption('select[aria-label="Export format"]', 'tokens');
+  let tokensOk = false;
+  try { const t = JSON.parse(await exported()); tokensOk = t.typography?.h1?.$type === 'typography'; } catch { tokensOk = false; }
+  check('design tokens export is valid JSON', tokensOk);
+  await panel.selectOption('select[aria-label="Export format"]', 'framer');
+  check('Framer export lists text styles', (await exported()).includes('Line height:'));
+  const cmp = await panel.locator('#sys-compare').innerText();
+  check('compare shows the other tab', cmp.includes('127.0.0.1') && /Fonts/.test(cmp) && /Body text/.test(cmp), cmp.slice(0, 120).replace(/\n/g, ' '));
+
   // Dark theme screenshot
   await panel.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await panel.locator('.tabs button', { hasText: 'Page' }).click();

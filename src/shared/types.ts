@@ -222,3 +222,64 @@ export interface ImageJob {
   ocrText?: string;
   results?: unknown;
 }
+
+/** One distinct text style on a page (System tab). */
+export interface TextStyle {
+  id: string;
+  /** Key of the font in the page scan. */
+  fontKey: string;
+  family: string;
+  displayName: string;
+  declared: string[];
+  size: number;
+  /** Line height in px, or null for "normal". */
+  lineHeight: number | null;
+  weight: string;
+  style: string;
+  /** Letter spacing in px (0 for normal). */
+  letterSpacing: number;
+  transform: string;
+  tags: Record<string, number>;
+  roles: Partial<Record<Role, number>>;
+  count: number;
+  sample: string;
+}
+
+export interface ReadabilityIssue {
+  id: string;
+  level: 'fail' | 'warn' | 'tip';
+  title: string;
+  detail: string;
+  count: number;
+  sample: string;
+}
+
+export interface DevFace {
+  family: string;
+  weight: string;
+  style: string;
+  status: string;
+  display: string;
+  url: string | null;
+  format: string | null;
+  unicodeRange: string | null;
+}
+
+export interface DevResource {
+  url: string;
+  bytes: number | null;
+  ms: number;
+}
+
+export interface DevInfo {
+  faces: DevFace[];
+  resources: DevResource[];
+  preloads: string[];
+  googleCss: string[];
+}
+
+export interface SystemScan {
+  styles: TextStyle[];
+  issues: ReadabilityIssue[];
+  dev: DevInfo;
+}
