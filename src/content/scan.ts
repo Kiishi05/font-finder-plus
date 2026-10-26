@@ -52,9 +52,30 @@ function textElements(): { els: Element[]; hidden: Set<Element>; truncated: bool
     // Text that is transparent or hidden right now (often waiting to animate in on scroll).
     const ev = el as Element & { checkVisibility?: (o: object) => boolean };
     if (ev.checkVisibility && !ev.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) hidden.add(el);
+    else if (isTucked(el.getBoundingClientRect())) hidden.add(el);
     set.add(el);
   }
   return { els: [...set], hidden, truncated };
+}
+
+/** Text for screen readers only (a 1px box) or moved off the side of the page. */
+function isTucked(r: DOMRect): boolean {
+  if (r.width <= 2 || r.height <= 2) return true;
+  const docW = Math.max(document.documentElement.scrollWidth, innerWidth);
+  return r.right + scrollX <= 0 || r.left + scrollX >= docW;
+}
+
+/** Hidden by a parent that clips it (closed dropdowns, carousels, collapsed panels). */
+export function isClipped(el: Element): boolean {
+  const r = el.getBoundingClientRect();
+  let p = el.parentElement;
+  for (let i = 0; p && p !== document.body && i < 20; i++, p = p.parentElement) {
+    const cs = getComputedStyle(p);
+    if (cs.overflowX === 'visible' && cs.overflowY === 'visible' && cs.clipPath === 'none') continue;
+    const pr = p.getBoundingClientRect();
+    if (r.right <= pr.left + 1 || r.left >= pr.right - 1 || r.bottom <= pr.top + 1 || r.top >= pr.bottom - 1) return true;
+  }
+  return false;
 }
 
 function ownText(el: Element): string {
@@ -70,7 +91,7 @@ interface Combo {
   weight: string;
   style: string;
   text: string;
-  els: { el: Element; cs: CSSStyleDeclaration }[];
+  els: { el: Element; cs: CSSStyleDeclaration; hidden: boolean }[];
   allHidden: boolean;
 }
 
@@ -90,7 +111,7 @@ export async function scanPage(): Promise<PageScan> {
       combos.set(key, c);
     }
     if (c.text.length < 300) c.text += ownText(el).slice(0, 120) + ' ';
-    c.els.push({ el, cs });
+    c.els.push({ el, cs, hidden: hidden.has(el) });
     if (!hidden.has(el)) c.allHidden = false;
   }
 
@@ -127,6 +148,7 @@ export async function scanPage(): Promise<PageScan> {
         declaredStacks: [],
         roles: {},
         elementCount: 0,
+        hiddenCount: 0,
         weights: [],
         styles: [],
         sizes: [],
@@ -148,9 +170,10 @@ export async function scanPage(): Promise<PageScan> {
     }
     if (!f.weights.includes(combo.weight)) f.weights.push(combo.weight);
     if (!f.styles.includes(combo.style)) f.styles.push(combo.style);
-    for (const { el, cs } of combo.els) {
+    for (const { el, cs, hidden: isHidden } of combo.els) {
       elementCount++;
       f.elementCount++;
+      if (isHidden || isClipped(el)) f.hiddenCount++;
       const role: Role = roleOf(el);
       f.roles[role] = (f.roles[role] ?? 0) + 1;
       const size = parseFloat(cs.fontSize);
@@ -226,17 +249,19 @@ async function settleLazyFonts(combos: Combo[]): Promise<void> {
   await Promise.race([Promise.all(pending), new Promise((r) => setTimeout(r, 3000))]);
 }
 
-/** Elements on the page that render with the given font key, for highlighting. */
-export function elementsForKey(key: string, limit = 300): Element[] {
-  const { els } = textElements();
-  const out: Element[] = [];
+/** Elements on the page that render with the given font key, split into ones you can see and ones you cannot. */
+export function elementsForKey(key: string, limit = 400): { shown: Element[]; hidden: number; all: Element[] } {
+  const { els, hidden } = textElements();
+  const shown: Element[] = [];
+  let hiddenCount = 0;
   for (const el of els) {
-    const cs = getComputedStyle(el);
     const text = ownText(el);
     if (isIconText(text)) continue;
+    const cs = getComputedStyle(el);
     const r = resolveRendered(cs.fontFamily, cs.fontWeight, cs.fontStyle, text);
-    if (`${r.family}::${r.kind}` === key) out.push(el);
-    if (out.length >= limit) break;
+    if (`${r.family}::${r.kind}` !== key) continue;
+    if (hidden.has(el) || isClipped(el)) hiddenCount++;
+    else if (shown.length < limit) shown.push(el);
   }
-  return out;
+  return { shown, hidden: hiddenCount, all: els };
 }

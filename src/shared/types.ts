@@ -55,6 +55,8 @@ export interface PageFontUsage {
   declaredStacks: string[];
   roles: Partial<Record<Role, number>>;
   elementCount: number;
+  /** How many of those elements cannot be seen right now (closed menus, fading-in text, screen-reader text). */
+  hiddenCount: number;
   weights: string[];
   styles: string[];
   sizes: number[];

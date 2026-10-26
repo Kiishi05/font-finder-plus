@@ -41,7 +41,7 @@ if (!window.__ffpLoaded) {
         fetchFont(msg.url).then(reply);
         return true;
       case 'ffp:highlight':
-        reply({ ok: true, count: highlightKey(msg.key, msg.label) });
+        reply({ ok: true, ...highlightKey(msg.key, msg.label) });
         return false;
     }
     return false;

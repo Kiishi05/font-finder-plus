@@ -467,7 +467,7 @@ export function stop() {
 
 // ------------------------------------------------------------------ show on page
 
-let markEls: Element[] = [];
+let markGroups: { root: Element; members: Element[]; block: boolean }[] = [];
 let markTimer = 0;
 let markRaf = 0;
 
@@ -483,19 +483,75 @@ function textRects(el: Element): DOMRect[] {
   return out;
 }
 
+/**
+ * Group the matching text into blocks. A paragraph or list whose text all uses
+ * this font gets one outline; where the font is mixed with others (a link
+ * inside a paragraph set in another font) only the words are outlined.
+ */
+function groupMarks(shown: Element[], all: Element[]) {
+  const marked = new Set(shown);
+  const total = new Map<Element, number>();
+  const hits = new Map<Element, number>();
+  for (const el of all) {
+    let p: Element | null = el;
+    for (let i = 0; p && p !== document.body && i < 5; i++, p = p.parentElement) {
+      total.set(p, (total.get(p) ?? 0) + 1);
+      if (marked.has(el)) hits.set(p, (hits.get(p) ?? 0) + 1);
+    }
+  }
+  const byRoot = new Map<Element, Element[]>();
+  for (const el of shown) {
+    let root: Element = el;
+    let p = el.parentElement;
+    for (let i = 0; p && p !== document.body && i < 4; i++, p = p.parentElement) {
+      const t = total.get(p) ?? 0;
+      if (t > 14 || t !== (hits.get(p) ?? 0)) break;
+      root = p;
+    }
+    const list = byRoot.get(root) ?? [];
+    list.push(el);
+    byRoot.set(root, list);
+  }
+  // Merge groups that sit inside another group.
+  const roots = [...byRoot.keys()];
+  for (const r of roots) {
+    const outer = roots.find((o) => o !== r && byRoot.has(o) && o.contains(r));
+    if (outer) {
+      byRoot.get(outer)!.push(...byRoot.get(r)!);
+      byRoot.delete(r);
+    }
+  }
+  markGroups = [...byRoot.entries()].map(([root, members]) => ({
+    root,
+    members,
+    block: !getComputedStyle(root).display.startsWith('inline'),
+  }));
+}
+
 function drawMarks() {
   if (!root) return;
   const marks = $<HTMLElement>('.marks');
   const frag = document.createDocumentFragment();
-  for (const el of markEls) {
-    for (const r of textRects(el)) {
-      if (r.bottom < 0 || r.top > innerHeight) continue;
-      const d = document.createElement('div');
-      d.className = 'mark';
-      d.style.transform = `translate(${r.left - 3}px, ${r.top - 2}px)`;
-      d.style.width = `${r.width + 6}px`;
-      d.style.height = `${r.height + 4}px`;
-      frag.appendChild(d);
+  const box = (r: { left: number; top: number; width: number; height: number }) => {
+    if (r.top + r.height < 0 || r.top > innerHeight) return;
+    const d = document.createElement('div');
+    d.className = 'mark';
+    d.style.transform = `translate(${r.left - 4}px, ${r.top - 3}px)`;
+    d.style.width = `${r.width + 8}px`;
+    d.style.height = `${r.height + 6}px`;
+    frag.appendChild(d);
+  };
+  for (const g of markGroups) {
+    const rects = g.members.flatMap(textRects);
+    if (!rects.length) continue;
+    if (g.block) {
+      const left = Math.min(...rects.map((r) => r.left));
+      const top = Math.min(...rects.map((r) => r.top));
+      const right = Math.max(...rects.map((r) => r.right));
+      const bottom = Math.max(...rects.map((r) => r.bottom));
+      box({ left, top, width: right - left, height: bottom - top });
+    } else {
+      rects.forEach(box);
     }
   }
   marks.replaceChildren(frag);
@@ -507,7 +563,7 @@ function onMarkScroll() {
 }
 
 function clearMarks() {
-  markEls = [];
+  markGroups = [];
   clearTimeout(markTimer);
   removeEventListener('scroll', onMarkScroll, true);
   removeEventListener('resize', onMarkScroll);
@@ -521,21 +577,30 @@ function clearMarks() {
  * Outline the text that uses a font (from "Show on page" in the side panel).
  * The outlines follow the page while it scrolls and fade after 6 seconds.
  */
-export function highlightKey(key: string | null, label?: string): number {
+export function highlightKey(key: string | null, label?: string): { shown: number; hidden: number } {
   ensureUi();
   clearMarks();
-  if (!key) return 0;
+  if (!key) return { shown: 0, hidden: 0 };
   host!.hidden = false;
-  markEls = elementsForKey(key);
-  if (!markEls.length) return 0;
+  const { shown, hidden, all } = elementsForKey(key);
   const flag = $<HTMLElement>('.flag');
-  flag.textContent = `${label ?? 'This font'} · ${markEls.length} ${markEls.length === 1 ? 'place' : 'places'}`;
+  const name = label ?? 'This font';
+  if (!shown.length) {
+    flag.textContent = hidden
+      ? `${name} is only in parts of the page you cannot see right now, such as a closed menu or a pop-up`
+      : `${name} is not on the page right now`;
+    flag.hidden = false;
+    markTimer = window.setTimeout(clearMarks, 5000);
+    return { shown: 0, hidden };
+  }
+  groupMarks(shown, all);
+  flag.textContent = `${name} · ${shown.length} on the page${hidden ? ` · ${hidden} hidden in menus or pop-ups` : ''}`;
   flag.hidden = false;
   addEventListener('scroll', onMarkScroll, true);
   addEventListener('resize', onMarkScroll);
-  const first = markEls[0].getBoundingClientRect();
-  if (first.top < 0 || first.bottom > innerHeight) markEls[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const first = shown[0].getBoundingClientRect();
+  if (first.top < 0 || first.bottom > innerHeight) shown[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
   drawMarks();
   markTimer = window.setTimeout(clearMarks, 6000);
-  return markEls.length;
+  return { shown: shown.length, hidden };
 }

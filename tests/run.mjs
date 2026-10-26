@@ -137,9 +137,20 @@ try {
     const sr = document.getElementById('ffp-root').shadowRoot;
     const h = document.querySelector('h1').getBoundingClientRect();
     const ms = [...sr.querySelectorAll('.mark')].map((m) => m.getBoundingClientRect());
-    return { n: ms.length, onHeading: ms.some((m) => m.top >= h.top - 6 && m.bottom <= h.bottom + 6 && m.width <= h.width + 8), flag: sr.querySelector('.flag').textContent };
+    return { n: ms.length, onHeading: ms.some((m) => m.top >= h.top - 16 && m.bottom <= h.bottom + 16 && m.width <= h.width + 12), flag: sr.querySelector('.flag').textContent };
   });
   check('Show on page outlines the text', marks.n >= 2 && marks.onHeading, JSON.stringify(marks));
+  check('Show on page counts text hidden in a closed menu', /2 hidden/.test(marks.flag), marks.flag);
+  check('hidden uses are counted in the scan', fam('Fraunces')?.hiddenCount === 2, String(fam('Fraunces')?.hiddenCount));
+  await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).locator('button', { hasText: 'Show on page' }).click();
+  await page.waitForTimeout(300);
+  const quote = await page.evaluate(() => {
+    const sr = document.getElementById('ffp-root').shadowRoot;
+    const ms = [...sr.querySelectorAll('.mark')].map((m) => m.getBoundingClientRect());
+    const q = document.querySelector('blockquote').getBoundingClientRect();
+    return { n: ms.length, covers: ms.length === 1 && ms[0].top <= q.top + 4 && ms[0].bottom >= q.bottom - 4 };
+  });
+  check('a paragraph in one font is outlined as one block', quote.covers, JSON.stringify(quote));
   await page.screenshot({ path: path.join(out, 'show-on-page.png') });
   // Language sample
   await panel.selectOption('select[aria-label="Language sample"]', 'yo');

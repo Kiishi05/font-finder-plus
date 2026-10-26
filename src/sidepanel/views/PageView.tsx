@@ -184,8 +184,8 @@ function FontCard({ f, tester, tabId, host, onOpen, toast }: { f: PageFontUsage;
   };
   const show = async () => {
     if (tabId == null) return;
-    const r = await sendToTab<{ count: number }>(tabId, { type: 'ffp:highlight', key: f.key, label: name });
-    if (r && !r.count) toast(`${name} is not visible on the page right now`);
+    const r = await sendToTab<{ shown: number; hidden: number }>(tabId, { type: 'ffp:highlight', key: f.key, label: name });
+    if (r && !r.shown) toast(r.hidden ? `${name} is only in hidden parts of the page, like a closed menu. Open it and try again.` : `${name} is not on the page right now`);
   };
 
   return (
@@ -207,6 +207,7 @@ function FontCard({ f, tester, tabId, host, onOpen, toast }: { f: PageFontUsage;
       </div>
       <div className="fmeta label">
         Used for {roleSummary(f) || 'text'}
+        {f.hiddenCount > 0 && (f.hiddenCount === f.elementCount ? ' · all hidden right now (menus or pop-ups)' : ` · ${f.hiddenCount} hidden right now`)}
         {name !== f.family && <> · CSS name {f.family}</>}
       </div>
       <div className="actions">
