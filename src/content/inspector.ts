@@ -531,7 +531,9 @@ function groupMarks(shown: Element[], all: Element[]) {
   markGroups = [...byRoot.entries()].map(([root, members]) => ({
     root,
     members,
-    block: !getComputedStyle(root).display.startsWith('inline'),
+    // One box only when every piece of text inside uses this font. If another
+    // font is mixed in (a code word in a sentence), each piece gets its own outline.
+    block: (total.get(root) ?? 1) === (hits.get(root) ?? 1) && !getComputedStyle(root).display.startsWith('inline'),
   }));
 }
 

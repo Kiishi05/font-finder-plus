@@ -57,6 +57,20 @@
   <p class="faint">A pale line of supporting text that is hard to read against the warm background colour of this page.</p>
   <p class="note">A quiet aside in a font that is not installed.</p>
   <button><i class="ico" aria-hidden="true">&#xE001;</i> Subscribe</button>
+  <section id="late"></section>
 </main>
+<script>
+  // A font that arrives later, the way many sites load fonts after the page settles.
+  setTimeout(() => {
+    const l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=Lobster&display=swap';
+    document.head.appendChild(l);
+    const h = document.createElement('h2');
+    h.textContent = 'A late arrival';
+    h.style.fontFamily = "'Lobster', cursive";
+    document.getElementById('late').appendChild(h);
+  }, 3000);
+</script>
 </body>
 </html>

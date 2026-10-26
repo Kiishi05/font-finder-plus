@@ -22,8 +22,8 @@ const LEVEL: Record<ReadabilityIssue['level'], { text: string; tone: string }> =
 
 export function SystemView({ tab, toast }: Props) {
   const ready = !!tab.ping;
-  const { scan } = usePageScan(tab.tabId, ready, tab.ping?.url);
-  const { system, loading, error, rerun } = useSystemScan(tab.tabId, ready, tab.ping?.url, scan);
+  const { scan } = usePageScan(tab.tabId, ready, tab.ping?.url, tab.fontsVersion);
+  const { system, loading, error, rerun } = useSystemScan(tab.tabId, ready, tab.ping?.url, scan, tab.fontsVersion);
   const styles = useMemo(() => (system ? nameStyles(system.styles) : []), [system]);
 
   if (!ready) {

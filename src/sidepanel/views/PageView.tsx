@@ -6,7 +6,7 @@ import { db, saveFont } from '../../shared/db';
 import { Alert02Icon, ArrowDown01Icon, ArrowRight01Icon, ArrowUp01Icon, Bookmark02Icon, CloseIcon, SourceCodeIcon, Target02Icon } from '../../shared/icons';
 import { sendToExtension, sendToTab } from '../../shared/messages';
 import { bestFileUrl, fontId, recordFromUsage } from '../../shared/records';
-import { hasAllSitesAccess } from '../../shared/settings';
+import { hasAllSitesAccess, requestAllSitesAccess } from '../../shared/settings';
 import type { PageFontUsage, Role } from '../../shared/types';
 import { CollectionPicker } from '../components/CollectionPicker';
 import { MissingNote } from '../components/MissingNote';
@@ -47,12 +47,19 @@ interface Props {
 
 export function PageView({ tab, tester, onTester, onOpen, toast }: Props) {
   const ready = !!tab.ping;
-  const { scan, loading, error, rescan } = usePageScan(tab.tabId, ready, tab.ping?.url);
+  const { scan, loading, error, rescan } = usePageScan(tab.tabId, ready, tab.ping?.url, tab.fontsVersion);
   const [canInject, setCanInject] = useState(false);
   const swaps = useSwaps(ready ? tab.tabId : null);
 
   useEffect(() => {
     hasAllSitesAccess().then(setCanInject);
+    const on = () => hasAllSitesAccess().then(setCanInject);
+    chrome.permissions.onAdded.addListener(on);
+    chrome.permissions.onRemoved.addListener(on);
+    return () => {
+      (chrome.permissions.onAdded as unknown as chrome.events.Event<() => void>).removeListener(on);
+      (chrome.permissions.onRemoved as unknown as chrome.events.Event<() => void>).removeListener(on);
+    };
   }, [ready]);
 
   // Read each web font's file in the background to fill in format, foundry and style.
@@ -62,29 +69,42 @@ export function PageView({ tab, tester, onTester, onOpen, toast }: Props) {
     analyzeAll(bases, tab.tabId);
   }, [scan, tab.tabId]);
 
+  // With access to all sites, read the page as soon as you are on it.
+  const autoTried = useRef<string | null>(null);
+  useEffect(() => {
+    if (ready || !canInject || tab.tabId == null || tab.injectError) return;
+    const k = String(tab.tabId);
+    if (autoTried.current === k) return;
+    autoTried.current = k;
+    sendToExtension({ type: 'ffp:inject', tabId: tab.tabId, startInspecting: true }).then(() => tab.refresh());
+  }, [ready, canInject, tab.tabId, tab.injectError, tab]);
+
   if (!ready) {
     return (
       <>
         <div className="empty">
-          <h2>Inspect the fonts on this page</h2>
+          <h2>{tab.injectError ? 'This page cannot be read' : canInject ? 'Reading this page…' : 'Read the fonts on this page'}</h2>
           {tab.injectError ? (
             <p>{tab.injectError}</p>
+          ) : canInject ? (
+            <p>If nothing appears, reload the page.</p>
           ) : (
-            <p>
-              Click the Font Finder Plus icon in Chrome's toolbar, or press <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd>, to inspect this tab.
-              {!canInject && ' Chrome only lets the extension read a tab after you click it there. To follow you between tabs automatically, allow access to all sites in Settings.'}
-            </p>
-          )}
-          {canInject && tab.tabId != null && !tab.injectError && (
-            <button
-              className="btn primary"
-              onClick={async () => {
-                await sendToExtension({ type: 'ffp:inject', tabId: tab.tabId!, startInspecting: true });
-                tab.refresh();
-              }}
-            >
-              Inspect this page
-            </button>
+            <>
+              <p>
+                Chrome only lets the extension read a page after you click its icon on that page. Click the <b>Ff</b> icon in Chrome's toolbar
+                (top right; if you do not see it, click the puzzle piece and pin Font Finder Plus), or press <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd>.
+              </p>
+              <p>To read every page by itself, without clicking each time, allow access to all sites. You can turn this off in Settings.</p>
+              <button
+                className="btn primary"
+                onClick={async () => {
+                  const ok = await requestAllSitesAccess();
+                  setCanInject(ok);
+                }}
+              >
+                Allow access to all sites
+              </button>
+            </>
           )}
         </div>
         <Guide force />
@@ -334,7 +354,15 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
   };
   return (
     <section className="section">
-      <h2>[Make it free]</h2>
+      <div className="row" style={{ justifyContent: 'space-between' }}>
+        <h2>[Make it free]</h2>
+        {rows.length > 5 && (
+          <button className="linkbtn row" style={{ gap: 4, textDecoration: 'none', fontSize: 12 }} aria-expanded={all} onClick={() => setAll(!all)}>
+            {all ? 'Show fewer' : `Show all ${rows.length}`}
+            <Icon icon={all ? ArrowUp01Icon : ArrowDown01Icon} size={14} />
+          </button>
+        )}
+      </div>
       <span style={{ fontSize: 12.5 }}>
         {rows.length === 1 ? 'One font on this page is' : `${rows.length} fonts on this page are`} paid or have an unknown licence. Preview the page with the closest free Google Fonts instead.
       </span>
@@ -347,12 +375,6 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
           </div>
         ))}
       </div>
-      {rows.length > 5 && (
-        <button className="linkbtn row" style={{ gap: 4, alignSelf: 'flex-start', textDecoration: 'none' }} aria-expanded={all} onClick={() => setAll(!all)}>
-          {all ? 'Show fewer' : `Show ${rows.length - 5} more`}
-          <Icon icon={all ? ArrowUp01Icon : ArrowDown01Icon} size={14} />
-        </button>
-      )}
       <div className="row" style={{ gap: 6 }}>
         <button className="btn sm primary" onClick={swapAll} disabled={busy || !rows.some((r) => r.match)}>{busy ? 'Loading fonts…' : anySwapped ? 'Swap again' : 'Swap all on the page'}</button>
         {anySwapped && <button className="btn sm" onClick={() => undoSwap(tabId, null)}>Undo all</button>}

@@ -156,6 +156,17 @@ try {
   await page.waitForTimeout(200);
   check('second click removes the outlines', await page.evaluate(() => document.getElementById('ffp-root').shadowRoot.querySelectorAll('.mark').length === 0));
   check('button returns to Show on page', (await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).locator('button', { hasText: 'Show on page' }).count()) === 1);
+  await panel.locator('.fcard', { hasText: 'Inter' }).first().locator('button', { hasText: 'Show on page' }).click();
+  await page.waitForTimeout(300);
+  const mixed = await page.evaluate(() => {
+    const sr = document.getElementById('ffp-root').shadowRoot;
+    const code = document.querySelector('code').getBoundingClientRect();
+    const ms = [...sr.querySelectorAll('.mark')].map((m) => m.getBoundingClientRect());
+    const coversCode = ms.some((m) => m.left <= code.left + 2 && m.right >= code.right - 2 && m.top <= code.top + 2 && m.bottom >= code.bottom - 2);
+    return { n: ms.length, coversCode };
+  });
+  check('mixed paragraph: the code word in another font is not outlined', mixed.n >= 2 && !mixed.coversCode, JSON.stringify(mixed));
+  await panel.locator('.fcard', { hasText: 'Inter' }).first().locator('button', { hasText: 'Hide outlines' }).click();
   await page.screenshot({ path: path.join(out, 'show-on-page.png') });
   // Language sample
   await panel.selectOption('select[aria-label="Language sample"]', 'yo');
@@ -163,7 +174,11 @@ try {
   await panel.selectOption('select[aria-label="Language sample"]', 'ar');
   await panel.waitForTimeout(400);
   const miss = await panel.locator('.missing').first().innerText().catch(() => '');
-  check('missing letters are named in words', /does not support Arabic/.test(miss), miss.slice(0, 80));
+  check('missing letters are named in words, in quotes', /does not support Arabic\. \d+ letters are missing \(“/.test(miss), miss.slice(0, 90));
+  await panel.selectOption('select[aria-label="Language sample"]', 'zh-hans');
+  await panel.waitForTimeout(500);
+  const missZh = await panel.locator('.missing').first().innerText().catch(() => '');
+  check('missing Chinese is detected too', /does not support Chinese/.test(missZh), missZh.slice(0, 80));
   await panel.selectOption('select[aria-label="Language sample"]', 'yo');
   await panel.waitForTimeout(150);
   check('language sample shows Yoruba text', (await panel.locator('.fcard .specimen').first().innerText()).includes('káàárọ̀'));
@@ -350,6 +365,19 @@ try {
   check('Framer export lists text styles', (await exported()).includes('Line height:'));
   const cmp = await panel.locator('#sys-compare').innerText();
   check('compare shows the other tab', cmp.includes('127.0.0.1') && /Fonts/.test(cmp) && /Body text/.test(cmp), cmp.slice(0, 120).replace(/\n/g, ' '));
+
+  // A font that loads later is picked up without clicking anything
+  await panel.locator('.tabs button', { hasText: 'Page' }).click();
+  await panel.waitForFunction(() => [...document.querySelectorAll('.fcard')].some((c) => c.textContent.includes('Lobster')), null, { timeout: 20000 }).catch(() => {});
+  check('a font that loads later is added to the list by itself', (await panel.locator('.fcard', { hasText: 'Lobster' }).count()) === 1);
+
+  // Going to another page in the same tab: read by itself (access to all sites is on in the test build)
+  await page.goto(`http://127.0.0.1:${PORT}/page2.html`, { waitUntil: 'networkidle' });
+  await panel.waitForFunction(() => document.body.innerText.includes('Second page') || [...document.querySelectorAll('.fcard')].length === 1, null, { timeout: 20000 }).catch(() => {});
+  await panel.waitForTimeout(1500);
+  const navCards = await panel.evaluate(() => [...document.querySelectorAll('.fcard .fname')].map((n) => n.firstChild?.textContent));
+  check('a new page in the tab is read by itself', navCards.length === 1 && navCards[0] === 'Inter', JSON.stringify(navCards));
+  await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'networkidle' });
 
   // Dark theme screenshot
   await panel.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));

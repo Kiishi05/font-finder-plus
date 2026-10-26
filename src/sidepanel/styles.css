@@ -7,6 +7,15 @@
   font-weight: 100 900;
   font-style: normal italic;
 }
+/* The same boxes drawn wider. A character the font lacks changes width
+   between the two, which is how missing characters are found (any script). */
+@font-face {
+  font-family: 'FFP NotDef Wide';
+  src: url('/fonts/AdobeNotDef.otf') format('opentype');
+  size-adjust: 150%;
+  font-weight: 100 900;
+  font-style: normal italic;
+}
 @font-face {
   font-family: 'FFP Inter';
   src: url('/fonts/Inter.woff2') format('woff2');

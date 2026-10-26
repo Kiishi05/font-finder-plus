@@ -2,7 +2,7 @@ import type { FetchFontReply, PingReply, ScanReply, ToContent } from '../shared/
 import { arrayBufferToBase64 } from '../shared/messages';
 import { clearRenderCache } from './detect';
 import { highlightElements, highlightKey, isInspecting, setStateListener, start, stop } from './inspector';
-import { scanPage } from './scan';
+import { scanPage, watchNewFonts } from './scan';
 import { elementsForIssue, scanSystem } from './system';
 import { activeSwaps, swapFont, unswap, varyFont } from './swap';
 
@@ -73,6 +73,8 @@ if (!window.__ffpLoaded) {
     }
     return false;
   });
+
+  watchNewFonts();
 
   // Tell the side panel when a single-page app changes its URL.
   let lastUrl = location.href;

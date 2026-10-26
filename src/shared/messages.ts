@@ -32,6 +32,7 @@ export interface FetchFontReply {
 export type ToExtension =
   | { type: 'ffp:inspector-state'; on: boolean; url: string }
   | { type: 'ffp:page-changed'; url: string }
+  | { type: 'ffp:fonts-changed'; url: string }
   | { type: 'ffp:pinned'; info: ElementFontInfo; pageUrl: string }
   | { type: 'ffp:save-from-page'; info: ElementFontInfo; pageUrl: string; fileUrl: string | null; files: FaceFile[] }
   | { type: 'ffp:open-detail'; family: string; source: SourceKind }

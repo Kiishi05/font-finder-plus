@@ -25,7 +25,7 @@ export const css = `
   pointer-events: none;
 }
 .card.pinned { pointer-events: auto; box-shadow: 0 0 0 2px #111111, 0 18px 44px rgba(0,0,0,0.2); }
-.head { display: flex; align-items: center; gap: 6px; padding: 0 2px 0 4px; }
+.head { display: flex; align-items: flex-start; gap: 6px; padding: 0 2px 0 4px; }
 .titles { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .name { font-size: 22px; line-height: 1.1; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: #111111; }
 .meta { font: 9.5px/1.5 "FFP JetBrains Mono", ui-monospace, monospace; color: #5C5C5A; letter-spacing: 0.02em; }

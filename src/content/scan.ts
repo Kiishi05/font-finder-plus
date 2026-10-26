@@ -207,6 +207,7 @@ export async function scanPage(): Promise<PageScan> {
     })
     .sort((a, b) => b.elementCount - a.elementCount);
 
+  rememberLoadedFamilies();
   return {
     url: location.href,
     host: location.hostname,
@@ -273,4 +274,38 @@ export function elementsForKey(key: string, limit = 400): { shown: Element[]; hi
     } else if (shown.length < limit) shown.push(el);
   }
   return { shown, hidden: hiddenCount, hiddenEls, all: els };
+}
+
+// ------------------------------------------------------------- new fonts later
+// Many sites load fonts as you scroll or after the page settles. When a font
+// family the last scan did not see finishes loading, the side panel is told so
+// it can read the page again.
+
+let knownFamilies = new Set<string>();
+
+function loadedFamilies(): Set<string> {
+  const out = new Set<string>();
+  document.fonts.forEach((f) => {
+    const fam = f.family.replace(/['"]/g, '');
+    if (f.status === 'loaded' && !fam.startsWith('FFP ')) out.add(fam.toLowerCase());
+  });
+  return out;
+}
+
+function rememberLoadedFamilies() {
+  knownFamilies = loadedFamilies();
+}
+
+let fontTimer = 0;
+export function watchNewFonts() {
+  document.fonts.addEventListener('loadingdone', () => {
+    window.clearTimeout(fontTimer);
+    fontTimer = window.setTimeout(() => {
+      const now = loadedFamilies();
+      const fresh = [...now].some((f) => !knownFamilies.has(f));
+      if (!fresh) return;
+      knownFamilies = now;
+      chrome.runtime.sendMessage({ type: 'ffp:fonts-changed', url: location.href }, () => void chrome.runtime.lastError);
+    }, 1200);
+  });
 }

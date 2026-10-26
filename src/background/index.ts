@@ -70,6 +70,11 @@ chrome.action.onClicked.addListener((tab) => {
   toggleInspector(tab.id, panelOpen ? undefined : true);
 });
 
+// A new page in a tab: forget any "cannot read this page" message from the last one.
+chrome.tabs.onUpdated.addListener((tabId, info) => {
+  if (info.status === 'loading') chrome.storage.session.remove(`injectError:${tabId}`).catch(() => undefined);
+});
+
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId !== MENU_ID || tab?.id == null) return;
   chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => undefined);

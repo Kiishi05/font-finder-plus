@@ -9,6 +9,8 @@ export interface TabState {
   injectError: string | null;
   inspecting: boolean;
   pinned: ElementFontInfo | null;
+  /** Goes up when the page starts using new fonts (lazy loading), so the scan refreshes. */
+  fontsVersion: number;
   refresh: () => void;
 }
 
@@ -19,6 +21,7 @@ export function useActiveTab(): TabState {
   const [injectError, setInjectError] = useState<string | null>(null);
   const [inspecting, setInspecting] = useState(false);
   const [pinned, setPinned] = useState<ElementFontInfo | null>(null);
+  const [fontsVersion, setFontsVersion] = useState(0);
   const tabRef = useRef<number | null>(null);
 
   const check = useCallback(async (id: number | null) => {
@@ -67,7 +70,15 @@ export function useActiveTab(): TabState {
         setInspecting(false);
         setPinned(null);
       }
-      if (info.status === 'complete') check(id);
+      if (info.status === 'complete') {
+        // A new page loaded in this tab. With access to all sites, read it right
+        // away; otherwise the panel explains what to click.
+        (async () => {
+          const p = await sendToTab<PingReply>(id, { type: 'ffp:ping' }, 600);
+          if (!p && (await hasAllSitesAccess())) await sendToExtension({ type: 'ffp:inject', tabId: id, startInspecting: true });
+          check(id);
+        })();
+      }
     };
     const onMsg = (msg: ToExtension, sender: chrome.runtime.MessageSender) => {
       if (sender.tab?.id !== tabRef.current) return;
@@ -77,6 +88,7 @@ export function useActiveTab(): TabState {
       }
       if (msg.type === 'ffp:pinned') setPinned(msg.info);
       if (msg.type === 'ffp:page-changed') check(tabRef.current);
+      if (msg.type === 'ffp:fonts-changed') setFontsVersion((v) => v + 1);
     };
     const onSession = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
       if (area === 'session' && tabRef.current != null && changes[`injectError:${tabRef.current}`]) check(tabRef.current);
@@ -93,7 +105,7 @@ export function useActiveTab(): TabState {
     };
   }, [follow, check]);
 
-  return { tabId, ping, injectError, inspecting, pinned, refresh: () => check(tabRef.current) };
+  return { tabId, ping, injectError, inspecting, pinned, fontsVersion, refresh: () => check(tabRef.current) };
 }
 
 // One scan per tab and address, shared by the Page and System tabs.
@@ -109,8 +121,8 @@ function remember(tabId: number, scan: PageScan, system?: SystemScan) {
   });
 }
 
-export function usePageScan(tabId: number | null, ready: boolean, url: string | undefined) {
-  const cacheKey = `${tabId}|${url}`;
+export function usePageScan(tabId: number | null, ready: boolean, url: string | undefined, version = 0) {
+  const cacheKey = `${tabId}|${url}|${version}`;
   const [scan, setScan] = useState<PageScan | null>(() => scanCache.get(cacheKey) ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -124,15 +136,17 @@ export function usePageScan(tabId: number | null, ready: boolean, url: string | 
     if (!r) setError('The page did not answer. Reload the page and try again.');
     else if (!r.ok) setError(r.error);
     else {
-      scanCache.set(`${tabId}|${url}`, r.scan);
+      scanCache.set(`${tabId}|${url}|${version}`, r.scan);
       remember(tabId, r.scan);
       setScan(r.scan);
     }
-  }, [tabId, ready, url]);
+  }, [tabId, ready, url, version]);
 
   useEffect(() => {
     const cached = scanCache.get(cacheKey);
-    setScan(cached ?? null);
+    // Keep showing the last scan of the same page while a refresh runs.
+    if (cached) setScan(cached);
+    else if (!version) setScan(null);
     if (ready && !cached) run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [run, ready, cacheKey]);
@@ -140,8 +154,8 @@ export function usePageScan(tabId: number | null, ready: boolean, url: string | 
   return { scan, loading, error, rescan: run };
 }
 
-export function useSystemScan(tabId: number | null, ready: boolean, url: string | undefined, scan: PageScan | null) {
-  const cacheKey = `${tabId}|${url}`;
+export function useSystemScan(tabId: number | null, ready: boolean, url: string | undefined, scan: PageScan | null, version = 0) {
+  const cacheKey = `${tabId}|${url}|${version}`;
   const [system, setSystem] = useState<SystemScan | null>(() => systemCache.get(cacheKey) ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -154,11 +168,11 @@ export function useSystemScan(tabId: number | null, ready: boolean, url: string 
     if (!r) setError('The page did not answer. Reload the page and try again.');
     else if (!r.ok || !r.system) setError(r.error ?? 'Could not read the page.');
     else {
-      systemCache.set(`${tabId}|${url}`, r.system);
+      systemCache.set(`${tabId}|${url}|${version}`, r.system);
       if (scan) remember(tabId, scan, r.system);
       setSystem(r.system);
     }
-  }, [tabId, ready, url, scan]);
+  }, [tabId, ready, url, scan, version]);
   useEffect(() => {
     const cached = systemCache.get(cacheKey);
     setSystem(cached ?? null);
