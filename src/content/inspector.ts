@@ -29,6 +29,11 @@ let onStateChange: (on: boolean) => void = () => {};
 
 const $ = <T extends Element>(sel: string) => root!.querySelector(sel) as T;
 
+/** Hide the extension's own things on the page for a moment (for screenshots). */
+export function hideUi(hidden: boolean) {
+  if (host) host.style.visibility = hidden ? 'hidden' : '';
+}
+
 export function setStateListener(fn: (on: boolean) => void) {
   onStateChange = fn;
 }

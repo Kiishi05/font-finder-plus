@@ -285,3 +285,14 @@ export interface SystemScan {
   issues: ReadabilityIssue[];
   dev: DevInfo;
 }
+
+/** A specimen board: a set of saved fonts shown together (Library, Boards). */
+export interface Board {
+  id?: number;
+  name: string;
+  fontIds: string[];
+  text: string;
+  theme: 'light' | 'dark';
+  createdAt: number;
+  updatedAt: number;
+}

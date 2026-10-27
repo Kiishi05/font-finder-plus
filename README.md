@@ -2,7 +2,7 @@
 
 A Chrome extension (Manifest V3) for designers and developers. Hover any text to see the font that is really rendering, see every font a page uses, save fonts to collections, and copy their CSS.
 
-Status: Phases 1 to 4 are complete (Identify, Understand, Swap and Pair, System and Export). Later phases add specimen boards, share cards, library export, and identifying fonts from images.
+Status: Phases 1 to 5 are complete (Identify, Understand, Swap and Pair, System and Export, Boards and Sharing). Phase 6 adds identifying fonts from images.
 
 ## Load it in Chrome
 
@@ -41,6 +41,12 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
   - **Developer:** font files downloaded, their size and format, font-display per family, fonts loaded but not used, extra weights, preloads, and Google Fonts links without a display parameter.
   - **Export:** CSS variables and classes, Tailwind v4 `@theme`, Tailwind v3 config, W3C design tokens JSON (Tokens Studio for Figma) and a Framer text style list. Copy or download.
   - **Compare:** this page against another tab you have inspected in this browser session.
+- **Share cards** (font detail, Share card): a PNG image of the font in 1200×675 (landscape) or 1080×1350 (portrait), light, dark or green, with your text, an optional second font for the text, and an optional "Font Finder Plus" watermark. Download or copy it.
+- **Specimen boards** (Library, Boards): several saved fonts together with your text and each font's alphabet, light or dark, downloadable as a PNG 1200 wide.
+- **Where you saw it** (font detail, in your library): screenshots of pages where you found the font (Chrome's visible-tab capture; the hover card is hidden for the picture).
+- **Library export and import** (Library): one JSON file with saved fonts, notes, collections and boards. Import adds to what is there: matching fonts and collections are merged, nothing is deleted. Screenshots and downloaded font files are not included.
+- **Text drawn as pictures:** SVG drawings and images in headings have no font to read; the Page tab says when a page has them (Klim's catalog draws its specimen names as SVG, for example).
+- Fonts whose files cannot be downloaded are measured from how the page draws them (at 16px, drawn 10 times larger), so similar fonts and Make it free still work.
 - **Copy CSS** keeps a short stack: the families up to the one that renders, then one generic fallback.
 - The side panel stays open across tabs in a window and follows the tab you are on. With access to all sites, the inspector starts by itself on each tab; without it, click the icon once on each tab (Chrome's rule).
 - **Sample text:** each font's name, your own text, or a sample sentence in one of 16 languages.

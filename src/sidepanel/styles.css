@@ -348,3 +348,10 @@ a.btn { text-decoration: none; }
 .cmp { width: 100%; border-collapse: collapse; font-size: 12px; table-layout: fixed; }
 .cmp th, .cmp td { text-align: left; padding: 7px 6px 7px 0; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
 .cmp th { font: 10px var(--mono); text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.cardcanvas { width: 100%; height: auto; display: block; border-radius: 10px; box-shadow: 0 0 0 1px var(--line); }
+.libtools { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.libtools .btn { height: 36px; border-radius: 11px; cursor: pointer; }
+.shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.shot { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; gap: 2px 4px; align-items: center; }
+.shotimg { grid-column: 1 / -1; padding: 0; border: none; border-radius: 8px; overflow: hidden; background: var(--field); cursor: zoom-in; aspect-ratio: 16 / 10; }
+.shotimg img { width: 100%; height: 100%; object-fit: cover; display: block; }

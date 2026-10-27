@@ -35,19 +35,23 @@ export function familyParam(family: string, opts: { axes?: boolean } = {}): stri
 
 const linked = new Set<string>();
 
+/** Add a Google Fonts stylesheet to the panel (once per family). */
+export function linkGoogleFamily(family: string, opts: { axes?: boolean } = {}) {
+  const param = familyParam(family, opts);
+  if (linked.has(param)) return;
+  linked.add(param);
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${param}&display=swap`;
+  document.head.appendChild(link);
+}
+
 /** Add a Google Fonts stylesheet to the panel so text can be drawn in the family. */
 export function useGoogleFont(family: string | null, opts: { axes?: boolean } = {}): string {
   const [ready, setReady] = useState(false);
   useEffect(() => {
     if (!family) return;
-    const param = familyParam(family, opts);
-    if (!linked.has(param)) {
-      linked.add(param);
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = `https://fonts.googleapis.com/css2?family=${param}&display=swap`;
-      document.head.appendChild(link);
-    }
+    linkGoogleFamily(family, opts);
     document.fonts.load(`16px "${googleFamily(family)?.family ?? family}"`).finally(() => setReady(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [family, opts.axes]);

@@ -1,7 +1,7 @@
 import type { FetchFontReply, PingReply, ScanReply, ToContent } from '../shared/messages';
 import { arrayBufferToBase64 } from '../shared/messages';
 import { clearRenderCache } from './detect';
-import { highlightElements, highlightKey, isInspecting, setStateListener, start, stop } from './inspector';
+import { hideUi, highlightElements, highlightKey, isInspecting, setStateListener, start, stop } from './inspector';
 import { scanPage, watchNewFonts } from './scan';
 import { SHAPE_TEXT, shapeFromCanvas } from '../shared/shape';
 import { elementsForIssue, scanSystem } from './system';
@@ -68,6 +68,10 @@ if (!window.__ffpLoaded) {
           .catch(() => reply({ ok: false }));
         return true;
       }
+      case 'ffp:hide-ui':
+        hideUi(msg.hidden);
+        reply({ ok: true });
+        return false;
       case 'ffp:system':
         try {
           reply({ ok: true, system: scanSystem() });

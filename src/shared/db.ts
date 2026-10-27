@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Collection, FontFile, FontRecord, ImageJob, SavedFont, Screenshot, Specimen, TypeSample } from './types';
+import type { Board, Collection, FontFile, FontRecord, ImageJob, SavedFont, Screenshot, Specimen, TypeSample } from './types';
 
 // One local IndexedDB for every phase. Lives in the extension's own origin,
 // so the side panel and the background worker share it. Nothing is synced.
@@ -11,6 +11,7 @@ export class FFPDatabase extends Dexie {
   screenshots!: Table<Screenshot, number>;
   fontFiles!: Table<FontFile, string>;
   imageJobs!: Table<ImageJob, number>;
+  boards!: Table<Board, number>;
 
   constructor() {
     super('font-finder-plus');
@@ -22,6 +23,10 @@ export class FFPDatabase extends Dexie {
       screenshots: '++id, createdAt',
       fontFiles: 'url, fetchedAt',
       imageJobs: '++id, createdAt',
+    });
+    // Version 2 adds specimen boards. Existing data is kept as it is.
+    this.version(2).stores({
+      boards: '++id, name, updatedAt',
     });
   }
 }

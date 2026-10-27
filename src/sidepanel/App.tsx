@@ -10,11 +10,16 @@ import { LibraryView } from './views/LibraryView';
 import { PageView } from './views/PageView';
 import { SettingsView } from './views/SettingsView';
 import { SystemView } from './views/SystemView';
+import { ShareView } from './views/ShareView';
+import { BoardEditor, BoardsView } from './views/BoardsView';
 
 export type View =
   | { name: 'page' }
   | { name: 'library' }
   | { name: 'system' }
+  | { name: 'boards' }
+  | { name: 'board'; id: number }
+  | { name: 'share'; fontId: string; back: View }
   | { name: 'settings' }
   | { name: 'detail'; fontId: string; usage?: PageFontUsage; from: 'page' | 'library' };
 
@@ -32,11 +37,12 @@ export function App() {
     else el.setAttribute('data-theme', settings.theme);
   }, [settings.theme]);
 
-  const top = view.name === 'detail' ? view.from : view.name;
+  const top = view.name === 'detail' ? view.from : view.name === 'boards' || view.name === 'board' ? 'library' : view.name === 'share' ? 'library' : view.name;
+  const fullScreen = view.name === 'detail' || view.name === 'boards' || view.name === 'board' || view.name === 'share';
 
   return (
     <div className="app">
-      {view.name !== 'detail' && (
+      {!fullScreen && (
         <div className="topbar">
           <div className="brand">{BRAND.shortName}</div>
           <nav className="tabs" aria-label="Sections">
@@ -54,7 +60,7 @@ export function App() {
         <PageView tab={tab} tester={tester} onTester={setTester} onOpen={(usage, fontId) => setView({ name: 'detail', fontId, usage, from: 'page' })} toast={showToast} />
       )}
       {view.name === 'library' && (
-        <LibraryView tester={libTester} onTester={setLibTester} onOpen={(fontId) => setView({ name: 'detail', fontId, from: 'library' })} />
+        <LibraryView tester={libTester} onTester={setLibTester} onOpen={(fontId) => setView({ name: 'detail', fontId, from: 'library' })} onBoards={() => setView({ name: 'boards' })} toast={showToast} />
       )}
       {view.name === 'system' && <SystemView tab={tab} toast={showToast} />}
       {view.name === 'settings' && <SettingsView settings={settings} update={updateSettings} toast={showToast} />}
@@ -65,9 +71,13 @@ export function App() {
           tabId={tab.tabId}
           pageHost={tab.ping?.host ?? null}
           onBack={() => setView(view.from === 'page' ? { name: 'page' } : { name: 'library' })}
+          onShare={(fontId) => setView({ name: 'share', fontId, back: view })}
           toast={showToast}
         />
       )}
+      {view.name === 'boards' && <BoardsView onBack={() => setView({ name: 'library' })} onOpen={(id) => setView({ name: 'board', id })} />}
+      {view.name === 'board' && <BoardEditor id={view.id} onBack={() => setView({ name: 'boards' })} toast={showToast} />}
+      {view.name === 'share' && <ShareView fontId={view.fontId} onBack={() => setView(view.back)} toast={showToast} />}
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
   );

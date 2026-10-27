@@ -254,6 +254,38 @@ try {
   await panel.fill('input[aria-label="Collection name"]', 'Editorial');
   await panel.locator('button', { hasText: 'Create' }).click();
   await panel.waitForTimeout(400);
+
+  // Phase 5: screenshot of where you saw it
+  await panel.locator('button', { hasText: 'Save a screenshot of this page' }).click();
+  await panel.waitForSelector('.shot img', { timeout: 10000 }).catch(() => {});
+  check('screenshot saved with the font', (await panel.locator('.shot img').count()) === 1);
+
+  // Phase 5: share card
+  await panel.locator('button', { hasText: 'Share card' }).click();
+  await panel.waitForSelector('canvas.cardcanvas');
+  await panel.waitForTimeout(1500);
+  const cardInfo = async () => panel.evaluate(() => {
+    const c = document.querySelector('canvas.cardcanvas');
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    let ink = 0;
+    for (let i = 0; i < d.length; i += 4 * 97) if (d[i] < 100) ink++;
+    return { w: c.width, h: c.height, ink };
+  });
+  const land = await cardInfo();
+  check('share card is 1200 x 675 and drawn', land.w === 1200 && land.h === 675 && land.ink > 50, JSON.stringify(land));
+  await panel.screenshot({ path: path.join(out, 'panel-share-landscape.png'), fullPage: true });
+  await panel.locator('.seg button', { hasText: 'Portrait' }).click();
+  await panel.waitForTimeout(1200);
+  const port = await cardInfo();
+  check('share card portrait is 1080 x 1350', port.w === 1080 && port.h === 1350, JSON.stringify(port));
+  await panel.locator('.seg button', { hasText: 'Dark' }).click();
+  await panel.waitForTimeout(800);
+  await panel.screenshot({ path: path.join(out, 'panel-share-portrait-dark.png'), fullPage: true });
+  const [dl] = await Promise.all([panel.waitForEvent('download'), panel.locator('button', { hasText: 'Download PNG' }).click()]);
+  check('share card downloads as PNG', dl.suggestedFilename() === 'fraunces-portrait.png', dl.suggestedFilename());
+  await panel.locator('button[aria-label="Back"]').click();
+  await panel.waitForSelector('.hero-name');
+
   await panel.locator('button[aria-label="Back"]').click();
   await panel.locator('.tabs button', { hasText: 'Library' }).click();
   await panel.waitForSelector('.lcard');
@@ -286,6 +318,38 @@ try {
   await panel.locator('.viewtoggle button[aria-label="Wide list"]').click();
   await panel.waitForSelector('.lrow');
 
+  // Phase 5: boards
+  await panel.locator('.libtools button', { hasText: 'Boards' }).click();
+  await panel.locator('button', { hasText: 'New board' }).click();
+  await panel.fill('input[aria-label="Board name"]', 'Editorial picks');
+  await panel.locator('.chips .chip', { hasText: 'Fraunces' }).click();
+  await panel.waitForSelector('canvas.cardcanvas');
+  await panel.waitForTimeout(1500);
+  const board = await panel.evaluate(() => { const c = document.querySelector('canvas.cardcanvas'); return { w: c.width, h: c.height }; });
+  check('board drawn at 1200 wide', board.w === 1200 && board.h >= 400, JSON.stringify(board));
+  await panel.screenshot({ path: path.join(out, 'panel-board.png'), fullPage: true });
+  const [bdl] = await Promise.all([panel.waitForEvent('download'), panel.locator('button', { hasText: 'Download PNG' }).click()]);
+  check('board downloads as PNG', bdl.suggestedFilename() === 'editorial-picks-board.png', bdl.suggestedFilename());
+  await panel.locator('button[aria-label="Back"]').click();
+  await panel.waitForSelector('.lrow', { timeout: 5000 }).catch(() => {});
+  check('board listed', (await panel.locator('.lrow', { hasText: 'Editorial picks' }).count()) === 1);
+  await panel.locator('button[aria-label="Back"]').click();
+  await panel.waitForSelector('.libtools');
+
+  // Phase 5: export and import
+  const [edl] = await Promise.all([panel.waitForEvent('download'), panel.locator('.libtools button', { hasText: 'Export' }).click()]);
+  const backup = JSON.parse(fs.readFileSync(await edl.path(), 'utf8'));
+  check('library export has fonts, collections and boards', backup.format === 'font-finder-plus-library' && backup.savedFonts.length >= 1 && backup.collections.some((c) => c.name === 'Editorial') && backup.boards.length === 1);
+  backup.collections.push({ id: 999, name: 'Imported set', color: '#3346FF', createdAt: 1 });
+  backup.savedFonts.push({ fontId: 'Lora::google', collectionIds: [999], notes: 'from a backup', sitesSeen: ['example.com'], createdAt: 1, updatedAt: 1 });
+  backup.fonts.push({ id: 'Lora::google', family: 'Lora', source: 'google', kind: 'web', classification: 'serif', licenseType: 'OFL', designers: [], catalogFamily: 'Lora', displayName: 'Lora', updatedAt: 1 });
+  const importFile = path.join(out, 'import.json');
+  fs.writeFileSync(importFile, JSON.stringify(backup));
+  await panel.setInputFiles('input[aria-label="Import a library file"]', importFile);
+  await panel.waitForTimeout(800);
+  const libAfter = await panel.locator('body').innerText();
+  check('import adds new fonts and collections without duplicates', libAfter.includes('Imported set') && libAfter.includes('Lora') && (libAfter.match(/Editorial\s+\d/g) || []).length === 1, (libAfter.match(/Imported set|Lora|Editorial\s+\d/g) || []).join(','));
+
   // Filters: classification Mono should hide Fraunces
   await panel.selectOption('select[aria-label="Style"]', 'mono');
   await panel.waitForTimeout(200);
@@ -293,7 +357,7 @@ try {
   await panel.selectOption('select[aria-label="Style"]', 'all');
   await panel.selectOption('select[aria-label="Source"]', 'on-google');
   await panel.waitForTimeout(200);
-  check('filter "Available on Google Fonts" works', (await panel.locator('.lrow').count()) === 1);
+  check('filter "Available on Google Fonts" works', (await panel.locator('.lrow').count()) === 2);
   await panel.selectOption('select[aria-label="Source"]', 'all');
   await panel.fill('#lib-search', 'undercase');
   await panel.waitForTimeout(200);

@@ -2,10 +2,12 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
 import { CLASS_LABEL, SOURCE_LABEL, licenseBadge } from '../../shared/catalog';
 import { db, deleteCollection } from '../../shared/db';
-import { FolderAddIcon, GridViewIcon, Menu01Icon, PlusSignIcon, Search01Icon, Tick02Icon } from '../../shared/icons';
+import { DashboardSquare01Icon, Download01Icon, Upload01Icon, FolderAddIcon, GridViewIcon, Menu01Icon, PlusSignIcon, Search01Icon, Tick02Icon } from '../../shared/icons';
 import type { Classification, FontRecord, SavedFont, SourceKind } from '../../shared/types';
 import { Icon } from '../components/Icon';
 import { Select } from '../components/Select';
+import { exportLibrary, importLibrary } from '../lib/backup';
+import { downloadBlob } from '../lib/cards';
 import { MissingNote } from '../components/MissingNote';
 import { Tester, sampleText, type TesterState } from '../components/Tester';
 import { usePreviewFamily } from '../lib/preview';
@@ -27,9 +29,11 @@ interface Props {
   tester: TesterState;
   onTester: (t: TesterState) => void;
   onOpen: (fontId: string) => void;
+  onBoards: () => void;
+  toast: (m: string) => void;
 }
 
-export function LibraryView({ tester, onTester, onOpen }: Props) {
+export function LibraryView({ tester, onTester, onOpen, onBoards, toast }: Props) {
   const saved = useLiveQuery(() => db.savedFonts.orderBy('createdAt').reverse().toArray(), []) ?? [];
   const fonts = useLiveQuery(() => db.fonts.toArray(), []) ?? [];
   const collections = useLiveQuery(() => db.collections.orderBy('createdAt').toArray(), []) ?? [];
@@ -123,6 +127,41 @@ export function LibraryView({ tester, onTester, onOpen }: Props) {
             ]}
           />
         </div>
+      </div>
+
+      <div className="libtools">
+        <button className="btn" onClick={onBoards}><Icon icon={DashboardSquare01Icon} size={15} />Boards</button>
+        <button
+          className="btn"
+          title="Save your library as a file, to back it up or move it to another computer"
+          onClick={async () => {
+            const data = await exportLibrary();
+            downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), `font-finder-plus-library-${new Date().toISOString().slice(0, 10)}.json`);
+            toast(`Exported ${data.savedFonts.length} fonts, ${data.collections.length} collections and ${data.boards.length} boards`);
+          }}
+        >
+          <Icon icon={Download01Icon} size={15} />Export
+        </button>
+        <label className="btn" title="Add fonts from a Font Finder Plus library file">
+          <Icon icon={Upload01Icon} size={15} />Import
+          <input
+            type="file"
+            accept="application/json,.json"
+            aria-label="Import a library file"
+            hidden
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (!file) return;
+              try {
+                const r = await importLibrary(JSON.parse(await file.text()));
+                toast(`Imported ${r.fonts} new ${r.fonts === 1 ? 'font' : 'fonts'}${r.merged ? `, merged ${r.merged}` : ''}, ${r.collections} new collections, ${r.boards} boards`);
+              } catch (err) {
+                toast(err instanceof SyntaxError ? 'This file is not valid JSON.' : err instanceof Error ? err.message : 'Could not import this file.');
+              }
+            }}
+          />
+        </label>
       </div>
 
       <Tester value={tester} onChange={onTester} min={14} max={72} />

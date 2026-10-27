@@ -2,8 +2,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CLASS_LABEL, SOURCE_LABEL, googleFamily, googleFontsUrl, licenseBadge } from '../../shared/catalog';
 import { declarationCss, fontStackCss, round, tidyStack } from '../../shared/css';
-import { db, saveFont } from '../../shared/db';
-import { Alert02Icon, ArrowLeft01Icon, ArrowUpRight01Icon, Bookmark02Icon, Copy01Icon, Delete02Icon, SourceCodeIcon } from '../../shared/icons';
+import { db, saveFont, upsertFont } from '../../shared/db';
+import { Alert02Icon, Share08Icon, ArrowLeft01Icon, ArrowUpRight01Icon, Bookmark02Icon, Copy01Icon, Delete02Icon, SourceCodeIcon } from '../../shared/icons';
 import { bestFileUrl, recordFromUsage } from '../../shared/records';
 import { FORMAT_LABEL } from '../../shared/sources';
 import type { FontRecord, PageFontUsage, ParsedFontFile } from '../../shared/types';
@@ -22,6 +22,7 @@ import { GlyphsCard } from './details/GlyphsCard';
 import { InstalledCard } from './details/InstalledCard';
 import { LanguagesCard } from './details/LanguagesCard';
 import { LicenceCard } from './details/LicenceCard';
+import { Screenshots } from './details/Screenshots';
 import { PairsCard } from './details/PairsCard';
 import { PlaygroundCard, type Axis } from './details/PlaygroundCard';
 import { SimilarCard } from './details/SimilarCard';
@@ -34,10 +35,11 @@ interface Props {
   tabId: number | null;
   pageHost: string | null;
   onBack: () => void;
+  onShare: (fontId: string) => void;
   toast: (m: string) => void;
 }
 
-export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Props) {
+export function FontDetail({ fontId, usage, tabId, pageHost, onBack, onShare, toast }: Props) {
   const record = useLiveQuery(() => db.fonts.get(fontId).then((r) => r ?? null), [fontId]);
   const saved = useLiveQuery(() => db.savedFonts.where('fontId').equals(fontId).first(), [fontId]);
   const [busy, setBusy] = useState<'reading' | null>(null);
@@ -199,6 +201,17 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
           >
             <Icon icon={SourceCodeIcon} size={15} /> Copy CSS
           </button>
+          <button
+            className="btn"
+            style={{ flex: 1 }}
+            onClick={async () => {
+              // A share card needs the font's record; make sure it exists.
+              if (!record && base) await upsertFont(base);
+              onShare(fontId);
+            }}
+          >
+            <Icon icon={Share08Icon} size={15} /> Share card
+          </button>
         </div>
         {gf ? (
           <a className="btn primary" href={googleFontsUrl(gf.family)} target="_blank" rel="noreferrer">
@@ -317,6 +330,7 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, toast }: Pr
           <label className="label" htmlFor="notes" style={{ marginTop: 6 }}>[Notes]</label>
           <NotesField id={saved.id!} initial={saved.notes} />
           {saved.sitesSeen.length > 0 && <span className="muted" style={{ fontSize: 12 }}>Seen on {saved.sitesSeen.join(', ')}</span>}
+          <Screenshots fontId={fontId} tabId={tabId} onPage={!!usage} toast={toast} />
           <button className="btn ghost" style={{ alignSelf: 'flex-start', color: 'var(--red-text)', paddingLeft: 0 }} onClick={async () => { await db.savedFonts.delete(saved.id!); toast('Removed from library'); }}>
             <Icon icon={Delete02Icon} size={15} /> Remove from library
           </button>
