@@ -355,3 +355,6 @@ a.btn { text-decoration: none; }
 .shot { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; gap: 2px 4px; align-items: center; }
 .shotimg { grid-column: 1 / -1; padding: 0; border: none; border-radius: 8px; overflow: hidden; background: var(--field); cursor: zoom-in; aspect-ratio: 16 / 10; }
 .shotimg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.totop { position: fixed; right: 14px; bottom: 16px; z-index: 9; width: 40px; height: 40px; border-radius: 50%; border: none; background: var(--ink); color: var(--card); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.22); cursor: pointer; }
+.viewer { display: flex; flex-direction: column; gap: 14px; padding: 20px; max-width: 1400px; margin: 0 auto; }
+.viewer img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 0 0 1px var(--line); }

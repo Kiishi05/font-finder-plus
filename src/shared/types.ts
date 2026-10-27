@@ -55,6 +55,10 @@ export interface PageFontUsage {
   declaredStacks: string[];
   roles: Partial<Record<Role, number>>;
   elementCount: number;
+  /** Separate fonts that are weights of this one family (e.g. "k-calibre-medium", "k-calibre-bold"). */
+  memberFamilies?: string[];
+  /** Style names taken from those fonts' names ("Medium", "Bold Italic"). */
+  styleNames?: string[];
   /** How many of those elements cannot be seen right now (closed menus, fading-in text, screen-reader text). */
   hiddenCount: number;
   weights: string[];

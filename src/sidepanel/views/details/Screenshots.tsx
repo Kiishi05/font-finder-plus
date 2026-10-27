@@ -51,7 +51,7 @@ export function Screenshots({ fontId, tabId, onPage, toast }: { fontId: string; 
           {shots.map((s, i) =>
             s ? (
               <div key={s.id} className="shot">
-                <button className="shotimg" title={s.pageUrl} onClick={() => window.open(urls[i], '_blank')}>
+                <button className="shotimg" title={s.pageUrl} onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL(`sidepanel.html?shot=${s.id}`) })}>
                   <img src={urls[i]} alt={`Screenshot of ${s.pageUrl}`} />
                 </button>
                 <span className="muted" style={{ fontSize: 10.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{safeHost(s.pageUrl)}</span>

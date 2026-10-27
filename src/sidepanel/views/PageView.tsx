@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useRef, useState } from 'react';
-import { CLASS_LABEL, SOURCE_LABEL, licenseBadge } from '../../shared/catalog';
+import { CLASS_LABEL, LICENSE_LABEL, SOURCE_LABEL, googleFamily, licenseBadge } from '../../shared/catalog';
 import { declarationCss } from '../../shared/css';
 import { db, saveFont } from '../../shared/db';
 import { Alert02Icon, ArrowDown01Icon, ArrowRight01Icon, ArrowUp01Icon, Bookmark02Icon, CloseIcon, SourceCodeIcon, Target02Icon } from '../../shared/icons';
@@ -266,7 +266,7 @@ function FontCard({ f, tester, tabId, host, swappedTo, onOpen, toast }: { f: Pag
       <div className="fmeta label">
         Used for {roleSummary(f) || 'text'}
         {f.hiddenCount > 0 && (f.hiddenCount === f.elementCount ? ' · all hidden right now (menus or pop-ups)' : ` · ${f.hiddenCount} hidden right now`)}
-        {name !== f.family && <> · CSS name {f.family}</>}
+        {(f.memberFamilies?.length ?? 1) > 1 ? <> · {f.memberFamilies!.length} separate font files ({(f.styleNames ?? []).slice(0, 4).join(', ')}{(f.styleNames?.length ?? 0) > 4 ? '…' : ''})</> : name !== f.family && <> · CSS name {f.family}</>}
       </div>
       {swappedTo && tabId != null && (
         <div className="swapnote">
@@ -346,6 +346,9 @@ function Guide({ force = false }: { force?: boolean }) {
  * Swap paid or unknown-licence web fonts for their closest free Google Fonts
  * match, live on the page, to preview the site with free fonts.
  */
+/** Matches below this are not offered as swaps in Make it free. */
+const CLOSE_MATCH = 70;
+
 function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; tabId: number | null; swaps: Record<string, string>; toast: (m: string) => void }) {
   const candidates = fonts.filter((f) => f.kind === 'web' && !f.catalogFamily);
   const ids = candidates.map((f) => fontId(f.family, f.source));
@@ -384,7 +387,7 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
     setBusy(true);
     let n = 0;
     for (const r of rows) {
-      if (!r.match) continue;
+      if (!r.match || r.match.score < CLOSE_MATCH) continue;
       try {
         await trySwap(tabId, r.f.key, r.match.family, r.aspect);
         n++;
@@ -414,15 +417,23 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
           <div key={r.f.key} className="freerow">
             <span className="grow">{r.name}</span>
             <span className="muted">to</span>
-            <span className="grow" style={{ textAlign: 'right' }}>{r.match ? <><b>{r.match.family}</b> <span className="mono muted" style={{ fontSize: 11 }}>{r.match.score}%</span></> : r.state === 'measuring' ? <span className="muted">Measuring…</span> : <span className="muted" title="The font file could not be read and the page could not draw its letters for measuring.">Could not be measured</span>}</span>
+            <span className="grow" style={{ textAlign: 'right' }}>{r.match && r.match.score >= CLOSE_MATCH ? (
+                <>
+                  <b>{r.match.family}</b> <span className="mono muted" style={{ fontSize: 11 }}>{r.match.score}%</span>
+                  <br />
+                  <span className="lic free" style={{ fontSize: 11 }}><i />Free · {LICENSE_LABEL[googleFamily(r.match.family)?.l ?? 'OFL']}</span>
+                </>
+              ) : r.match ? (
+                <span className="muted" title="Below the 70% bar, so it is not offered as a swap.">No close free match (closest: {r.match.family} {r.match.score}%)</span>
+              ) : r.state === 'measuring' ? <span className="muted">Measuring…</span> : <span className="muted" title="The font file could not be read and the page could not draw its letters for measuring.">Could not be measured</span>}</span>
           </div>
         ))}
       </div>
       <div className="row" style={{ gap: 6 }}>
-        <button className="btn sm primary" onClick={swapAll} disabled={busy || !rows.some((r) => r.match)}>{busy ? 'Loading fonts…' : anySwapped ? 'Swap again' : 'Swap all on the page'}</button>
+        <button className="btn sm primary" onClick={swapAll} disabled={busy || !rows.some((r) => r.match && r.match.score >= CLOSE_MATCH)}>{busy ? 'Loading fonts…' : anySwapped ? 'Swap again' : 'Swap all on the page'}</button>
         {anySwapped && <button className="btn sm" onClick={() => undoSwap(tabId, null)}>Undo all</button>}
       </div>
-      <span className="muted" style={{ fontSize: 11.5 }}>Nothing changes on the real site. Reloading the page also undoes it.</span>
+      <span className="muted" style={{ fontSize: 11.5 }}>Only matches of {CLOSE_MATCH}% or more are offered. All are free Google Fonts. Nothing changes on the real site; reloading the page also undoes it.</span>
     </section>
   );
 }

@@ -22,6 +22,9 @@
     src: url('fonts/LibreCaslonCondensed.woff2') format('woff2');
     font-weight: 400 700;
   }
+  /* One family loaded as separate fonts per weight, the way Klim does it */
+  @font-face { font-family: 'k-demo-regular'; src: url('fonts/HouseMono.woff2') format('woff2'); }
+  @font-face { font-family: 'k-demo-bold'; src: url('fonts/HouseMono.woff2') format('woff2'); }
   @font-face {
     font-family: 'Sohne Test';
     src: url('fonts/does-not-exist.woff2') format('woff2');
@@ -59,6 +62,8 @@
   <button><i class="ico" aria-hidden="true">&#xE001;</i> Subscribe</button>
   <svg width="320" height="60" viewBox="0 0 320 60" role="img"><desc>Specimen Name</desc><path d="M0 0h320v60H0z" fill="#ddd"/></svg>
   <svg width="320" height="40"><text x="0" y="30" style="font-family: '__Geist_Mono_9a8b7c'; font-size: 20px">Vector label</text></svg>
+  <p style="font-family: 'k-demo-regular', sans-serif">Demo regular weight text.</p>
+  <p style="font-family: 'k-demo-bold', sans-serif">Demo bold weight text.</p>
   <p class="acme">Set in a font added by a script, with no file to download.</p>
   <section id="late"></section>
 </main>
@@ -70,6 +75,13 @@
     document.fonts.add(f);
     document.querySelector('.acme').style.fontFamily = "'Acme Mono', monospace";
   });
+  // New text in a style not on the page before, added the way single-page sites swap content in.
+  setTimeout(() => {
+    const p = document.createElement('p');
+    p.textContent = 'Swapped-in content set in a typewriter face.';
+    p.style.fontFamily = "'Courier New', monospace";
+    document.getElementById('late').appendChild(p);
+  }, 5000);
   // A font that arrives later, the way many sites load fonts after the page settles.
   setTimeout(() => {
     const l = document.createElement('link');

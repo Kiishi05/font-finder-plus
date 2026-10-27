@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BRAND } from '../shared/brand';
-import { Settings02Icon } from '../shared/icons';
+import { ArrowUp01Icon, Settings02Icon } from '../shared/icons';
 import type { PageFontUsage } from '../shared/types';
 import { Icon } from './components/Icon';
 import { DEFAULT_TESTER, type TesterState } from './components/Tester';
@@ -78,7 +78,25 @@ export function App() {
       {view.name === 'boards' && <BoardsView onBack={() => setView({ name: 'library' })} onOpen={(id) => setView({ name: 'board', id })} />}
       {view.name === 'board' && <BoardEditor id={view.id} onBack={() => setView({ name: 'boards' })} toast={showToast} />}
       {view.name === 'share' && <ShareView fontId={view.fontId} onBack={() => setView(view.back)} toast={showToast} />}
+      <BackToTop />
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
+  );
+}
+
+/** Floating button that appears after scrolling down. */
+function BackToTop() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const on = () => setShow(window.scrollY > 500);
+    on();
+    window.addEventListener('scroll', on, { passive: true });
+    return () => window.removeEventListener('scroll', on);
+  }, []);
+  if (!show) return null;
+  return (
+    <button className="totop" aria-label="Back to top" title="Back to top" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+      <Icon icon={ArrowUp01Icon} size={18} />
+    </button>
   );
 }

@@ -1,4 +1,4 @@
-import { GENERIC_FAMILIES, classify, cleanFamilyName, genericClassification, googleFamily, licenseFromCatalog } from '../shared/catalog';
+import { GENERIC_FAMILIES, classify, cleanFamilyName, familyGroupName, genericClassification, googleFamily, licenseFromCatalog } from '../shared/catalog';
 import { formatFromUrl, sourceFromUrl } from '../shared/sources';
 import type { Classification, FaceFile, LicenseType, Role, SourceKind } from '../shared/types';
 
@@ -448,6 +448,12 @@ export function measureMetrics(familyCss: string, weight: string, style: string,
 export function familyCss(r: Rendered): string {
   if (r.kind === 'generic') return r.genericName && r.genericName !== 'browser default' ? r.genericName : 'serif';
   return JSON.stringify(r.family);
+}
+
+/** Key that groups a font with its other weights loaded as separate families. */
+export function fontKey(r: Rendered): string {
+  if (r.kind !== 'web') return `${r.family}::${r.kind}`;
+  return `${familyGroupName(cleanFamilyName(r.family)).toLowerCase()}::${r.kind}`;
 }
 
 export function fontFacts(r: Rendered): { source: SourceKind; host: string | null; fileUrl: string | null; format: string | null; classification: Classification; licenseType: LicenseType; designers: string[]; displayName: string; catalogFamily: string | null } {

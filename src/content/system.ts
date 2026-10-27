@@ -1,7 +1,7 @@
 // System tab data, gathered in the page: the distinct text styles, readability
 // checks, and how fonts are loaded. Nothing leaves the browser.
 import type { DevFace, DevInfo, ReadabilityIssue, SystemScan, TextStyle } from '../shared/types';
-import { OWN_FONT_PREFIX, facesFor, fontFacts, resolveRendered, roleOf } from './detect';
+import { OWN_FONT_PREFIX, fontKey as keyOf, facesFor, fontFacts, resolveRendered, roleOf } from './detect';
 import { familyOf, isClipped, isIconText, ownText, textElements } from './scan';
 
 const issueEls = new Map<string, Element[]>();
@@ -80,7 +80,7 @@ export function scanSystem(): SystemScan {
     if (!text || isIconText(text)) continue;
     const cs = getComputedStyle(el);
     const r = resolveRendered(familyOf(el, cs), cs.fontWeight, cs.fontStyle, text);
-    const fontKey = `${r.family}::${r.kind}`;
+    const fontKey = keyOf(r);
     const size = Math.round(parseFloat(cs.fontSize) * 100) / 100;
     const lh = cs.lineHeight === 'normal' ? null : Math.round(parseFloat(cs.lineHeight) * 100) / 100;
     const ls = cs.letterSpacing === 'normal' ? 0 : Math.round(parseFloat(cs.letterSpacing) * 100) / 100;

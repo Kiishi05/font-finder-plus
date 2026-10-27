@@ -84,6 +84,8 @@ try {
   const nonexist = scan.notLoaded.find((n) => n.family === 'Nonexistent Serif');
   check('missing local font is reported', !!nonexist, nonexist ? `fell back to ${nonexist.fellBackTo}` : '');
   check('icon font left out of the list', !scan.fonts.some((f) => /Icons/.test(f.family)) && scan.iconFonts.includes('Site Icons'), JSON.stringify(scan.iconFonts));
+  const demo = scan.fonts.find((f) => f.key === 'demo::web');
+  check('separate weight files are grouped as one family', demo?.displayName === 'Demo' && demo.memberFamilies?.length === 2 && demo.styleNames?.includes('Bold'), JSON.stringify(demo && { d: demo.displayName, m: demo.memberFamilies, s: demo.styleNames }));
   check('words drawn as pictures are noted', scan.pictureText?.count >= 1 && scan.pictureText.examples.includes('Specimen Name'), JSON.stringify(scan.pictureText));
   check('real SVG text is read', fam('__Geist_Mono_9a8b7c')?.elementCount === 2, String(fam('__Geist_Mono_9a8b7c')?.elementCount));
   const measured = await sw.evaluate(async (id) => chrome.tabs.sendMessage(id, { type: 'ffp:measure', family: 'Fraunces', weight: '400', style: 'normal' }), tabId);
@@ -259,6 +261,11 @@ try {
   await panel.locator('button', { hasText: 'Save a screenshot of this page' }).click();
   await panel.waitForSelector('.shot img', { timeout: 10000 }).catch(() => {});
   check('screenshot saved with the font', (await panel.locator('.shot img').count()) === 1);
+  const [viewer] = await Promise.all([ctx.waitForEvent('page'), panel.locator('.shotimg').first().click()]);
+  await viewer.waitForLoadState();
+  await viewer.waitForSelector('.viewer img', { timeout: 10000 }).catch(() => {});
+  check('clicking a screenshot opens it full size', await viewer.evaluate(() => { const i = document.querySelector('.viewer img'); return !!i && i.complete && i.naturalWidth > 100; }).catch(() => false));
+  await viewer.close();
 
   // Phase 5: share card
   await panel.locator('button', { hasText: 'Share card' }).click();
@@ -443,6 +450,18 @@ try {
   await panel.waitForFunction(() => { const r = [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Acme Mono')); return r && !/Measuring/.test(r.textContent); }, null, { timeout: 20000 }).catch(() => {});
   const acme = await panel.evaluate(() => [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Acme Mono'))?.textContent ?? 'missing');
   check('Make it free measures fonts it cannot download', /%/.test(acme) && !/Could not|Not measured/.test(acme), acme);
+  check('Make it free shows the free licence of a close match', /Free · SIL Open Font License/.test(acme), acme);
+  await panel.waitForFunction(() => [...document.querySelectorAll('.fcard')].some((c) => /Courier New|Liberation Mono/.test(c.textContent)), null, { timeout: 15000 }).catch(() => {});
+  check('text added later in a new style is picked up', (await panel.locator('.fcard', { hasText: /Courier New|Liberation Mono/ }).count()) >= 1);
+  await panel.bringToFront();
+  await panel.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await panel.waitForTimeout(400);
+  const scrollInfo = await panel.evaluate(() => ({ y: window.scrollY, h: document.documentElement.scrollHeight, vh: innerHeight }));
+  check('back to top button appears after scrolling', (await panel.locator('.totop').count()) === 1, JSON.stringify(scrollInfo));
+  await panel.locator('.totop').click();
+  await panel.waitForTimeout(900);
+  check('back to top scrolls up', await panel.evaluate(() => window.scrollY < 50));
+  await page.bringToFront();
 
   // A font that loads later is picked up without clicking anything
   await panel.locator('.tabs button', { hasText: 'Page' }).click();

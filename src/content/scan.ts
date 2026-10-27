@@ -1,6 +1,6 @@
-import { cleanFamilyName } from '../shared/catalog';
+import { cleanFamilyName, familyGroupName } from '../shared/catalog';
 import type { NotLoadedFont, PageFontUsage, PageScan, Role, TypeSample } from '../shared/types';
-import { clearRenderCache, facesFor, fontFacts, isGeneric, loadFaceMap, parseFamilyList, resolveRendered, roleOf, type Rendered } from './detect';
+import { clearRenderCache, fontKey, facesFor, fontFacts, isGeneric, loadFaceMap, parseFamilyList, resolveRendered, roleOf, type Rendered } from './detect';
 
 const SKIP = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'SVG', 'MATH', 'IFRAME', 'CANVAS', 'VIDEO', 'AUDIO']);
 export const MAX_ELEMENTS = 6000;
@@ -173,20 +173,22 @@ export async function scanPage(): Promise<PageScan> {
     }
     // Invisible text whose font has not been added yet (sites often add it on scroll): not evidence of a failure.
     if (combo.allHidden && r.fellBackFrom.length) continue;
-    const key = `${r.family}::${r.kind}`;
+    const key = fontKey(r);
     let f = fonts.get(key);
     if (!f) {
       const facts = fontFacts(r);
       f = {
         key,
         family: r.family,
-        displayName: facts.displayName,
+        displayName: r.kind === 'web' && !facts.catalogFamily ? familyGroupName(facts.displayName) : facts.displayName,
         catalogFamily: facts.catalogFamily,
         kind: r.kind,
         genericName: r.genericName,
         source: facts.source,
         sourceHost: facts.host,
         files: r.kind === 'web' ? facesFor(r.family) : [],
+        memberFamilies: [r.family],
+        styleNames: [],
         declaredStacks: [],
         roles: {},
         elementCount: 0,
@@ -204,6 +206,16 @@ export async function scanPage(): Promise<PageScan> {
       fonts.set(key, f);
     }
     if (!f.declaredStacks.includes(combo.fontFamily)) f.declaredStacks.push(combo.fontFamily);
+    // Another weight of the same family, loaded as its own font ("Calibre Bold").
+    if (r.kind === 'web' && !f.memberFamilies!.includes(r.family)) {
+      f.memberFamilies!.push(r.family);
+      f.files = [...f.files, ...facesFor(r.family)];
+    }
+    if (r.kind === 'web') {
+      const full = cleanFamilyName(r.family);
+      const style = full.slice(familyGroupName(full).length).trim();
+      if (style && !f.styleNames!.includes(style)) f.styleNames!.push(style);
+    }
     for (const s of r.fellBackFrom) {
       if (!f.fellBackFrom.includes(s)) f.fellBackFrom.push(s);
       const nl = notLoaded.get(s) ?? { family: s, reason: r.failedWeb.includes(s) ? 'failed' : 'missing', fellBackTo: r.family, count: 0 };
@@ -244,6 +256,7 @@ export async function scanPage(): Promise<PageScan> {
     .sort((a, b) => b.elementCount - a.elementCount);
 
   rememberLoadedFamilies();
+  knownStacks = new Set(combos.keys());
   return {
     url: location.href,
     host: location.hostname,
@@ -304,7 +317,7 @@ export function elementsForKey(key: string, limit = 400): { shown: Element[]; hi
     if (isIconText(text)) continue;
     const cs = getComputedStyle(el);
     const r = resolveRendered(familyOf(el, cs), cs.fontWeight, cs.fontStyle, text);
-    if (`${r.family}::${r.kind}` !== key) continue;
+    if (fontKey(r) !== key) continue;
     if (hidden.has(el) || isClipped(el)) {
       hiddenCount++;
       hiddenEls.push(el);
@@ -319,6 +332,8 @@ export function elementsForKey(key: string, limit = 400): { shown: Element[]; hi
 // it can read the page again.
 
 let knownFamilies = new Set<string>();
+// Font stacks (family, weight, style) the last scan saw on text.
+let knownStacks = new Set<string>();
 
 function loadedFamilies(): Set<string> {
   const out = new Set<string>();
@@ -334,7 +349,44 @@ function rememberLoadedFamilies() {
 }
 
 let fontTimer = 0;
+let mutationTimer = 0;
+const added = new Set<Element>();
+
+function notifyFontsChanged() {
+  chrome.runtime.sendMessage({ type: 'ffp:fonts-changed', url: location.href }, () => void chrome.runtime.lastError);
+}
+
+/** After the page adds content, check whether any new text uses a font style the last scan did not see. */
+function checkAdded() {
+  const roots = [...added];
+  added.clear();
+  if (!knownStacks.size) return;
+  let checked = 0;
+  for (const root of roots) {
+    if (!root.isConnected || isOurNode(root)) continue;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode() && checked < 1500) {
+      const el = walker.currentNode.parentElement;
+      if (!el || !walker.currentNode.nodeValue?.trim() || SKIP.has(el.tagName.toUpperCase())) continue;
+      checked++;
+      if (!el.getClientRects().length) continue;
+      const cs = getComputedStyle(el);
+      if (!knownStacks.has(`${familyOf(el, cs)}|${cs.fontWeight}|${cs.fontStyle}`)) {
+        knownStacks.add(`${familyOf(el, cs)}|${cs.fontWeight}|${cs.fontStyle}`);
+        notifyFontsChanged();
+        return;
+      }
+    }
+  }
+}
+
 export function watchNewFonts() {
+  new MutationObserver((records) => {
+    for (const r of records) r.addedNodes.forEach((n) => n instanceof Element && added.add(n));
+    if (!added.size) return;
+    window.clearTimeout(mutationTimer);
+    mutationTimer = window.setTimeout(checkAdded, 900);
+  }).observe(document.body ?? document.documentElement, { childList: true, subtree: true });
   document.fonts.addEventListener('loadingdone', () => {
     window.clearTimeout(fontTimer);
     fontTimer = window.setTimeout(() => {
@@ -342,7 +394,7 @@ export function watchNewFonts() {
       const fresh = [...now].some((f) => !knownFamilies.has(f));
       if (!fresh) return;
       knownFamilies = now;
-      chrome.runtime.sendMessage({ type: 'ffp:fonts-changed', url: location.href }, () => void chrome.runtime.lastError);
+      notifyFontsChanged();
     }, 1200);
   });
 }

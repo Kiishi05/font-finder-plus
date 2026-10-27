@@ -38,7 +38,24 @@ export function cleanFamilyName(raw: string): string {
   if (/^[A-Z0-9_ -]{4,}$/.test(s) && /[A-Z]{3}/.test(s)) {
     s = s.replace(/_+/g, ' ').toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
   }
+  // lowercase-hyphen names, often with a one-letter prefix ("k-calibre-medium"): "Calibre Medium".
+  if (/^[a-z0-9-]+$/.test(s) && s.includes('-')) {
+    s = s.replace(/^[a-z]-(?=[a-z]{3})/, '').replace(/-+/g, ' ').replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  }
   return s.trim() || raw.trim();
+}
+
+const STYLE_WORDS = /\s+(thin|hairline|extra ?light|ultra ?light|light|book|regular|normal|roman|medium|semi ?bold|demi ?bold|bold|extra ?bold|ultra ?bold|black|heavy|italic|oblique)$/i;
+
+/**
+ * The family a font belongs to, without weight or style words. Some sites load
+ * each weight as its own font ("Calibre Medium", "Calibre Bold Italic"); these
+ * are shown together as one family ("Calibre").
+ */
+export function familyGroupName(name: string): string {
+  let s = name.trim();
+  for (let i = 0; i < 4 && STYLE_WORDS.test(s); i++) s = s.replace(STYLE_WORDS, '');
+  return s.trim() || name.trim();
 }
 
 /** The Google Fonts family for a name, matching exact names and cleaned build-tool names. */
