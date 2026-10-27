@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "build:catalog": "node scripts/build-gf-catalog.mjs",
     "test": "node tests/run.mjs",
+    "package": "node scripts/package.mjs",
     "build:shapes": "node scripts/build-gf-shapes.mjs",
     "build:glyphs": "node scripts/build-glyph-index.mjs",
     "build:unicode": "node scripts/build-unicode-names.mjs"
@@ -31,6 +32,7 @@
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-react": "4.3.4",
+    "axe-core": "^4.10.2",
     "typescript": "5.6.3",
     "vite": "6.3.5"
   }

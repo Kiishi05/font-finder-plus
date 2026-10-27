@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CATALOG_COUNT, CATALOG_DATE } from '../../shared/catalog';
+import { db } from '../../shared/db';
 import type { Settings } from '../../shared/settings';
 import { hasAllSitesAccess, requestAllSitesAccess } from '../../shared/settings';
 
@@ -14,6 +15,7 @@ export function SettingsView({ settings, update, toast }: Props) {
   const [show, setShow] = useState(false);
   const [test, setTest] = useState<{ state: 'idle' | 'testing' | 'ok' | 'error'; text?: string }>({ state: 'idle' });
   const [access, setAccess] = useState(false);
+  const [confirmWipe, setConfirmWipe] = useState(false);
 
   useEffect(() => setKey(settings.googleFontsApiKey), [settings.googleFontsApiKey]);
   useEffect(() => {
@@ -120,6 +122,26 @@ export function SettingsView({ settings, update, toast }: Props) {
         <span className="mono muted" style={{ fontSize: 10.5 }}>
           Google Fonts catalogue: {CATALOG_COUNT} families, updated {CATALOG_DATE}
         </span>
+        {!confirmWipe ? (
+          <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setConfirmWipe(true)}>Delete all my data</button>
+        ) : (
+          <div role="alert" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span style={{ fontSize: 12 }}>This removes your saved fonts, collections, boards, history and screenshots from this computer. It cannot be undone. Export your library first if you want a copy.</span>
+            <span className="row" style={{ gap: 8 }}>
+              <button
+                className="btn sm primary"
+                onClick={async () => {
+                  await Promise.all(db.tables.map((t) => t.clear()));
+                  setConfirmWipe(false);
+                  toast('All your data was deleted');
+                }}
+              >
+                Delete everything
+              </button>
+              <button className="btn sm ghost" onClick={() => setConfirmWipe(false)}>Cancel</button>
+            </span>
+          </div>
+        )}
       </section>
     </>
   );

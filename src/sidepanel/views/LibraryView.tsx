@@ -253,12 +253,9 @@ function LibraryCard({ f, savedId, tester, wide, onOpen }: { f: FontRecord; save
     if ((e.target as Element).closest('.picker, .cardpicker')) return;
     onOpen();
   };
-  const common = {
-    role: 'button',
-    tabIndex: 0,
-    onClick: open,
-    onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' && e.target === e.currentTarget) onOpen(); },
-  } as const;
+  // The whole card is clickable with a mouse; keyboard users reach the name button.
+  const common = { onClick: open } as const;
+  const nameBtn = <button className="namebtn" onClick={(e) => { e.stopPropagation(); onOpen(); }}>{name}</button>;
   const picker = picking && (
     <div className="cardpicker" style={{ padding: wide ? '10px 0 0' : '10px' }}>
       <CollectionPicker savedId={savedId} />
@@ -269,7 +266,7 @@ function LibraryCard({ f, savedId, tester, wide, onOpen }: { f: FontRecord; save
       <div className={`lrow${tester.invert ? ' invert' : ''}`} {...common}>
         <span className="lhead">
           <span className="meta">
-            <b>{name}</b>
+            <b>{nameBtn}</b>
             <span className={`lic ${badge.tone}`}><i />{badge.text}</span>
             <span className="label">{CLASS_LABEL[f.classification]} · {SOURCE_LABEL[f.source]}</span>
             {onGoogle && <span className="gtag">On Google Fonts</span>}
@@ -292,7 +289,7 @@ function LibraryCard({ f, savedId, tester, wide, onOpen }: { f: FontRecord; save
       {f.kind !== 'generic' && <MissingNote css={preview.css} text={sampleText(tester, name)} ready={preview.ready && !preview.failed} tester={tester} name={name} style={{ margin: '0 10px 8px' }} />}
       <span className="meta">
         <span className="row" style={{ alignItems: 'flex-start', gap: 4 }}>
-          <b className="grow">{name}</b>
+          <b className="grow">{nameBtn}</b>
           {addBtn}
         </span>
         <span className="row" style={{ gap: 6, flexWrap: 'wrap' }}>

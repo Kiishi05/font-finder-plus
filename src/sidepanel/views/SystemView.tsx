@@ -216,7 +216,7 @@ function ExportCard({ styles, host, toast }: { styles: NamedStyle[]; host: strin
       <h2>[Export] This page's type system</h2>
       <Select<ExportFormat> label="Export format" value={format} onChange={setFormat} options={EXPORTS.map((e) => ({ value: e.id, label: e.label }))} />
       <span className="muted" style={{ fontSize: 12 }}>{meta.note}</span>
-      <pre className="code" aria-label={`${meta.label} code`}>{text}</pre>
+      <pre className="code" tabIndex={0} aria-label={`${meta.label} code`}>{text}</pre>
       <div className="row" style={{ gap: 6 }}>
         <button className="btn sm primary" onClick={async () => (await copyToClipboard(text)) && toast(`Copied ${meta.label}`)}><Icon icon={Copy01Icon} size={13} />Copy</button>
         <button className="btn sm" onClick={download}><Icon icon={Download01Icon} size={13} />Download {meta.file}</button>
@@ -299,7 +299,7 @@ function Comparison({ a, b }: { a: { scan: PageScan; system: SystemScan; styles:
       <table className="cmp">
         <thead><tr><th>Font</th><th>{ha}</th><th>{hb}</th></tr></thead>
         <tbody>
-          {allFonts.map((f) => <tr key={f}><td>{f}</td><td>{aFonts.includes(f) ? 'Yes' : '–'}</td><td>{bFonts.includes(f) ? 'Yes' : '–'}</td></tr>)}
+          {allFonts.map((f) => <tr key={f}><td>{f}</td><td>{aFonts.includes(f) ? 'Yes' : 'No'}</td><td>{bFonts.includes(f) ? 'Yes' : 'No'}</td></tr>)}
         </tbody>
       </table>
     </div>

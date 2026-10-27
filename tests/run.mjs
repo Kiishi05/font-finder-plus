@@ -45,6 +45,15 @@ const ctx = await chromium.launchPersistentContext(await mkdtemp(path.join(tmpdi
   args: [`--disable-extensions-except=${ext}`, `--load-extension=${ext}`],
 });
 
+// Privacy audit: every request made by an extension page (panel, background).
+const extRequests = [];
+ctx.on('request', (r) => {
+  let from = '';
+  try { from = r.serviceWorker()?.url() ?? ''; } catch {}
+  if (!from) try { from = r.frame()?.url() ?? ''; } catch {}
+  if (from.startsWith('chrome-extension://')) extRequests.push(r.url());
+});
+
 try {
   let [sw] = ctx.serviceWorkers();
   if (!sw) sw = await ctx.waitForEvent('serviceworker');
@@ -625,6 +634,51 @@ try {
   await panel.waitForSelector('.fcard');
   await panel.waitForTimeout(1500);
   await panel.screenshot({ path: path.join(out, 'panel-page-dark.png'), fullPage: true });
+
+  // Accessibility audit with axe-core, light and dark, on each main view.
+  const axeSrc = await fs.promises.readFile(require.resolve('axe-core/axe.min.js'), 'utf8');
+  const a11y = [];
+  for (const theme of ['light', 'dark']) {
+    await panel.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
+    for (const tab of ['Page', 'Image', 'System', 'Library']) {
+      await panel.locator('.tabs button', { hasText: tab }).click();
+      await panel.waitForTimeout(1200);
+      if (!(await panel.evaluate(() => !!window.axe))) await panel.evaluate(axeSrc);
+      const v = await panel.evaluate(async () => (await window.axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] })).violations.map((x) => ({ id: x.id, impact: x.impact, n: x.nodes.length, html: x.nodes.slice(0, 3).map((n) => n.html.slice(0, 140)) })));
+      for (const x of v) a11y.push({ theme, tab, ...x });
+    }
+    await panel.locator('button[aria-label="Settings"]').click();
+    await panel.waitForTimeout(600);
+    const sv = await panel.evaluate(async () => (await window.axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] })).violations.map((x) => ({ id: x.id, impact: x.impact, n: x.nodes.length, html: x.nodes.slice(0, 3).map((n) => n.html.slice(0, 140)) })));
+    for (const x of sv) a11y.push({ theme, tab: 'Settings', ...x });
+    await panel.locator('button[aria-label="Settings"]').click();
+  }
+  await fs.promises.writeFile(path.join(out, 'a11y.json'), JSON.stringify(a11y, null, 2));
+  check('accessibility: no WCAG A/AA violations in the panel', a11y.length === 0, a11y.map((x) => `${x.theme}/${x.tab}:${x.id}(${x.n})`).join(', '));
+
+  const allowed = /^(chrome-extension:|data:|blob:|https:\/\/fonts\.googleapis\.com\/|https:\/\/fonts\.gstatic\.com\/|https:\/\/www\.googleapis\.com\/webfonts\/|http:\/\/127\.0\.0\.1:)/;
+  const odd = [...new Set(extRequests.filter((u) => !allowed.test(u)))];
+  await fs.promises.writeFile(path.join(out, 'requests.json'), JSON.stringify([...new Set(extRequests.map((u) => u.slice(0, 120)))], null, 2));
+  // Delete all my data (Settings > Privacy).
+  await panel.locator('button[aria-label="Settings"]').click();
+  await panel.locator('button', { hasText: 'Delete all my data' }).click();
+  await panel.locator('button', { hasText: 'Delete everything' }).click();
+  await panel.waitForTimeout(500);
+  const left = await panel.evaluate(async () => {
+    const dbs = await indexedDB.databases();
+    const name = dbs.map((d) => d.name).find((n) => /ffp|font/i.test(n ?? ''));
+    return new Promise((res) => {
+      const req = indexedDB.open(name);
+      req.onsuccess = async () => {
+        const idb = req.result;
+        const counts = await Promise.all([...idb.objectStoreNames].map((s) => new Promise((r) => { const c = idb.transaction(s).objectStore(s).count(); c.onsuccess = () => r(c.result); })));
+        res(counts.reduce((a, b) => a + b, 0));
+      };
+    });
+  });
+  check('Delete all my data empties the library', left === 0, `rows left: ${left}`);
+
+  check('privacy: the extension only talks to Google Fonts and the page\'s own font files', odd.length === 0, odd.slice(0, 5).join(' '));
 } catch (err) {
   check('test run finished without errors', false, String(err?.stack ?? err));
 } finally {
@@ -644,6 +698,7 @@ try {
   await build({ entryPoints: [path.join(root, 'src/shared/catalog.ts')], outfile: tmp2, format: 'esm', bundle: true, platform: 'node', logLevel: 'silent', loader: { '.json': 'json' } });
   const cat = await import(tmp2);
   check('ALL_CAPS CSS names are shown in normal case', cat.cleanFamilyName('MARTINA_PLANTIJN') === 'Martina Plantijn' && cat.cleanFamilyName('SOEHNE') === 'Soehne');
+  check('Google Fonts preview names are cleaned (gf_Poppins variant0)', cat.cleanFamilyName('gf_Poppins variant0') === 'Poppins' && cat.cleanFamilyName('gf_Great_Vibes variant0') === 'Great Vibes', cat.cleanFamilyName('gf_Great_Vibes variant0'));
   check('names ending in VF are grouped under the family', cat.familyGroupName(cat.cleanFamilyName('die-grotesk-vf')) === 'Die Grotesk', cat.familyGroupName(cat.cleanFamilyName('die-grotesk-vf')));
   check('Soehne spelling is recognised as a Klim font', cat.licenseFromCatalog('SOEHNE', 'self-hosted') === 'commercial');
   check('Copy CSS keeps fallbacks up to the font that renders', JSON.stringify(tidyStack(['Söhne', 'Helvetica', 'Arial', 'sans-serif'], 'Arial')) === JSON.stringify(['Söhne', 'Helvetica', 'Arial', 'sans-serif']));

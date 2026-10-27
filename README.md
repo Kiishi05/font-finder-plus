@@ -68,8 +68,8 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
 | `scripting` | Starts the inspector on that page (injects the content script) when you ask it to. |
 | `sidePanel` | Shows the main workspace in Chrome's side panel. |
 | `storage` | Saves settings (theme, your Google Fonts API key, whether the guide is hidden) in Chrome's local storage on this computer. |
-| `contextMenus` | Adds **Inspect fonts on this page** to the right-click menu. |
-| `<all_urls>` (optional, off by default) | Only if you turn it on in Settings. Lets the extension download font files from sites that block other pages from reading them, so foundry, format and metrics can be shown there, and lets you start inspecting from the side panel. Chrome asks you first, and you can turn it off again in Settings. |
+| `contextMenus` | Adds **Inspect fonts on this page** to the right-click menu, and **Identify the font in this image** when you right-click a picture. |
+| `<all_urls>` (optional, off by default) | Only if you turn it on in Settings. Lets the extension download font files from sites that block other pages from reading them, so foundry, format and metrics can be shown there, lets you start inspecting from the side panel, and keeps the inspector following you when you switch tabs or open a new page while the panel is open. Chrome asks you first, and you can turn it off again in Settings. |
 
 The extension does not ask for access to all your sites when you install it.
 
@@ -83,6 +83,8 @@ The manifest allows WebAssembly (`'wasm-unsafe-eval'` in the extension's content
 - Identify from images runs on this computer: text recognition, matching and the image never leave it.
 - Local Font Access (installed styles) runs only when you click, and the font list never leaves your computer.
 - Your Google Fonts API key is stored only in `chrome.storage.local`. It is never written to code, logs or the library, and it is only sent to Google's Web Fonts API when you use it.
+- **Delete all my data** in Settings > Privacy clears the library, collections, boards, history and screenshots.
+- The test suite checks this: it records every request the extension makes during a full run and fails if any goes to a host other than Google Fonts or the page's own font files.
 
 ## How the real font is found
 
@@ -116,7 +118,10 @@ Fonts the browser has not fetched yet (pages often load fonts lazily) are given 
 
 - `npm run build` builds `dist/`. `npm run watch` rebuilds on change.
 - `npm run typecheck` runs TypeScript.
-- `npm run build:test && npm test` builds a test copy (`dist-test/`, with host access granted so no prompt is needed) and runs the end-to-end checks in `tests/run.mjs` with Playwright.
+- `npm run build:test && npm test` builds a test copy (`dist-test/`, with host access granted so no prompt is needed) and runs the end-to-end checks in `tests/run.mjs` with Playwright. These include an accessibility scan (axe-core, WCAG 2.1 A and AA, light and dark) and a privacy check that lists every request the extension makes and fails if any goes somewhere other than Google Fonts or the page's own font files.
+- `node tests/perf.mjs` times the inspector on a generated page with 20,000 elements (inject, scan, hover, panel load, memory). Results go to `tests/output/perf.json`.
+- `node tests/sites.mjs` opens 15 real sites (news, Wikipedia in Arabic, Chinese and Japanese, foundries, Google Fonts and others), scans each and writes `tests/output/sites.md`.
+- `npm run package` builds `dist/` and zips it to `release/font-finder-plus-<version>.zip` for the Chrome Web Store. It refuses to package if the manifest asks for host access up front or a file contains an API key. Store listing text and the answers for the privacy form are in `store/listing.md`.
 
 ```
 src/
@@ -125,8 +130,9 @@ src/
   sidepanel/    React side panel: Page, Font detail, Library, Settings
   workers/      font file parser (fontkit) in a Web Worker
   shared/       types, database (Dexie), messages, catalogue, CSS helpers, icons, brand name
-scripts/        build and catalogue scripts
-tests/          end-to-end checks and a test page
+scripts/        build, catalogue and package scripts
+tests/          end-to-end, performance and real-site checks, and test pages
+store/          Chrome Web Store listing text
 ```
 
 Rename the product in `src/shared/brand.ts` and `public/manifest.json`.

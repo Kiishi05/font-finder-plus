@@ -303,7 +303,7 @@ async function settleLazyFonts(combos: Combo[]): Promise<void> {
     }
   }
   if (!pending.length) return;
-  await Promise.race([Promise.all(pending), new Promise((r) => setTimeout(r, 3000))]);
+  await Promise.race([Promise.all(pending), new Promise((r) => setTimeout(r, 1500))]);
 }
 
 /** Elements on the page that render with the given font key, split into ones you can see and ones you cannot. */

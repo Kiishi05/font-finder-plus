@@ -30,6 +30,9 @@ for (const name of Object.keys(families)) bySquash.set(squash(name), name);
  */
 export function cleanFamilyName(raw: string): string {
   let s = raw.trim();
+  // Google Fonts' own site names its previews "gf_Poppins variant0".
+  const gf = /^gf_(.+?)(?:\s+variant\d+)?$/.exec(s);
+  if (gf) s = gf[1].replace(/_+/g, ' ');
   if (/^_+/.test(s) || /_[0-9a-f]{5,10}$/i.test(s)) {
     s = s.replace(/^_+/, '').replace(/_[0-9a-f]{5,10}$/i, '').replace(/_+/g, ' ');
   }
