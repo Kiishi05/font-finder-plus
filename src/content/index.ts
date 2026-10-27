@@ -1,8 +1,8 @@
 import type { FetchFontReply, PingReply, ScanReply, ToContent } from '../shared/messages';
 import { arrayBufferToBase64 } from '../shared/messages';
 import { clearRenderCache } from './detect';
-import { hideUi, highlightElements, highlightKey, isInspecting, setStateListener, start, stop } from './inspector';
-import { scanPage, watchNewFonts } from './scan';
+import { hideUi, refreshCard, highlightElements, highlightKey, isInspecting, setStateListener, start, stop } from './inspector';
+import { fontsInRect, scanPage, watchNewFonts } from './scan';
 import { afterPaint, imageRect, selectArea } from './select';
 import { SHAPE_TEXT, shapeFromCanvas } from '../shared/shape';
 import { elementsForIssue, scanSystem } from './system';
@@ -46,11 +46,15 @@ if (!window.__ffpLoaded) {
         return true;
       case 'ffp:swap':
         swapFont(msg.key, msg.family, msg.faces, msg.generic, msg.aspect)
-          .then((count) => reply({ ok: true, count }))
+          .then((count) => {
+            refreshCard();
+            reply({ ok: true, count });
+          })
           .catch((err) => reply({ ok: false, error: String(err?.message ?? err) }));
         return true;
       case 'ffp:unswap':
         unswap(msg.key);
+        refreshCard();
         reply({ ok: true });
         return false;
       case 'ffp:vary':
@@ -72,7 +76,7 @@ if (!window.__ffpLoaded) {
       case 'ffp:select-area':
         hideUi(true);
         selectArea().then((r) => {
-          reply({ ok: true, rect: r });
+          reply({ ok: true, rect: r, inside: r ? fontsInRect(r) : null });
         });
         return true;
       case 'ffp:image-rect': {

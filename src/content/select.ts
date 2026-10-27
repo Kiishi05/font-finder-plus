@@ -2,6 +2,7 @@
 // the rectangle in page pixels; the side panel then takes the screenshot.
 
 export function selectArea(): Promise<{ x: number; y: number; w: number; h: number; dpr: number } | null> {
+  // While selecting, the page's own clicks are not followed.
   return new Promise((resolve) => {
     const layer = document.createElement('div');
     layer.id = 'ffp-select';

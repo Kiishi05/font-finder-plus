@@ -86,8 +86,6 @@ export function SettingsView({ settings, update, toast }: Props) {
         {test.text && <span className={test.state === 'ok' ? 'ok' : 'err'} style={{ fontSize: 12 }}>{test.text}</span>}
       </section>
 
-      <WhatFontIsKey settings={settings} update={update} toast={toast} />
-
       <section className="section">
         <h2>[Access to sites]</h2>
         <p className="muted" style={{ margin: 0, fontSize: 12 }}>
@@ -127,26 +125,3 @@ export function SettingsView({ settings, update, toast }: Props) {
   );
 }
 
-function WhatFontIsKey({ settings, update, toast }: Props) {
-  const [key, setKey] = useState(settings.whatFontIsKey);
-  const [show, setShow] = useState(false);
-  useEffect(() => setKey(settings.whatFontIsKey), [settings.whatFontIsKey]);
-  return (
-    <section className="section">
-      <h2>[WhatFontIs API key] Optional</h2>
-      <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-        For identifying fonts from images. Font Finder Plus matches against free Google Fonts on this computer. With your own WhatFontIs key you can also ask
-        WhatFontIs, which knows paid fonts too. The image is sent to whatfontis.com only when you click their button. The key is stored on this computer only.
-      </p>
-      <div className="row">
-        <input className="field grow" type={show ? 'text' : 'password'} autoComplete="off" spellCheck={false} placeholder="Paste your WhatFontIs key" aria-label="WhatFontIs API key" value={key} onChange={(e) => setKey(e.target.value)} />
-        <button className="btn sm ghost" onClick={() => setShow(!show)}>{show ? 'Hide' : 'Show'}</button>
-      </div>
-      <div className="row">
-        <button className="btn sm primary" onClick={() => { update({ whatFontIsKey: key.trim() }); toast(key.trim() ? 'Key saved' : 'Key removed'); }}>Save key</button>
-        {settings.whatFontIsKey && <button className="btn sm ghost" onClick={() => { setKey(''); update({ whatFontIsKey: '' }); toast('Key removed'); }}>Remove</button>}
-        <a className="linkbtn" href="https://www.whatfontis.com/API-identify-fonts-from-image.html" target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>Get a key</a>
-      </div>
-    </section>
-  );
-}

@@ -108,6 +108,11 @@ chrome.runtime.onMessage.addListener((msg: ToExtension | { type: 'ffp:fetch-bg';
     case 'ffp:fetch-bg':
       fetchWithPermission(msg.url, msg.as).then(reply);
       return true;
+    case 'ffp:identify-rect':
+      // From the hover card on a picture: the side panel (open while inspecting) takes it from here.
+      if (sender.tab?.id != null) chrome.storage.session.set({ 'identify:pending': { rect: msg.rect, tabId: sender.tab.id, pageUrl: msg.pageUrl, at: Date.now() } });
+      reply({ ok: true });
+      return false;
     case 'ffp:inject':
       toggleInspector(msg.tabId, msg.startInspecting).then(reply);
       return true;

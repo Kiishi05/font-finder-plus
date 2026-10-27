@@ -45,9 +45,10 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
   - Get an image: drag over an area of the page (**Select an area on the page**), upload (JPG, PNG, WebP, GIF, iPhone HEIC), drop, paste, or right-click any image on a page and choose **Identify the font in this image**.
   - Adjust it: crop, perspective (drag four corners to flatten a slanted sign), turn 90°, straighten, brightness, contrast, invert (turned on by itself for light text on dark).
   - Read it: text recognition with Tesseract runs on this computer. Pick the line to use and correct any letters that were read wrongly.
+  - Text on a web page does not need guessing: **Select an area on the page** first lists the fonts of the real text in that area, read exactly from the page. Matching is for pictures.
+  - Hovering a picture (SVG drawing, image) with the inspector says it is a picture, not text, and offers **Identify this picture**.
   - Match it: each letter is compared, shape by shape, with the same letter in Regular and Bold of 1,357 Latin Google Fonts families (`public/data/glyph-index.bin.gz`, built by `npm run build:glyphs`). The 10 closest are shown with a score, the reason (closest letters, matching letter heights), your text in that font, a side-by-side with your image, the licence, and whether the font has every letter of your text. Save keeps the image with the font in your library.
-  - Honest results: they are called closest matches, low confidence is flagged with tips (tighter crop, bigger image, straighten, fix letters), and only real Google Fonts names are shown. Paid fonts are not in the index.
-  - Optional exact match: with your own WhatFontIs API key (Settings), **Ask WhatFontIs** sends the image to whatfontis.com, only when you click, and its results are labelled as theirs. This was built from WhatFontIs's published API description and has not been tested against the live service.
+  - Honest results: they are called closest matches, low confidence is flagged with tips (tighter crop, bigger image, straighten, fix letters), and only real Google Fonts names are shown. Paid fonts are not in the index, but for a picture from a web page the fonts that page loads are compared too (labelled On this page), so a picture drawn in a site's own paid font can still be named.
   - History: recent searches are kept on this computer, with the image and the matches.
 - **Share cards** (font detail, Share card): a PNG image of the font in 1200×675 (landscape) or 1080×1350 (portrait), light, dark or green, with your text, an optional second font for the text, and an optional "Font Finder Plus" watermark. Download or copy it.
 - **Specimen boards** (Library, Boards): several saved fonts together with your text and each font's alphabet, light or dark, downloadable as a PNG 1200 wide.
@@ -79,7 +80,7 @@ The manifest allows WebAssembly (`'wasm-unsafe-eval'` in the extension's content
 - Everything runs on your computer. The library lives in IndexedDB inside the extension. There is no account and no server.
 - No browsing data is sent anywhere. Font files are downloaded only from the hosts the page already uses.
 - For fonts in the Google Fonts catalogue, the language check asks Google Fonts for a file holding the test characters (the request carries only the family name and those characters, nothing about the page you are on).
-- Identify from images runs on this computer: text recognition, matching and the image never leave it, unless you click **Ask WhatFontIs**.
+- Identify from images runs on this computer: text recognition, matching and the image never leave it.
 - Local Font Access (installed styles) runs only when you click, and the font list never leaves your computer.
 - Your Google Fonts API key is stored only in `chrome.storage.local`. It is never written to code, logs or the library, and it is only sent to Google's Web Fonts API when you use it.
 

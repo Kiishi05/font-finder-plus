@@ -64,10 +64,18 @@
   <svg width="320" height="40"><text x="0" y="30" style="font-family: '__Geist_Mono_9a8b7c'; font-size: 20px">Vector label</text></svg>
   <p style="font-family: 'k-demo-regular', sans-serif">Demo regular weight text.</p>
   <p style="font-family: 'k-demo-bold', sans-serif">Demo bold weight text.</p>
+  <canvas id="pic" width="560" height="90" style="display:block"></canvas>
   <p class="acme">Set in a font added by a script, with no file to download.</p>
   <section id="late"></section>
 </main>
 <script>
+  // A picture of text drawn in one of this page's own fonts (like a logo image).
+  document.fonts.load("56px 'k-demo-regular'").then(() => {
+    const c = document.getElementById('pic').getContext('2d');
+    c.fillStyle = '#F4F1EC'; c.fillRect(0, 0, 560, 90);
+    c.fillStyle = '#141414'; c.font = "56px 'k-demo-regular'";
+    c.fillText('Handgloves 2024', 8, 64);
+  });
   // A font made by a script from bytes (no URL), like many paid-font loaders.
   fetch('fonts/GeistMono.woff2').then((r) => r.arrayBuffer()).then(async (buf) => {
     const f = new FontFace('Acme Mono', buf);

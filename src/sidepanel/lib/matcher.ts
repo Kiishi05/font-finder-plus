@@ -13,12 +13,16 @@ export interface ImageMatch {
   /** Letters that matched best and worst. */
   best: string[];
   missing: number;
+  /** A font the page itself uses (not from Google Fonts). */
+  onPage: boolean;
 }
+
+export interface PageFontFile { family: string; regular: ArrayBuffer | null; bold: ArrayBuffer | null }
 
 let worker: Worker | null = null;
 let seq = 0;
 const pending = new Map<number, (r: { ok: boolean; results?: RawResult[]; error?: string }) => void>();
-interface RawResult { family: string; bold: boolean; total: number; perChar: number[]; heights: number; missing: number }
+interface RawResult { family: string; bold: boolean; total: number; perChar: number[]; heights: number; missing: number; onPage: boolean }
 
 function getWorker() {
   if (worker) return worker;
@@ -34,7 +38,7 @@ function getWorker() {
 }
 
 /** The closest Google Fonts families for letters cut from an image. */
-export function matchGlyphs(glyphs: QueryGlyph[], limit = 10): Promise<ImageMatch[]> {
+export function matchGlyphs(glyphs: QueryGlyph[], limit = 10, extra: PageFontFile[] = []): Promise<ImageMatch[]> {
   const id = ++seq;
   return new Promise((resolve, reject) => {
     pending.set(id, (r) => {
@@ -49,7 +53,8 @@ export function matchGlyphs(glyphs: QueryGlyph[], limit = 10): Promise<ImageMatc
           if (x.missing) parts.push(`${x.missing} of your letters are not in this font.`);
           // Raw similarity runs from about 0.75 (unrelated) to 1 (same font); shown on a 0 to 100 scale.
           const score = Math.round(Math.max(0, Math.min(1, (x.total - 0.75) / 0.23)) * 100);
-          return { family: x.family, bold: x.bold, score, reason: parts.join(' '), best, missing: x.missing };
+          if (x.onPage) parts.unshift('A font this page uses.');
+          return { family: x.family, bold: x.bold, score, reason: parts.join(' '), best, missing: x.missing, onPage: x.onPage };
         }),
       );
     });
@@ -61,6 +66,7 @@ export function matchGlyphs(glyphs: QueryGlyph[], limit = 10): Promise<ImageMatc
       weights: meta.weights,
       glyphs: glyphs.map((g) => ({ ci: g.ci, bits: g.bits, aspect: g.aspect, h: g.h, bottom: g.bottom })),
       limit,
+      extra,
     });
   });
 }

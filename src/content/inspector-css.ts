@@ -54,6 +54,9 @@ button:focus-visible { outline: 2px solid #111111; outline-offset: 2px; }
 .row.copied .s { color: #0B7A37; }
 .sw { width: 10px; height: 10px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); flex: none; }
 .foot { display: flex; gap: 6px; }
+.picnote { display: flex; flex-direction: column; gap: 10px; padding: 0 4px; }
+.picnote p { margin: 0; font-size: 12.5px; color: #5C5C5A; }
+.picnote .btn { flex: none; }
 .btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; border-radius: 10px; border: 1px solid #DCDCDA; background: #FFFFFF; color: #111111; font-size: 12px; font-weight: 500; }
 .btn.primary { border: none; background: #111111; color: #FFFFFF; }
 .btn.done { background: #E8F8EE; color: #0B7A37; border-color: #E8F8EE; }

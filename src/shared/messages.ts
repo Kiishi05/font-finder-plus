@@ -41,7 +41,8 @@ export type ToExtension =
   | { type: 'ffp:save-from-page'; info: ElementFontInfo; pageUrl: string; fileUrl: string | null; files: FaceFile[] }
   | { type: 'ffp:open-detail'; family: string; source: SourceKind }
   | { type: 'ffp:fetch-font-bg'; url: string }
-  | { type: 'ffp:inject'; tabId: number; startInspecting: boolean };
+  | { type: 'ffp:inject'; tabId: number; startInspecting: boolean }
+  | { type: 'ffp:identify-rect'; rect: { x: number; y: number; w: number; h: number; dpr: number }; pageUrl: string };
 
 export type ScanReply = { ok: true; scan: PageScan } | { ok: false; error: string };
 

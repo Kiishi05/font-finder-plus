@@ -398,3 +398,42 @@ export function watchNewFonts() {
     }, 1200);
   });
 }
+
+// ------------------------------------------------------------- fonts in an area
+/**
+ * The fonts of real text inside a rectangle of the page (Identify, Select an
+ * area). Text on the page can be read exactly; only pictures need matching.
+ */
+export function fontsInRect(r: { x: number; y: number; w: number; h: number }): {
+  fonts: { key: string; name: string; family: string; licenseType: string; source: string; count: number; sample: string }[];
+  pictures: number;
+} {
+  const { els, hidden } = textElements();
+  const inRect = (b: DOMRect) => b.right > r.x && b.left < r.x + r.w && b.bottom > r.y && b.top < r.y + r.h;
+  const fonts = new Map<string, { key: string; name: string; family: string; licenseType: string; source: string; count: number; sample: string }>();
+  for (const el of els) {
+    if (hidden.has(el)) continue;
+    const text = ownText(el);
+    if (!text || isIconText(text)) continue;
+    if (![...el.getClientRects()].some(inRect)) continue;
+    const cs = getComputedStyle(el);
+    const rd = resolveRendered(familyOf(el, cs), cs.fontWeight, cs.fontStyle, text);
+    const key = fontKey(rd);
+    let f = fonts.get(key);
+    if (!f) {
+      const facts = fontFacts(rd);
+      const name = rd.kind === 'web' && !facts.catalogFamily ? familyGroupName(facts.displayName) : facts.displayName;
+      f = { key, name, family: rd.family, licenseType: facts.licenseType, source: facts.source, count: 0, sample: '' };
+      fonts.set(key, f);
+    }
+    f.count++;
+    if (f.sample.length < 50) f.sample = (f.sample ? f.sample + ' ' : '') + text.slice(0, 50);
+  }
+  let pictures = 0;
+  document.querySelectorAll('svg, img, canvas, video').forEach((p) => {
+    if (p.closest('#ffp-root') || (p instanceof SVGSVGElement && p.querySelector('text'))) return;
+    if (p.parentElement?.closest('svg')) return;
+    if (inRect(p.getBoundingClientRect())) pictures++;
+  });
+  return { fonts: [...fonts.values()].sort((a, b) => b.count - a.count), pictures };
+}

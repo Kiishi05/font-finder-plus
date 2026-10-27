@@ -1,6 +1,6 @@
-import { CLASS_LABEL, SOURCE_LABEL, licenseBadge } from '../shared/catalog';
+import { CLASS_LABEL, SOURCE_LABEL, googleFamily, licenseBadge } from '../shared/catalog';
 import { declarationCss, lineHeightLabel, rgbToHex, round, weightLabel } from '../shared/css';
-import { Bookmark02Icon, Cancel01Icon, Copy01Icon, PinIcon, StopCircleIcon, Tick02Icon, iconSvg } from '../shared/icons';
+import { Bookmark02Icon, Cancel01Icon, Copy01Icon, PinIcon, ScanImageIcon, StopCircleIcon, Tick02Icon, iconSvg } from '../shared/icons';
 import type { ElementFontInfo } from '../shared/types';
 import { OWN_FONT_PREFIX, elementLabel, facesFor, familyCss, fontFacts, loadFaceMap, measureMetrics, resolveRendered, roleOf, type Rendered } from './detect';
 import { elementsForKey, familyOf, isClipped, isOurNode } from './scan';
@@ -13,6 +13,12 @@ interface Current {
   info: ElementFontInfo;
   rendered: Rendered;
   fileUrl: string | null;
+  /** CSS font-family to draw the name and metrics with (the swapped-in font while a swap is on). */
+  css?: string;
+  /** The font this element showed before a swap ("Try on page", "Make it free"). */
+  swappedFrom?: string;
+  /** Hovering a picture (SVG drawing, image, canvas): there is no font to read. */
+  picture?: { kind: 'svg' | 'image'; el: Element };
 }
 
 let root: ShadowRoot | null = null;
@@ -28,6 +34,14 @@ let uiFontsLoaded = false;
 let onStateChange: (on: boolean) => void = () => {};
 
 const $ = <T extends Element>(sel: string) => root!.querySelector(sel) as T;
+
+/** Read the card's element again (after a font swap or undo changed it). */
+export function refreshCard() {
+  if (!current || !root) return;
+  const el = current.el;
+  current = infoFor(el);
+  renderCard();
+}
 
 /** Hide the extension's own things on the page for a moment (for screenshots). */
 export function hideUi(hidden: boolean) {
@@ -84,6 +98,10 @@ function ensureUi() {
       </div>
       <canvas class="metrics" width="576" height="208"></canvas>
       <div class="rows"></div>
+      <div class="picnote" hidden>
+        <p>This is a picture, not text, so there is no font to read here. Identify the picture to find the closest fonts.</p>
+        <button class="btn primary identify">${iconSvg(ScanImageIcon, 14)}<span>Identify this picture</span></button>
+      </div>
       <div class="foot">
         <button class="btn primary copycss">${iconSvg(Copy01Icon, 14)}<span>Copy all as CSS</span></button>
         <button class="btn save">${iconSvg(Bookmark02Icon, 14)}<span>Save to library</span></button>
@@ -143,6 +161,15 @@ function ensureUi() {
       renderRows();
     }, 1400);
   });
+  $('.identify').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const pic = current?.picture;
+    if (!pic) return;
+    const r = pic.el.getBoundingClientRect();
+    const rect = { x: Math.max(0, r.left), y: Math.max(0, r.top), w: Math.min(innerWidth, r.right) - Math.max(0, r.left), h: Math.min(innerHeight, r.bottom) - Math.max(0, r.top), dpr: devicePixelRatio };
+    hideCard();
+    chrome.runtime.sendMessage({ type: 'ffp:identify-rect', rect, pageUrl: location.href }, () => void chrome.runtime.lastError);
+  });
   $('.close').addEventListener('click', (e) => {
     e.stopPropagation();
     hideCard();
@@ -183,7 +210,17 @@ async function copyText(text: string) {
 
 // ------------------------------------------------------------------ info
 
+/** A picture rather than text: an SVG drawing without real text, an image, a canvas or a video. */
+function pictureOf(el: Element): Current['picture'] | undefined {
+  const svg = el.closest('svg');
+  if (svg && !svg.querySelector('text')) return { kind: 'svg', el: svg };
+  if (el instanceof HTMLImageElement || el instanceof HTMLCanvasElement || el instanceof HTMLVideoElement || el instanceof HTMLPictureElement) return { kind: 'image', el };
+  return undefined;
+}
+
 function infoFor(el: Element): Current {
+  const picture = pictureOf(el);
+  if (picture) el = picture.el;
   const cs = getComputedStyle(el);
   let text = '';
   el.childNodes.forEach((n) => {
@@ -217,7 +254,30 @@ function infoFor(el: Element): Current {
     licenseType: facts.licenseType,
     classification: facts.classification,
   };
-  return { el, info, rendered, fileUrl: facts.fileUrl };
+  const swapped = el.getAttribute('data-ffp-swap');
+  if (swapped && !picture) {
+    // A trial font is showing here: describe that font, and say what it replaced.
+    const gf = googleFamily(swapped);
+    const css = cs.fontFamily;
+    const sm = measureMetrics(css, cs.fontWeight, cs.fontStyle, size);
+    const swappedInfo: ElementFontInfo = {
+      ...info,
+      family: gf?.family ?? swapped,
+      displayName: gf?.family ?? swapped,
+      catalogFamily: gf?.family ?? null,
+      kind: 'web',
+      source: 'google',
+      sourceHost: 'fonts.gstatic.com',
+      declared: [gf?.family ?? swapped, rendered.genericName ?? 'sans-serif'],
+      fellBackFrom: [],
+      capHeight: sm.cap ? round(sm.cap, 1) : null,
+      xHeight: sm.x ? round(sm.x, 1) : null,
+      licenseType: gf?.l ?? 'unknown',
+      classification: gf?.c ?? info.classification,
+    };
+    return { el, info: swappedInfo, rendered, fileUrl: null, css, swappedFrom: info.displayName ?? info.family };
+  }
+  return { el, info, rendered, fileUrl: facts.fileUrl, picture };
 }
 
 // ------------------------------------------------------------------ render
@@ -229,14 +289,29 @@ function escapeHtml(s: string) {
 function renderCard() {
   if (!current) return;
   const { info, rendered } = current;
+  const pic = current.picture;
+  $<HTMLElement>('.picnote').hidden = !pic;
+  $<HTMLElement>('.metrics').hidden = !!pic;
+  $<HTMLElement>('.rows').hidden = !!pic;
+  $<HTMLElement>('.foot').hidden = !!pic;
+  $<HTMLElement>('.chip').hidden = !!pic;
   const name = $<HTMLElement>('.name');
+  if (pic) {
+    name.textContent = 'Picture, not text';
+    name.style.fontFamily = '"FFP Inter", system-ui';
+    name.style.fontWeight = '600';
+    name.style.fontStyle = 'normal';
+    $<HTMLElement>('.meta').textContent = `[${pic.kind === 'svg' ? 'SVG DRAWING' : 'IMAGE'}]`;
+    $<HTMLElement>('.fallback').hidden = true;
+    $<HTMLElement>('.pin').classList.toggle('on', pinned);
+    return;
+  }
   name.textContent = info.displayName ?? info.family;
-  name.style.fontFamily = `${familyCss(rendered)}, system-ui`;
+  name.style.fontFamily = `${current.css ?? familyCss(rendered)}, system-ui`;
   name.style.fontWeight = info.weight;
   name.style.fontStyle = info.style;
   const src = info.kind === 'web' ? SOURCE_LABEL[info.source] : info.kind === 'generic' ? 'Browser default' : 'System font';
-  const trying = current.el.getAttribute('data-ffp-swap');
-  $<HTMLElement>('.meta').textContent = `[${info.tag} · ${src.toUpperCase()}${info.catalogFamily && info.source !== 'google' ? ' · ON GOOGLE FONTS' : ''}]${trying ? ` · TRYING ${trying.toUpperCase()}` : ''}`;
+  $<HTMLElement>('.meta').textContent = `[${info.tag} · ${src.toUpperCase()}${info.catalogFamily && info.source !== 'google' ? ' · ON GOOGLE FONTS' : ''}]${current.swappedFrom ? ` · SHOWING INSTEAD OF ${current.swappedFrom.toUpperCase()}` : ''}`;
   const fb = $<HTMLElement>('.fallback');
   fb.hidden = !info.fellBackFrom.length;
   fb.textContent = info.fellBackFrom.length ? `Fallback: ${info.fellBackFrom.join(', ')} did not load` : '';
@@ -286,7 +361,7 @@ function drawMetrics() {
   c.roundRect(0, 0, W, H, 12 * scale);
   c.fill();
   const { info, rendered } = current;
-  const fam = familyCss(rendered);
+  const fam = current.css ?? familyCss(rendered);
   const fs = 76 * scale;
   c.font = `${info.style} ${info.weight} ${fs}px ${fam}, serif`;
   const base = 80 * scale;

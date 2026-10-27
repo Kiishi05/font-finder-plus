@@ -240,6 +240,14 @@ try {
   check('Try on page swaps the font live', !!swapped.attr && /FFP Swap/.test(swapped.ff), JSON.stringify(swapped));
   await page.screenshot({ path: path.join(out, 'swap-on-page.png') });
   const rescan = await sw.evaluate(async (id) => chrome.tabs.sendMessage(id, { type: 'ffp:scan' }), tabId);
+  const hb0 = await page.locator('h1').boundingBox();
+  await page.bringToFront();
+  await page.mouse.move(hb0.x + 30, hb0.y + 20);
+  await page.mouse.move(hb0.x + 34, hb0.y + 22);
+  await page.waitForTimeout(400);
+  const swapCard = await page.evaluate(() => { const sr = document.getElementById('ffp-root').shadowRoot; return sr.querySelector('.name').textContent + ' | ' + sr.querySelector('.meta').textContent; });
+  check('hover card shows the swapped-in font', swapCard.startsWith(swapped.attr) && /SHOWING INSTEAD OF FRAUNCES/.test(swapCard), swapCard);
+  await panel.bringToFront();
   check('a re-scan still reports the original font while swapped', rescan.scan.fonts.some((f) => f.family === 'Fraunces'));
   await panel.locator('.match button', { hasText: 'Showing on page' }).first().click();
   await page.waitForTimeout(300);
@@ -520,6 +528,11 @@ try {
   // Keep the page in front: the screenshot is of the visible tab (in real use the side panel sits beside it).
   await panel.waitForSelector('.editbox canvas', { timeout: 10000 }).catch(() => {});
   await panel.bringToFront();
+  await panel.waitForSelector('text=[Fonts in this area]', { timeout: 10000 }).catch(() => {});
+  const exactText = await panel.locator('body').innerText();
+  check('selecting real text lists its exact fonts', /Fonts in this area/i.test(exactText) && /Fraunces/.test(exactText) && /known exactly/.test(exactText));
+  await panel.locator('button', { hasText: 'Match it as an image anyway' }).click();
+  await panel.waitForSelector('.editbox canvas', { timeout: 10000 }).catch(() => {});
   const sel = await panel.evaluate(() => { const c = document.querySelector('.editbox canvas'); return c ? { w: c.width, h: c.height } : document.querySelector('.notice')?.textContent ?? 'no notice'; });
   check('selecting an area of the page captures it', !!sel && sel.w > 100 && sel.h > 20, JSON.stringify(sel));
   await panel.locator('button', { hasText: 'Use another image' }).click().catch(() => {});
@@ -534,6 +547,26 @@ try {
   }, pngB64);
   await panel.waitForSelector('.editbox canvas', { timeout: 10000 }).catch(() => {});
   check('pasting an image opens it', (await panel.locator('.editbox canvas').count()) === 1);
+  await panel.locator('button', { hasText: 'Use another image' }).click();
+
+  // Hover a picture: the card says it is a picture and can identify it, matching the page's own fonts too
+  await page.bringToFront();
+  await page.locator('#pic').scrollIntoViewIfNeeded();
+  const pb = await page.locator('#pic').boundingBox();
+  await page.mouse.click(pb.x + 200, pb.y + 40);
+  await page.waitForTimeout(300);
+  const picCard = await page.evaluate(() => { const sr = document.getElementById('ffp-root').shadowRoot; return { name: sr.querySelector('.name').textContent, note: !sr.querySelector('.picnote').hidden }; });
+  check('hovering a picture says it is a picture, not text', picCard.name === 'Picture, not text' && picCard.note, JSON.stringify(picCard));
+  await page.evaluate(() => document.getElementById('ffp-root').shadowRoot.querySelector('.identify').click());
+  await panel.waitForSelector('.editbox canvas', { timeout: 15000 }).catch(() => {});
+  check('Identify this picture opens it in the Image tab', (await panel.locator('.editbox canvas').count()) === 1);
+  await panel.bringToFront();
+  await panel.locator('button', { hasText: 'Read the text' }).click();
+  await panel.waitForSelector('.ocrline', { timeout: 90000 }).catch(() => {});
+  await panel.locator('button', { hasText: 'Find the closest fonts' }).click();
+  await panel.waitForSelector('.match', { timeout: 60000 }).catch(() => {});
+  const picMatches = await panel.evaluate(() => [...document.querySelectorAll('.match')].slice(0, 3).map((m) => m.querySelector('b').textContent + (/On this page/.test(m.textContent) ? ' (on page)' : '')));
+  check('a picture in a font the page uses is matched to that font', picMatches.some((m) => /Demo.*on page/.test(m)), picMatches.join(', '));
   await panel.locator('button', { hasText: 'Use another image' }).click();
 
   // Right-click an image (the menu itself cannot be clicked in a test; it stores this request)

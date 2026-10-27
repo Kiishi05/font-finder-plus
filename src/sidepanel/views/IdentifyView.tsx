@@ -1,27 +1,67 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { googleFamily, googleFontsUrl, LICENSE_LABEL } from '../../shared/catalog';
+import { googleFamily, googleFontsUrl, LICENSE_LABEL, licenseBadge } from '../../shared/catalog';
 import { db, saveFont } from '../../shared/db';
-import { Alert02Icon, ArrowUpRight01Icon, Bookmark02Icon, Delete02Icon, ImageCropIcon, ImageUploadIcon, PerspectiveIcon, RotateClockwiseIcon, ScanImageIcon } from '../../shared/icons';
+import { Alert02Icon, ArrowUpRight01Icon, Bookmark02Icon, Delete02Icon, ImageCropIcon, ImageUploadIcon, PerspectiveIcon, RotateClockwiseIcon, ScanImageIcon, Target02Icon } from '../../shared/icons';
 import { sendToTab } from '../../shared/messages';
-import type { ImageJob } from '../../shared/types';
+import type { ImageJob, LicenseType, PageFontUsage, PageScan } from '../../shared/types';
+import { bestFileUrl, fontId, recordFromUsage } from '../../shared/records';
+import { getFontBytes } from '../lib/fonts';
+import { usePreviewFamily } from '../lib/preview';
 import { Icon } from '../components/Icon';
 import { canvasBlob } from '../lib/cards';
 import { useGoogleFontReady } from '../lib/google';
 import { heicToCanvas, isHeic } from '../lib/heic';
 import { NO_EDIT, cutGlyphs, finish, geometry, letterTiles, looksInverted, type Edit } from '../lib/imageprep';
-import { INDEX_COUNT, matchGlyphs, type ImageMatch } from '../lib/matcher';
+import { INDEX_COUNT, matchGlyphs, type ImageMatch, type PageFontFile } from '../lib/matcher';
 import { useMissing } from '../lib/missing';
 import { recognize, type OcrLine } from '../lib/ocr';
-import type { TabState } from '../lib/hooks';
-import { askWhatFontIs, type WfiResult } from '../lib/whatfontis';
+import { usePageScan, type TabState } from '../lib/hooks';
+
+/** A request from the right-click menu (an image's address) or the hover card (a picture's area). */
+export interface IdentifyRequest {
+  srcUrl?: string;
+  rect?: { x: number; y: number; w: number; h: number; dpr: number };
+  tabId: number;
+  pageUrl: string;
+}
 
 interface Props {
   tab: TabState;
-  whatFontIsKey: string;
-  pending: { srcUrl: string; tabId: number; pageUrl: string } | null;
+  pending: IdentifyRequest | null;
   onPendingUsed: () => void;
+  onOpenFont: (usage: PageFontUsage, fontId: string) => void;
   toast: (m: string) => void;
+}
+
+interface Exact {
+  fonts: { key: string; name: string; family: string; licenseType: string; source: string; count: number; sample: string }[];
+  pictures: number;
+}
+
+/** Files of the fonts this page uses (not Google Fonts), to compare pictures from this page against. */
+async function pageFontFiles(fonts: PageFontUsage[], tabId: number | null): Promise<PageFontFile[]> {
+  // Files covering basic Latin letters (a to z); sites split fonts by alphabet.
+  const latin = (r: string | null) =>
+    !r ||
+    r.split(',').some((part) => {
+      const [a, b] = part.trim().replace(/^u\+/i, '').split('-');
+      const start = parseInt(a.replace(/\?/g, '0'), 16);
+      const end = b ? parseInt(b, 16) : parseInt(a.replace(/\?/g, 'F'), 16);
+      return start <= 0x61 && end >= 0x7a;
+    });
+  const out: PageFontFile[] = [];
+  for (const f of fonts.filter((x) => x.kind === 'web' && !x.catalogFamily).slice(0, 8)) {
+    const files = f.files.filter((x) => x.url && latin(x.unicodeRange) && x.style !== 'italic');
+    if (!files.length) continue;
+    const named = (re: RegExp) => files.find((x) => re.test(x.url ?? ''));
+    const reg = named(/regular|book|roman|normal/i) ?? files.find((x) => /^(400|normal)$/.test(x.weight)) ?? files[0];
+    const bold = named(/[^a-z](bold)(?!.*(semi|extra|ultra|demi))/i) ?? files.find((x) => /^(700|bold)$/.test(x.weight) && x !== reg) ?? null;
+    const get = async (u: string | null | undefined) => (u ? getFontBytes(u, tabId).catch(() => null) : null);
+    const [r, b] = await Promise.all([get(reg?.url), get(bold?.url)]);
+    if (r || b) out.push({ family: f.displayName || f.family, regular: r, bold: b });
+  }
+  return out;
 }
 
 type Source = { canvas: HTMLCanvasElement; kind: NonNullable<ImageJob['source']>; pageUrl?: string };
@@ -53,7 +93,10 @@ async function captureRect(tabId: number, r: { x: number; y: number; w: number; 
   return c;
 }
 
-export function IdentifyView({ tab, whatFontIsKey, pending, onPendingUsed, toast }: Props) {
+export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, toast }: Props) {
+  const { scan } = usePageScan(tab.tabId, !!tab.ping, tab.ping?.url, tab.fontsVersion);
+  const [exact, setExact] = useState<Exact | null>(null);
+  const [showEditor, setShowEditor] = useState(true);
   const [source, setSource] = useState<Source | null>(null);
   const [edit, setEdit] = useState<Edit>(NO_EDIT);
   const [autoInverted, setAutoInverted] = useState(false);
@@ -78,6 +121,8 @@ export function IdentifyView({ tab, whatFontIsKey, pending, onPendingUsed, toast
     setError(null);
     setViewJob(null);
     setAutoInverted(false);
+    setExact(null);
+    setShowEditor(true);
   };
 
   const load = useCallback(async (canvas: HTMLCanvasElement, kind: Source['kind'], pageUrl?: string) => {
@@ -126,18 +171,27 @@ export function IdentifyView({ tab, whatFontIsKey, pending, onPendingUsed, toast
       setBusy('loading');
       try {
         let canvas: HTMLCanvasElement | null = null;
-        try {
-          const res = await fetch(pending.srcUrl, { credentials: 'omit' });
-          if (res.ok) canvas = await canvasFromBlob(await res.blob());
-        } catch {
-          /* the site blocks downloading it: take it from the screen instead */
+        if (pending.rect) {
+          // "Identify this picture" from the hover card: take that area of the screen.
+          await sendToTab(pending.tabId, { type: 'ffp:hide-ui', hidden: true });
+          await new Promise((r) => setTimeout(r, 120));
+          canvas = await captureRect(pending.tabId, pending.rect);
         }
-        if (!canvas) {
+        if (!canvas && pending.srcUrl) {
+          try {
+            const res = await fetch(pending.srcUrl, { credentials: 'omit' });
+            if (res.ok) canvas = await canvasFromBlob(await res.blob());
+          } catch {
+            /* the site blocks downloading it: take it from the screen instead */
+          }
+        }
+        if (!canvas && pending.srcUrl) {
           const r = await sendToTab<{ rect: { x: number; y: number; w: number; h: number; dpr: number } | null }>(pending.tabId, { type: 'ffp:image-rect', src: pending.srcUrl });
           if (!r?.rect) throw new Error('The image could not be read. Try Select an area instead.');
           canvas = await captureRect(pending.tabId, r.rect);
         }
-        await load(canvas, 'image', pending.pageUrl);
+        if (!canvas) throw new Error('The picture could not be read. Try Select an area instead.');
+        await load(canvas, pending.rect ? 'page' : 'image', pending.pageUrl);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'The image could not be read.');
       } finally {
@@ -150,7 +204,7 @@ export function IdentifyView({ tab, whatFontIsKey, pending, onPendingUsed, toast
   const selectArea = async () => {
     if (tab.tabId == null) return;
     setError(null);
-    const r = await sendToTab<{ rect: { x: number; y: number; w: number; h: number; dpr: number } | null }>(tab.tabId, { type: 'ffp:select-area' }, 120000);
+    const r = await sendToTab<{ rect: { x: number; y: number; w: number; h: number; dpr: number } | null; inside: Exact | null }>(tab.tabId, { type: 'ffp:select-area' }, 120000);
     if (!r) {
       setError('The page did not answer. Click the Font Finder Plus icon on the page first.');
       return;
@@ -162,6 +216,11 @@ export function IdentifyView({ tab, whatFontIsKey, pending, onPendingUsed, toast
     setBusy('loading');
     try {
       await load(await captureRect(tab.tabId, r.rect), 'page', tab.ping?.url);
+      // Real text in the area: its fonts are read exactly from the page, no guessing.
+      if (r.inside?.fonts.length) {
+        setExact(r.inside);
+        setShowEditor(r.inside.pictures > 0);
+      }
     } catch {
       setError('Chrome did not allow a screenshot of this page. Click the Font Finder Plus icon on the page and try again.');
     } finally {
@@ -208,7 +267,10 @@ export function IdentifyView({ tab, whatFontIsKey, pending, onPendingUsed, toast
     setBusy('matching');
     setError(null);
     try {
-      const res = await matchGlyphs(glyphs, 10);
+      // A picture from this tab: also compare with the fonts this page uses (often paid ones).
+      const sameTab = source && (source.kind === 'page' || source.kind === 'image') && scan && (!source.pageUrl || source.pageUrl === scan.url);
+      const extra = sameTab ? await pageFontFiles(scan!.fonts, tab.tabId) : [];
+      const res = await matchGlyphs(glyphs, 10, extra);
       setMatches(res);
       const image = await canvasBlob(prepared);
       await db.imageJobs.add({ image, createdAt: Date.now(), ocrText: text, results: res.map(({ family, bold, score, reason }) => ({ family, bold, score, reason })), source: source?.kind, pageUrl: source?.pageUrl });
@@ -226,7 +288,7 @@ export function IdentifyView({ tab, whatFontIsKey, pending, onPendingUsed, toast
       {!source && (
         <section className="section">
           <h2>[Identify a font from an image]</h2>
-          <span style={{ fontSize: 12.5 }}>Find the closest free fonts to text in a picture: a logo, a poster, a screenshot. Matching runs on this computer against {INDEX_COUNT.toLocaleString()} Google Fonts families.</span>
+          <span style={{ fontSize: 12.5 }}>Find the closest free fonts to text in a picture: a logo, a poster, a screenshot. On a web page, text is read exactly from the page; pictures are matched on this computer against {INDEX_COUNT.toLocaleString()} Google Fonts families and the fonts the page uses.</span>
           <div className="idsrc">
             <button className="btn primary" onClick={selectArea} disabled={!tab.ping || !!busy}>
               <Icon icon={ScanImageIcon} size={16} />Select an area on the page
@@ -257,17 +319,21 @@ export function IdentifyView({ tab, whatFontIsKey, pending, onPendingUsed, toast
       {busy === 'loading' && <div className="notice neutral">Opening the image…</div>}
       {error && <div className="notice amber"><Icon icon={Alert02Icon} size={15} />{error}</div>}
 
-      {source && geo && prepared && (
+      {exact && (
+        <ExactFonts exact={exact} scan={scan} tabId={tab.tabId} onOpenFont={onOpenFont} showEditor={showEditor} onShowEditor={() => setShowEditor(true)} />
+      )}
+
+      {source && geo && prepared && showEditor && (
         <Editor source={source} geo={geo} prepared={prepared} edit={edit} setEdit={(e) => { setEdit(e); setLines(null); setMatches(null); }} autoInverted={autoInverted} onReset={reset} />
       )}
 
-      {source && (
+      {source && showEditor && (
         <button className="btn primary" style={{ height: 40 }} onClick={read} disabled={!!busy}>
           {busy === 'reading' ? `Reading the text… ${Math.round(progress * 100)}%` : lines ? 'Read the text again' : 'Read the text'}
         </button>
       )}
 
-      {lines && lines.length > 0 && (
+      {lines && lines.length > 0 && showEditor && (
         <section className="section">
           <h2>[Text found] Choose the line to match</h2>
           <div className="ocrlines">
@@ -299,8 +365,8 @@ export function IdentifyView({ tab, whatFontIsKey, pending, onPendingUsed, toast
         </section>
       )}
 
-      {matches && prepared && (
-        <Results matches={matches} usedLetters={usedLetters} text={text} image={prepared} whatFontIsKey={whatFontIsKey} toast={toast} />
+      {matches && prepared && showEditor && (
+        <Results matches={matches} usedLetters={usedLetters} text={text} image={prepared} scan={scan} tabId={tab.tabId} toast={toast} />
       )}
 
       {!source && <History onOpen={setViewJob} />}
@@ -440,78 +506,83 @@ function Slider({ label, value, min, max, step, unit = '', onChange }: { label: 
 
 // ------------------------------------------------------------- results
 
-function Results({ matches, usedLetters, text, image, whatFontIsKey, toast }: { matches: ImageMatch[]; usedLetters: number; text: string; image: HTMLCanvasElement; whatFontIsKey: string; toast: (m: string) => void }) {
-  const [wfi, setWfi] = useState<WfiResult[] | null>(null);
-  const [wfiBusy, setWfiBusy] = useState(false);
-  const [wfiError, setWfiError] = useState<string | null>(null);
+function Results({ matches, usedLetters, text, image, scan, tabId, toast }: { matches: ImageMatch[]; usedLetters: number; text: string; image: HTMLCanvasElement; scan: PageScan | null; tabId: number | null; toast: (m: string) => void }) {
   const top = matches[0]?.score ?? 0;
   const low = top < 60 || usedLetters < 4;
   const close = matches.length > 2 && top - matches[2].score <= 3;
   const imgUrl = useMemo(() => image.toDataURL('image/png'), [image]);
+  const onPage = matches.some((m) => m.onPage);
   return (
     <section className="section">
-      <h2>[Closest matches] Free Google Fonts</h2>
+      <h2>[Closest matches]</h2>
       {low && (
         <div className="notice amber">
           <Icon icon={Alert02Icon} size={15} />
           <span>
             Low confidence{usedLetters < 4 ? `: only ${usedLetters} ${usedLetters === 1 ? 'letter was' : 'letters were'} compared` : ''}. For better results crop tightly around one line, use a bigger or sharper image,
-            straighten it, and fix any letters read wrongly. The font may also be a paid font that is not in this list.
+            straighten it, and fix any letters read wrongly. The font may also be a paid font that is not in the list.
           </span>
         </div>
       )}
       {close && !low && <span className="muted" style={{ fontSize: 12 }}>Several fonts here are almost the same. Compare details such as a, g, R, Q and y to tell them apart.</span>}
       <div className="matches">
-        {matches.map((m, i) => <ImageMatchRow key={m.family} m={m} rank={i + 1} text={text} imgUrl={imgUrl} image={image} toast={toast} />)}
+        {matches.map((m, i) => <ImageMatchRow key={m.family} m={m} rank={i + 1} text={text} imgUrl={imgUrl} image={image} usage={m.onPage ? scan?.fonts.find((f) => (f.displayName || f.family) === m.family) ?? null : null} tabId={tabId} toast={toast} />)}
       </div>
       <span className="muted" style={{ fontSize: 11.5 }}>
-        These are the closest matches among free Google Fonts, compared letter by letter on this computer. They are not a guarantee of the exact font.
+        Compared letter by letter on this computer with {INDEX_COUNT.toLocaleString()} free Google Fonts families{onPage ? ' and the fonts this page uses' : ''}. These are the closest matches, not a guarantee of the exact font.
       </span>
-      <div className="stack" style={{ gap: 6, paddingTop: 6, borderTop: '1px solid var(--line)' }}>
-        <span className="label">[Exact match from WhatFontIs]</span>
-        {whatFontIsKey ? (
-          <>
-            <button className="btn sm" style={{ alignSelf: 'flex-start' }} disabled={wfiBusy} onClick={async () => {
-              setWfiBusy(true);
-              setWfiError(null);
-              try {
-                setWfi(await askWhatFontIs(whatFontIsKey, image));
-              } catch (err) {
-                setWfiError(err instanceof Error ? err.message : 'WhatFontIs did not answer.');
-              } finally {
-                setWfiBusy(false);
-              }
-            }}>{wfiBusy ? 'Asking WhatFontIs…' : 'Ask WhatFontIs (sends this image to whatfontis.com)'}</button>
-            {wfiError && <span className="err" style={{ fontSize: 12 }}>{wfiError}</span>}
-            {wfi && (
-              <div className="stack" style={{ gap: 4 }}>
-                <span className="muted" style={{ fontSize: 11.5 }}>Results from whatfontis.com. These may include paid fonts.</span>
-                {wfi.length ? wfi.map((r) => (
-                  <a key={r.title} className="wfi" href={r.url ?? undefined} target="_blank" rel="noreferrer">
-                    {r.image && <img src={r.image} alt="" />}
-                    <span>{r.title}</span>
-                  </a>
-                )) : <span style={{ fontSize: 12 }}>WhatFontIs found nothing for this image.</span>}
-              </div>
-            )}
-          </>
-        ) : (
-          <span className="muted" style={{ fontSize: 12 }}>For paid fonts too, add your own WhatFontIs API key in Settings. Nothing is sent unless you ask.</span>
-        )}
-      </div>
     </section>
   );
 }
 
-function ImageMatchRow({ m, rank, text, imgUrl, image, toast }: { m: ImageMatch; rank: number; text: string; imgUrl: string; image: HTMLCanvasElement; toast: (msg: string) => void }) {
-  const { css, ready } = useGoogleFontReady(m.family);
+/** Fonts of the real text inside the selected area, read exactly from the page. */
+function ExactFonts({ exact, scan, tabId, onOpenFont, showEditor, onShowEditor }: { exact: Exact; scan: PageScan | null; tabId: number | null; onOpenFont: Props['onOpenFont']; showEditor: boolean; onShowEditor: () => void }) {
+  return (
+    <section className="section">
+      <h2>[Fonts in this area] Read exactly from the page</h2>
+      <span style={{ fontSize: 12.5 }}>
+        This area has real text, so its fonts are known exactly. No guessing needed.
+        {exact.pictures > 0 && ` It also has ${exact.pictures === 1 ? 'a picture' : `${exact.pictures} pictures`} (images or drawings), which are matched below.`}
+      </span>
+      <div className="matches">
+        {exact.fonts.map((f) => {
+          const usage = scan?.fonts.find((u) => u.key === f.key) ?? null;
+          const badge = licenseBadge(f.licenseType as LicenseType);
+          return (
+            <div key={f.key} className="match">
+              <div className="row" style={{ alignItems: 'baseline' }}>
+                <b className="grow" style={{ fontSize: 13 }}>{f.name}</b>
+                <span className={`lic ${badge.tone}`}><i />{badge.text}</span>
+              </div>
+              <span className="muted" style={{ fontSize: 11.5, overflowWrap: 'anywhere' }}>“{f.sample}”</span>
+              <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                {usage && <button className="btn sm primary" onClick={() => onOpenFont(usage, fontId(usage.family, usage.source))}>Details</button>}
+                {usage && tabId != null && <button className="btn sm" onClick={() => sendToTab(tabId, { type: 'ffp:highlight', key: f.key, label: f.name })}><Icon icon={Target02Icon} size={13} />Show on page</button>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {!showEditor && (
+        <button className="linkbtn" style={{ alignSelf: 'flex-start', fontSize: 12 }} onClick={onShowEditor}>Match it as an image anyway</button>
+      )}
+    </section>
+  );
+}
+
+function ImageMatchRow({ m, rank, text, imgUrl, image, usage, tabId, toast }: { m: ImageMatch; rank: number; text: string; imgUrl: string; image: HTMLCanvasElement; usage: PageFontUsage | null; tabId: number | null; toast: (msg: string) => void }) {
+  const google = useGoogleFontReady(m.onPage ? null : m.family);
+  const page = usePreviewFamily(usage, tabId);
+  const css = m.onPage ? page.css : google.css;
+  const ready = m.onPage ? page.ready && !page.failed : google.ready;
   const [compare, setCompare] = useState(rank === 1);
   const sample = text.trim() || m.family;
   const missing = useMissing(css, sample, ready);
   const gf = googleFamily(m.family);
   const save = async () => {
-    const id = `${m.family}::google`;
-    await saveFont({ id, family: m.family, displayName: m.family, catalogFamily: m.family, source: 'google', kind: 'web', classification: gf?.c ?? 'unknown', licenseType: gf?.l ?? 'unknown', designers: gf?.d ?? [], files: [] }, null, null);
+    const id = m.onPage && usage ? fontId(usage.family, usage.source) : `${m.family}::google`;
+    if (m.onPage && usage) await saveFont(recordFromUsage(usage, bestFileUrl(usage, usage.sample.fontWeight)), null, usage.sample);
+    else await saveFont({ id, family: m.family, displayName: m.family, catalogFamily: m.family, source: 'google', kind: 'web', classification: gf?.c ?? 'unknown', licenseType: gf?.l ?? 'unknown', designers: gf?.d ?? [], files: [] }, null, null);
     // Keep the image it was found from with the font.
     const blob = await canvasBlob(image);
     const shot = await db.screenshots.add({ blob, pageUrl: 'Identified from an image', createdAt: Date.now() });
@@ -531,13 +602,17 @@ function ImageMatchRow({ m, rank, text, imgUrl, image, toast }: { m: ImageMatch;
       <div className="mprev" dir="auto" style={{ fontFamily: css, fontWeight: m.bold ? 700 : 400 }}>{sample}</div>
       <span className="muted" style={{ fontSize: 11.5 }}>{m.reason}</span>
       <div className="row" style={{ gap: 6, flexWrap: 'wrap', fontSize: 11.5 }}>
-        <span className="lic free"><i />Free · {gf?.l ? LICENSE_LABEL[gf.l] : 'Google Fonts'}</span>
+        {m.onPage ? (
+          <span className="gtag">On this page{usage ? ` · ${licenseBadge(usage.licenseType).text}` : ''}</span>
+        ) : (
+          <span className="lic free"><i />Free · {gf?.l ? LICENSE_LABEL[gf.l] : 'Google Fonts'}</span>
+        )}
         {ready && <span className={missing.length ? 'err' : 'ok'}>{missing.length ? `Missing ${missing.length} of your letters (${missing.slice(0, 6).map((c) => `“${c}”`).join(' ')})` : 'Has every letter of your text'}</span>}
       </div>
       <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
         <button className={`btn sm${compare ? ' done' : ''}`} onClick={() => setCompare(!compare)}>{compare ? 'Hide your image' : 'Compare with your image'}</button>
         <button className="btn sm" onClick={save}><Icon icon={Bookmark02Icon} size={13} />Save</button>
-        <a className="btn sm ghost" href={googleFontsUrl(m.family)} target="_blank" rel="noreferrer">Google Fonts <Icon icon={ArrowUpRight01Icon} size={13} /></a>
+        {!m.onPage && <a className="btn sm ghost" href={googleFontsUrl(m.family)} target="_blank" rel="noreferrer">Google Fonts <Icon icon={ArrowUpRight01Icon} size={13} /></a>}
       </div>
     </div>
   );

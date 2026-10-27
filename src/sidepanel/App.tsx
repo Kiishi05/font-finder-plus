@@ -10,7 +10,7 @@ import { LibraryView } from './views/LibraryView';
 import { PageView } from './views/PageView';
 import { SettingsView } from './views/SettingsView';
 import { SystemView } from './views/SystemView';
-import { IdentifyView } from './views/IdentifyView';
+import { IdentifyView, type IdentifyRequest } from './views/IdentifyView';
 import { ShareView } from './views/ShareView';
 import { BoardEditor, BoardsView } from './views/BoardsView';
 
@@ -34,10 +34,10 @@ export function App() {
   const [libTester, setLibTester] = useState<TesterState>({ ...DEFAULT_TESTER, size: 36 });
 
   // Right-click "Identify the font in this image" opens the Image tab with that image.
-  const [pending, setPending] = useState<{ srcUrl: string; tabId: number; pageUrl: string } | null>(null);
+  const [pending, setPending] = useState<IdentifyRequest | null>(null);
   useEffect(() => {
     const take = (v: unknown) => {
-      const p = v as { srcUrl: string; tabId: number; pageUrl: string; at: number } | undefined;
+      const p = v as (IdentifyRequest & { at: number }) | undefined;
       if (p && Date.now() - p.at < 60000) {
         setPending(p);
         setView({ name: 'image' });
@@ -85,7 +85,7 @@ export function App() {
       )}
       {view.name === 'system' && <SystemView tab={tab} toast={showToast} />}
       {view.name === 'image' && (
-        <IdentifyView tab={tab} whatFontIsKey={settings.whatFontIsKey} pending={pending} onPendingUsed={() => { setPending(null); chrome.storage.session.remove('identify:pending'); }} toast={showToast} />
+        <IdentifyView tab={tab} pending={pending} onPendingUsed={() => { setPending(null); chrome.storage.session.remove('identify:pending'); }} onOpenFont={(usage, fontId) => setView({ name: 'detail', fontId, usage, from: 'page' })} toast={showToast} />
       )}
       {view.name === 'settings' && <SettingsView settings={settings} update={updateSettings} toast={showToast} />}
       {view.name === 'detail' && (
