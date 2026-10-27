@@ -12,14 +12,14 @@ const SECONDARY_LATIN = new Set(['japanese', 'korean', 'chinese-simplified', 'ch
 
 const SCRIPT_NAME = /\b(Devanagari|Hindi|Marathi|Tamil|Bangla|Bengali|Gujarati|Gurmukhi|Kannada|Telugu|Malayalam|Oriya|Odia|Arabic|Hebrew|Thai|Thai Looped|Armenian|Georgian|Ethiopic|Sinhala|Khmer|Lao|Myanmar|Tibetan|Mongolian|Javanese|Balinese|Cherokee|Adlam|Syriac|Kufi|Naskh|Nastaliq|Urdu|JP|KR|SC|TC|HK)\b/;
 
-type Key = 'x' | 'cap' | 'asc' | 'desc' | 'w' | 'stem' | 'contrast' | 'round' | 'sq';
+type Key = 'x' | 'cap' | 'asc' | 'desc' | 'w' | 'stem' | 'contrast' | 'round' | 'sq' | 'tl' | 'dot';
 type Feat = Key | `p${number}`;
-const KEYS: Key[] = ['x', 'cap', 'asc', 'desc', 'w', 'stem', 'contrast', 'round', 'sq'];
+const KEYS: Key[] = ['x', 'cap', 'asc', 'desc', 'w', 'stem', 'contrast', 'round', 'sq', 'tl', 'dot'];
 const PROF_N = 9;
 const FEATS: Feat[] = [...KEYS, ...Array.from({ length: PROF_N }, (_, i) => `p${i}` as Feat)];
 // How much each measurement counts. The letter-width profile (p0 to p8) tells
 // geometric fonts from grotesques; together it counts as much as width.
-const WEIGHTS: Record<string, number> = { x: 2, cap: 0.8, asc: 0.6, desc: 0.6, w: 1.6, stem: 1.6, contrast: 1.6, round: 1.2, sq: 1.6 };
+const WEIGHTS: Record<string, number> = { x: 2, cap: 0.8, asc: 0.6, desc: 0.6, w: 1.6, stem: 1.6, contrast: 1.6, round: 1.2, sq: 1.6, tl: 1.4, dot: 0.8 };
 for (let i = 0; i < PROF_N; i++) WEIGHTS[`p${i}`] = 0.35;
 
 // Contrast is skewed (sans about 1.1, Didones above 5), so compare it on a log scale.
@@ -87,7 +87,7 @@ function distance(d: Partial<Record<Feat, number>>, ignoreWeight: boolean): numb
   return wsum ? Math.sqrt(sum / wsum) : 9;
 }
 
-const LABEL: Record<Key, string> = { x: 'x-height', cap: 'cap height', asc: 'ascenders', desc: 'descenders', w: 'width', stem: 'weight', contrast: 'contrast', round: 'roundness', sq: 'squareness' };
+const LABEL: Record<Key, string> = { x: 'x-height', cap: 'cap height', asc: 'ascenders', desc: 'descenders', w: 'width', stem: 'weight', contrast: 'contrast', round: 'roundness', sq: 'squareness', tl: 'stroke ends', dot: 'i dots' };
 const MORE: Partial<Record<Key, [string, string]>> = {
   x: ['taller x-height', 'shorter x-height'],
   w: ['wider', 'narrower'],
@@ -95,6 +95,7 @@ const MORE: Partial<Record<Key, [string, string]>> = {
   contrast: ['more contrast', 'less contrast'],
   round: ['rounder', 'more oval'],
   sq: ['squarer', 'rounder curves'],
+  tl: ['squarer stroke ends', 'rounder stroke ends'],
 };
 
 /** Plain-language reason, e.g. "Same x-height and width. A little bolder." */

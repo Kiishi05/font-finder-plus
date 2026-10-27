@@ -12,7 +12,8 @@
     "build:catalog": "node scripts/build-gf-catalog.mjs",
     "test": "node tests/run.mjs",
     "build:shapes": "node scripts/build-gf-shapes.mjs",
-    "build:glyphs": "node scripts/build-glyph-index.mjs"
+    "build:glyphs": "node scripts/build-glyph-index.mjs",
+    "build:unicode": "node scripts/build-unicode-names.mjs"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "4.3.5",

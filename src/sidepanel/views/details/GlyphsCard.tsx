@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Copy01Icon, Search01Icon } from '../../../shared/icons';
 import { Icon } from '../../components/Icon';
 import { Select } from '../../components/Select';
 import { copyToClipboard } from '../../lib/hooks';
-import { blockOf, hex, isCombining, isDrawable } from '../../lib/unicode';
+import { blockOf, charName, hex, isCombining, isDrawable } from '../../lib/unicode';
 
 const PAGE = 240;
 
@@ -59,6 +59,7 @@ export function GlyphsCard({ codepoints, fontCss, note, toast }: { codepoints: S
           <span className="big" style={{ fontFamily: fontCss }}>{ch(sel)}</span>
           <div className="stack" style={{ gap: 4, minWidth: 0 }}>
             <b className="mono" style={{ fontSize: 13 }}>U+{hex(sel)}</b>
+            <CharName cp={sel} />
             <span className="muted" style={{ fontSize: 11.5 }}>{blockOf(sel)}</span>
             <div className="chips">
               <button className="chip" onClick={async () => (await copyToClipboard(String.fromCodePoint(sel))) && toast('Copied character')}><Icon icon={Copy01Icon} size={12} />Character</button>
@@ -78,4 +79,15 @@ export function GlyphsCard({ codepoints, fontCss, note, toast }: { codepoints: S
       <span className="muted" style={{ fontSize: 11.5 }}>{note}</span>
     </section>
   );
+}
+
+function CharName({ cp }: { cp: number }) {
+  const [name, setName] = useState<string | null>(null);
+  useEffect(() => {
+    let off = false;
+    setName(null);
+    charName(cp).then((n) => !off && setName(n)).catch(() => undefined);
+    return () => { off = true; };
+  }, [cp]);
+  return <span style={{ fontSize: 12, overflowWrap: 'anywhere' }}>{name ?? ' '}</span>;
 }

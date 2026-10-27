@@ -229,6 +229,18 @@ try {
   check('glyph search finds a letter', (await panel.locator('.glyphs button').count()) === 1);
   await panel.locator('.glyphs button').first().click();
   check('glyph detail shows the code point', (await panel.locator('.glyphsel').innerText()).includes('U+00E9'));
+  await panel.waitForFunction(() => /LATIN SMALL LETTER E WITH ACUTE/.test(document.querySelector('.glyphsel')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+  check('glyph detail shows the Unicode name', /LATIN SMALL LETTER E WITH ACUTE/.test(await panel.locator('.glyphsel').innerText()));
+  // Pairs: try the partner on the page
+  const pairBtn = panel.locator('.match button', { hasText: /Try on page \(replaces/ }).first();
+  check('pairs offer Try on page', (await pairBtn.count()) === 1);
+  if (await pairBtn.count()) {
+    await pairBtn.click();
+    await page.waitForFunction(() => document.querySelector('main p')?.hasAttribute('data-ffp-swap'), null, { timeout: 20000 }).catch(() => {});
+    check('a pair is shown on the page', await page.evaluate(() => !!document.querySelector('main p')?.hasAttribute('data-ffp-swap')));
+    await panel.locator('.match button', { hasText: 'Showing on page' }).first().click();
+    await page.waitForTimeout(300);
+  }
   check('installed check answers', /Installed|Not installed/.test(d2));
   // Phase 3: similar fonts, live swap, pairs, playground
   await panel.waitForSelector('.match', { timeout: 15000 }).catch(() => {});
@@ -509,6 +521,12 @@ try {
   await panel.waitForFunction(() => /Has every letter|Missing \d+/.test(document.querySelector('.match')?.textContent ?? ''), null, { timeout: 15000 }).catch(() => {});
   const first = await panel.locator('.match').first().innerText();
   check('matches show the free licence and letter coverage', /Free · SIL Open Font License/.test(first) && /Has every letter of your text/.test(first), first.replace(/\s+/g, ' ').slice(0, 160));
+  const liveBtn = panel.locator('.match button', { hasText: 'Try it live on the page' }).first();
+  await liveBtn.click();
+  await page.waitForFunction(() => !!document.querySelector('[data-ffp-swap]'), null, { timeout: 20000 }).catch(() => {});
+  check('image matches can be tried live on the page', await page.evaluate(() => !!document.querySelector('[data-ffp-swap]')));
+  await panel.locator('.match button', { hasText: 'Showing on page' }).first().click();
+  await page.waitForTimeout(300);
   check('the text read keeps its spaces', /Notes on slow/.test(await panel.locator('.match .mprev').first().innerText()));
   await panel.screenshot({ path: path.join(out, 'panel-identify.png'), fullPage: true });
   await panel.locator('button', { hasText: 'Use another image' }).click();
@@ -588,6 +606,19 @@ try {
   }
 
   if (logs.length) console.log('  logs:\n   ' + logs.slice(0, 12).join('\n   '));
+  // Share card: fonts used on the site
+  await panel.locator('.tabs button', { hasText: 'Page' }).click();
+  await panel.waitForSelector('.fcard');
+  await panel.locator('button', { hasText: 'Share card' }).last().click();
+  await panel.waitForSelector('canvas.cardcanvas', { timeout: 10000 });
+  await panel.waitForTimeout(1500);
+  const siteCard = await panel.evaluate(() => { const c = document.querySelector('canvas.cardcanvas'); return { w: c.width, h: c.height }; });
+  check('"Fonts used on" share card is drawn', siteCard.w === 1200 && siteCard.h === 675, JSON.stringify(siteCard));
+  await panel.screenshot({ path: path.join(out, 'panel-site-card.png'), fullPage: true });
+  const [sdl] = await Promise.all([panel.waitForEvent('download'), panel.locator('button', { hasText: 'Download PNG' }).click()]);
+  check('"Fonts used on" share card downloads', /^fonts-used-on-127-0-0-1-landscape\.png$/.test(sdl.suggestedFilename()), sdl.suggestedFilename());
+  await panel.locator('button[aria-label="Back"]').click();
+
   // Dark theme screenshot
   await panel.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await panel.locator('.tabs button', { hasText: 'Page' }).click();
@@ -613,6 +644,7 @@ try {
   await build({ entryPoints: [path.join(root, 'src/shared/catalog.ts')], outfile: tmp2, format: 'esm', bundle: true, platform: 'node', logLevel: 'silent', loader: { '.json': 'json' } });
   const cat = await import(tmp2);
   check('ALL_CAPS CSS names are shown in normal case', cat.cleanFamilyName('MARTINA_PLANTIJN') === 'Martina Plantijn' && cat.cleanFamilyName('SOEHNE') === 'Soehne');
+  check('names ending in VF are grouped under the family', cat.familyGroupName(cat.cleanFamilyName('die-grotesk-vf')) === 'Die Grotesk', cat.familyGroupName(cat.cleanFamilyName('die-grotesk-vf')));
   check('Soehne spelling is recognised as a Klim font', cat.licenseFromCatalog('SOEHNE', 'self-hosted') === 'commercial');
   check('Copy CSS keeps fallbacks up to the font that renders', JSON.stringify(tidyStack(['Söhne', 'Helvetica', 'Arial', 'sans-serif'], 'Arial')) === JSON.stringify(['Söhne', 'Helvetica', 'Arial', 'sans-serif']));
 }

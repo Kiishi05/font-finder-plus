@@ -45,7 +45,7 @@ export function cleanFamilyName(raw: string): string {
   return s.trim() || raw.trim();
 }
 
-const STYLE_WORDS = /\s+(thin|hairline|extra ?light|ultra ?light|light|book|regular|normal|roman|medium|semi ?bold|demi ?bold|bold|extra ?bold|ultra ?bold|black|heavy|italic|oblique)$/i;
+const STYLE_WORDS = /\s+(vf|var|variable|thin|hairline|extra ?light|ultra ?light|light|book|regular|normal|roman|medium|semi ?bold|demi ?bold|bold|extra ?bold|ultra ?bold|black|heavy|italic|oblique)$/i;
 
 /**
  * The family a font belongs to, without weight or style words. Some sites load

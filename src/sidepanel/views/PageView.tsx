@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { CLASS_LABEL, LICENSE_LABEL, SOURCE_LABEL, googleFamily, licenseBadge } from '../../shared/catalog';
 import { declarationCss } from '../../shared/css';
 import { db, saveFont } from '../../shared/db';
-import { Alert02Icon, ArrowDown01Icon, ArrowRight01Icon, ArrowUp01Icon, Bookmark02Icon, CloseIcon, SourceCodeIcon, Target02Icon } from '../../shared/icons';
+import { Share08Icon, Alert02Icon, ArrowDown01Icon, ArrowRight01Icon, ArrowUp01Icon, Bookmark02Icon, CloseIcon, SourceCodeIcon, Target02Icon } from '../../shared/icons';
 import { sendToExtension, sendToTab } from '../../shared/messages';
 import { bestFileUrl, fontId, recordFromUsage } from '../../shared/records';
 import { hasAllSitesAccess, requestAllSitesAccess } from '../../shared/settings';
@@ -44,10 +44,11 @@ interface Props {
   tester: TesterState;
   onTester: (t: TesterState) => void;
   onOpen: (usage: PageFontUsage, fontId: string) => void;
+  onShare: () => void;
   toast: (m: string) => void;
 }
 
-export function PageView({ tab, tester, onTester, onOpen, toast }: Props) {
+export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Props) {
   const ready = !!tab.ping;
   const { scan, loading, error, rescan } = usePageScan(tab.tabId, ready, tab.ping?.url, tab.fontsVersion);
   const [canInject, setCanInject] = useState(false);
@@ -187,6 +188,7 @@ export function PageView({ tab, tester, onTester, onOpen, toast }: Props) {
       {scan && (
         <div className="row" style={{ marginTop: 'auto', gap: 6 }}>
           <button className="btn" style={{ flex: 1, height: 40, borderRadius: 12 }} onClick={copyAll}>Copy all CSS</button>
+          <button className="btn" style={{ flex: 1, height: 40, borderRadius: 12 }} onClick={onShare}><Icon icon={Share08Icon} size={15} />Share card</button>
           <button className="btn" style={{ flex: 1, height: 40, borderRadius: 12 }} onClick={rescan} disabled={loading}>{loading ? 'Reading…' : 'Scan again'}</button>
         </div>
       )}

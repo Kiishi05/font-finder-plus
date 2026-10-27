@@ -11,7 +11,7 @@ import { Icon } from '../components/Icon';
 import { MissingNote } from '../components/MissingNote';
 import { DEFAULT_TESTER, Tester, sampleText, type TesterState } from '../components/Tester';
 import { analyzeFont } from '../lib/analyze';
-import { copyToClipboard } from '../lib/hooks';
+import { copyToClipboard, usePageScan } from '../lib/hooks';
 import { usePreviewFamily, type PreviewSource } from '../lib/preview';
 import { parseFamilyList } from '../lib/stack';
 import { roleSummary } from './PageView';
@@ -36,10 +36,14 @@ interface Props {
   pageHost: string | null;
   onBack: () => void;
   onShare: (fontId: string) => void;
+  /** The page's address and scan version, to find the other fonts on the page (Pairs, Try on page). */
+  pageUrl?: string;
+  scanVersion?: number;
   toast: (m: string) => void;
 }
 
-export function FontDetail({ fontId, usage, tabId, pageHost, onBack, onShare, toast }: Props) {
+export function FontDetail({ fontId, usage, tabId, pageHost, onBack, onShare, pageUrl, scanVersion, toast }: Props) {
+  const { scan: pageScan } = usePageScan(tabId, !!usage && !!pageUrl, pageUrl, scanVersion ?? 0);
   const record = useLiveQuery(() => db.fonts.get(fontId).then((r) => r ?? null), [fontId]);
   const saved = useLiveQuery(() => db.savedFonts.where('fontId').equals(fontId).first(), [fontId]);
   const [busy, setBusy] = useState<'reading' | null>(null);
@@ -269,7 +273,7 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, onShare, to
         toast={toast}
       /></div>
 
-      <div id="sec-pairs" className="stack" style={{ gap: 0 }}><PairsCard shape={shape} classification={classification} name={name} fontCss={preview.css} exclude={gf?.family ?? name} toast={toast} /></div>
+      <div id="sec-pairs" className="stack" style={{ gap: 0 }}><PairsCard shape={shape} classification={classification} name={name} fontCss={preview.css} exclude={gf?.family ?? name} pageKey={usage?.key ?? null} pageFonts={pageScan?.fonts ?? null} tabId={tabId} toast={toast} /></div>
 
       <div id="sec-variable" className="stack" style={{ gap: 0 }}><PlaygroundCard axes={axes} fromFile={!!parsed?.axes.length} fontCss={preview.css} googleFamily={gf?.family ?? null} pageKey={usage?.key ?? null} tabId={tabId} text={sampleText(tester, name)} toast={toast} /></div>
 

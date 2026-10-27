@@ -308,3 +308,78 @@ export function downloadBlob(blob: Blob, name: string) {
 }
 
 export const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'font';
+
+// ------------------------------------------------------------- "Fonts used on [site]"
+
+export interface SiteFont { name: string; css: string; weight: string; style: string; label: string }
+
+/** CSS that draws a font from a page scan in the panel. */
+export async function fontCssForUsage(u: import('../../shared/types').PageFontUsage, tabId: number | null): Promise<string> {
+  if (u.kind === 'generic') return u.genericName ?? 'serif';
+  if (u.kind === 'local') return `"${u.family}", "FFP NotDef"`;
+  const faces = previewFaces(u.files);
+  if (faces.length) {
+    const alias = aliasFor(faces.map((f) => f.url).join('|'));
+    if (await loadPreviewFamily(alias, faces, tabId)) return `"${alias}", "FFP NotDef"`;
+  }
+  const gf = googleFamily(u.catalogFamily ?? u.displayName ?? u.family);
+  if (gf) {
+    await linkGoogleFamily(gf.family);
+    return `"${gf.family}", "FFP NotDef"`;
+  }
+  return `"${u.family}", system-ui`;
+}
+
+export async function drawSiteCard(canvas: HTMLCanvasElement, o: { size: CardSize; theme: Theme; host: string; fonts: SiteFont[]; watermark: boolean }): Promise<void> {
+  const [W, H] = SIZES[o.size];
+  canvas.width = W;
+  canvas.height = H;
+  const c = canvas.getContext('2d')!;
+  const t = THEMES[o.theme];
+  const portrait = o.size === 'portrait';
+  const pad = Math.round(W * 0.065);
+  const inner = W - pad * 2;
+  await ready(o.fonts as CardFont[], o.fonts.map((f) => f.name));
+  c.fillStyle = t.bg;
+  c.fillRect(0, 0, W, H);
+  c.textBaseline = 'alphabetic';
+  c.fillStyle = t.muted;
+  c.font = `400 ${portrait ? 24 : 21}px ${MONO}`;
+  c.fillText(`[FONTS USED ON ${o.host.toUpperCase()}]`.slice(0, 80), pad, pad + 24);
+
+  const footer = H - pad;
+  const top = pad + 70;
+  const bottom = footer - 70;
+  const n = Math.max(1, o.fonts.length);
+  const slot = (bottom - top) / n;
+  o.fonts.forEach((f, i) => {
+    const y0 = top + slot * i;
+    const nameFont = (sz: number) => `${f.style} ${f.weight} ${sz}px ${f.css}`;
+    const size = fit(c, nameFont, f.name, inner, Math.min(portrait ? 150 : 120, slot * 0.62), 28, 1);
+    c.font = nameFont(size);
+    c.fillStyle = t.ink;
+    c.fillText(wrap(c, f.name, inner, 1)[0] ?? f.name, pad, y0 + size * 0.95);
+    c.font = `400 ${portrait ? 20 : 17}px ${MONO}`;
+    c.fillStyle = t.muted;
+    c.fillText(f.label.slice(0, 90), pad, y0 + size * 0.95 + (portrait ? 34 : 28));
+    if (i < n - 1) {
+      c.strokeStyle = t.line;
+      c.lineWidth = 2;
+      c.beginPath();
+      c.moveTo(pad, y0 + slot - 8);
+      c.lineTo(W - pad, y0 + slot - 8);
+      c.stroke();
+    }
+  });
+
+  c.strokeStyle = t.line;
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(pad, footer - 44);
+  c.lineTo(W - pad, footer - 44);
+  c.stroke();
+  c.fillStyle = t.muted;
+  c.font = `400 ${portrait ? 20 : 18}px ${MONO}`;
+  c.fillText(`${o.fonts.length} ${o.fonts.length === 1 ? 'FONT' : 'FONTS'}`, pad, footer);
+  if (o.watermark) drawMark(c, t, W - pad, footer, portrait ? 22 : 20);
+}

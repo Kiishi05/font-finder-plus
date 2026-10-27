@@ -10,7 +10,7 @@ import { getFontBytes } from '../lib/fonts';
 import { usePreviewFamily } from '../lib/preview';
 import { Icon } from '../components/Icon';
 import { canvasBlob } from '../lib/cards';
-import { useGoogleFontReady } from '../lib/google';
+import { trySwap, undoSwap, useGoogleFontReady, useSwaps } from '../lib/google';
 import { heicToCanvas, isHeic } from '../lib/heic';
 import { NO_EDIT, cutGlyphs, finish, geometry, letterTiles, looksInverted, type Edit } from '../lib/imageprep';
 import { INDEX_COUNT, matchGlyphs, type ImageMatch, type PageFontFile } from '../lib/matcher';
@@ -526,7 +526,7 @@ function Results({ matches, usedLetters, text, image, scan, tabId, toast }: { ma
       )}
       {close && !low && <span className="muted" style={{ fontSize: 12 }}>Several fonts here are almost the same. Compare details such as a, g, R, Q and y to tell them apart.</span>}
       <div className="matches">
-        {matches.map((m, i) => <ImageMatchRow key={m.family} m={m} rank={i + 1} text={text} imgUrl={imgUrl} image={image} usage={m.onPage ? scan?.fonts.find((f) => (f.displayName || f.family) === m.family) ?? null : null} tabId={tabId} toast={toast} />)}
+        {matches.map((m, i) => <ImageMatchRow key={m.family} m={m} rank={i + 1} text={text} imgUrl={imgUrl} image={image} usage={m.onPage ? scan?.fonts.find((f) => (f.displayName || f.family) === m.family) ?? null : null} liveTarget={!m.onPage ? liveTarget(scan) : null} tabId={tabId} toast={toast} />)}
       </div>
       <span className="muted" style={{ fontSize: 11.5 }}>
         Compared letter by letter on this computer with {INDEX_COUNT.toLocaleString()} free Google Fonts families{onPage ? ' and the fonts this page uses' : ''}. These are the closest matches, not a guarantee of the exact font.
@@ -535,11 +535,23 @@ function Results({ matches, usedLetters, text, image, scan, tabId, toast }: { ma
   );
 }
 
+/** Where "Try on page" puts a match: the page's heading font, or its most used font. */
+function liveTarget(scan: PageScan | null): PageFontUsage | null {
+  const fonts = (scan?.fonts ?? []).filter((f) => f.kind !== 'generic');
+  return [...fonts].sort((a, b) => (b.roles.heading ?? 0) - (a.roles.heading ?? 0) || b.elementCount - a.elementCount)[0] ?? null;
+}
+
 /** Fonts of the real text inside the selected area, read exactly from the page. */
 function ExactFonts({ exact, scan, tabId, onOpenFont, showEditor, onShowEditor }: { exact: Exact; scan: PageScan | null; tabId: number | null; onOpenFont: Props['onOpenFont']; showEditor: boolean; onShowEditor: () => void }) {
   return (
     <section className="section">
       <h2>[Fonts in this area] Read exactly from the page</h2>
+      {!showEditor && (
+        <div className="row" style={{ gap: 8, padding: '8px 10px', borderRadius: 10, background: 'var(--field)', fontSize: 12 }}>
+          <span className="grow">Want to compare it as a picture instead?</span>
+          <button className="btn sm" onClick={onShowEditor}>Match it as an image anyway</button>
+        </div>
+      )}
       <span style={{ fontSize: 12.5 }}>
         This area has real text, so its fonts are known exactly. No guessing needed.
         {exact.pictures > 0 && ` It also has ${exact.pictures === 1 ? 'a picture' : `${exact.pictures} pictures`} (images or drawings), which are matched below.`}
@@ -563,14 +575,27 @@ function ExactFonts({ exact, scan, tabId, onOpenFont, showEditor, onShowEditor }
           );
         })}
       </div>
-      {!showEditor && (
-        <button className="linkbtn" style={{ alignSelf: 'flex-start', fontSize: 12 }} onClick={onShowEditor}>Match it as an image anyway</button>
-      )}
     </section>
   );
 }
 
-function ImageMatchRow({ m, rank, text, imgUrl, image, usage, tabId, toast }: { m: ImageMatch; rank: number; text: string; imgUrl: string; image: HTMLCanvasElement; usage: PageFontUsage | null; tabId: number | null; toast: (msg: string) => void }) {
+function ImageMatchRow({ m, rank, text, imgUrl, image, usage, liveTarget: target, tabId, toast }: { m: ImageMatch; rank: number; text: string; imgUrl: string; image: HTMLCanvasElement; usage: PageFontUsage | null; liveTarget: PageFontUsage | null; tabId: number | null; toast: (msg: string) => void }) {
+  const swaps = useSwaps(tabId);
+  const [trying, setTrying] = useState(false);
+  const live = !!target && swaps[target.key] === m.family;
+  const tryLive = async () => {
+    if (!target || tabId == null) return;
+    if (live) return undoSwap(tabId, target.key);
+    setTrying(true);
+    try {
+      await trySwap(tabId, target.key, m.family, null);
+      toast(`Showing ${m.family} on the page in place of ${target.displayName || target.family}`);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Could not try it on the page');
+    } finally {
+      setTrying(false);
+    }
+  };
   const google = useGoogleFontReady(m.onPage ? null : m.family);
   const page = usePreviewFamily(usage, tabId);
   const css = m.onPage ? page.css : google.css;
@@ -612,6 +637,11 @@ function ImageMatchRow({ m, rank, text, imgUrl, image, usage, tabId, toast }: { 
       <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
         <button className={`btn sm${compare ? ' done' : ''}`} onClick={() => setCompare(!compare)}>{compare ? 'Hide your image' : 'Compare with your image'}</button>
         <button className="btn sm" onClick={save}><Icon icon={Bookmark02Icon} size={13} />Save</button>
+        {target && tabId != null && (
+          <button className={`btn sm${live ? ' done' : ''}`} onClick={tryLive} disabled={trying} title={`Shows ${m.family} on the page in place of ${target.displayName || target.family}`}>
+            {trying ? 'Loading…' : live ? 'Showing on page · Undo' : 'Try it live on the page'}
+          </button>
+        )}
         {!m.onPage && <a className="btn sm ghost" href={googleFontsUrl(m.family)} target="_blank" rel="noreferrer">Google Fonts <Icon icon={ArrowUpRight01Icon} size={13} /></a>}
       </div>
     </div>

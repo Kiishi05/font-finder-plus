@@ -72,3 +72,31 @@ export function isCombining(cp: number): boolean {
 }
 
 export const hex = (cp: number) => cp.toString(16).toUpperCase().padStart(4, '0');
+
+// Character names (Unicode Character Database), loaded the first time a glyph is opened.
+let names: Promise<Record<string, string>> | null = null;
+
+function loadNames(): Promise<Record<string, string>> {
+  names ??= (async () => {
+    const res = await fetch(chrome.runtime.getURL('data/unicode-names.json.gz'));
+    const stream = res.body!.pipeThrough(new DecompressionStream('gzip'));
+    return JSON.parse(await new Response(stream).text());
+  })();
+  names.catch(() => (names = null));
+  return names;
+}
+
+const JAMO_L = ['G', 'GG', 'N', 'D', 'DD', 'R', 'M', 'B', 'BB', 'S', 'SS', '', 'J', 'JJ', 'C', 'K', 'T', 'P', 'H'];
+const JAMO_V = ['A', 'AE', 'YA', 'YAE', 'EO', 'E', 'YEO', 'YE', 'O', 'WA', 'WAE', 'OE', 'YO', 'U', 'WEO', 'WE', 'WI', 'YU', 'EU', 'YI', 'I'];
+const JAMO_T = ['', 'G', 'GG', 'GS', 'N', 'NJ', 'NH', 'D', 'L', 'LG', 'LM', 'LB', 'LS', 'LT', 'LP', 'LH', 'M', 'B', 'BS', 'S', 'SS', 'NG', 'J', 'C', 'K', 'T', 'P', 'H'];
+
+/** The official name of a character, e.g. "LATIN SMALL LETTER E WITH ACUTE". */
+export async function charName(cp: number): Promise<string | null> {
+  if ((cp >= 0x4e00 && cp <= 0x9fff) || (cp >= 0x3400 && cp <= 0x4dbf) || (cp >= 0x20000 && cp <= 0x2a6df)) return `CJK UNIFIED IDEOGRAPH-${hex(cp)}`;
+  if (cp >= 0xac00 && cp <= 0xd7a3) {
+    const s = cp - 0xac00;
+    return `HANGUL SYLLABLE ${JAMO_L[Math.floor(s / 588)]}${JAMO_V[Math.floor((s % 588) / 28)]}${JAMO_T[s % 28]}`;
+  }
+  if (cp >= 0xe000 && cp <= 0xf8ff) return 'PRIVATE USE (no standard name; the font decides what it shows)';
+  return (await loadNames())[cp.toString(36)] ?? null;
+}

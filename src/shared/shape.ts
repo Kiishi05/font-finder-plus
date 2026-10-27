@@ -24,6 +24,10 @@ export interface Shape {
   sq?: number | null;
   /** Widths of n s a e r t (relative to o) and M R S (relative to H): the font's rhythm. */
   prof?: (number | null)[];
+  /** Top end of "l" against its stem: about 0.5 rounded, 1 square, above 1 serifed. */
+  tl?: number | null;
+  /** Dot of "i": filled share of its box, about 0.78 round, 1 square. */
+  dot?: number | null;
 }
 
 /** The letters a shape needs. Ask Google Fonts for only these. */
@@ -202,7 +206,36 @@ function pixelFeatures(get: (ch: string) => Bitmap | null, emPx: number) {
   const hs = ab ? holes(ab) : [];
   // Double-storey "a": its counter sits in the lower part of the letter.
   if (ab && hs.length) a2 = hs[0][1] / Math.max(1, ab.h) > 0.38 ? 1 : 0;
-  return { stem, contrast, round, sq, g2, a2 };
+
+  // Stroke ends: the top of "l" (rounded, square or serifed) and the dot of "i".
+  let tl: number | null = null;
+  const lb = get('l');
+  if (lb) {
+    const rowInk = (y: number) => { let n = 0; for (let x = 0; x < lb.w; x++) n += lb.px[y * lb.w + x]; return n; };
+    let top = 0;
+    while (top < lb.h && !rowInk(top)) top++;
+    const mid = rowInk(Math.floor((top + lb.h) / 2));
+    if (mid > 0 && top < lb.h - 2) tl = r3(((rowInk(top) + rowInk(top + 1)) / 2) / mid);
+  }
+  let dot: number | null = null;
+  const ib = get('i');
+  if (ib) {
+    const rowInk = (y: number) => { let n = 0, l = ib.w, r = -1; for (let x = 0; x < ib.w; x++) if (ib.px[y * ib.w + x]) { n++; if (x < l) l = x; if (x > r) r = x; } return { n, l, r }; };
+    let y = 0;
+    while (y < ib.h && !rowInk(y).n) y++;
+    let area = 0, rows = 0, left = ib.w, right = -1;
+    for (; y < ib.h; y++) {
+      const ri = rowInk(y);
+      if (!ri.n) break;
+      area += ri.n;
+      rows++;
+      left = Math.min(left, ri.l);
+      right = Math.max(right, ri.r);
+    }
+    // Only a separate dot counts (some fonts have no gap, e.g. dotless designs).
+    if (rows > 1 && y < ib.h - 2 && right >= left) dot = r3(area / (rows * (right - left + 1)));
+  }
+  return { stem, contrast, round, sq, g2, a2, tl, dot };
 }
 
 /**
@@ -300,7 +333,7 @@ export function shapeFromFont(font: FontLike): Shape | null {
   const letters = 'abcdefghijklmnopqrstuvwxyz'.split('').filter(has);
   const w = letters.reduce((s, ch) => s + g(ch).advanceWidth, 0) / Math.max(1, letters.length) / upm;
 
-  const { stem, contrast, round, sq, g2, a2 } = pixelFeatures((ch) => (has(ch) ? raster(g(ch), upm) : null), 160);
+  const { stem, contrast, round, sq, g2, a2, tl, dot } = pixelFeatures((ch) => (has(ch) ? raster(g(ch), upm) : null), 160);
   const adv = (ch: string) => (has(ch) ? g(ch).advanceWidth : NaN);
   const oW = adv('o');
   const hW = adv('H');
@@ -320,14 +353,17 @@ export function shapeFromFont(font: FontLike): Shape | null {
     a2,
     sq,
     prof,
+    tl,
+    dot,
   };
 }
 
 /** Shape as a compact array for the built data file. */
 export function packShape(s: Shape): (number | null)[] {
-  return [s.x, s.cap, s.asc, s.desc, s.w, s.stem, s.contrast, s.round, s.g2 ?? null, s.a2 ?? null, s.sq ?? null, ...(s.prof ?? [])];
+  const prof = s.prof ?? [];
+  return [s.x, s.cap, s.asc, s.desc, s.w, s.stem, s.contrast, s.round, s.g2 ?? null, s.a2 ?? null, s.sq ?? null, ...Array.from({ length: 9 }, (_, i) => prof[i] ?? null), s.tl ?? null, s.dot ?? null];
 }
 
 export function unpackShape(a: (number | null)[]): Shape {
-  return { x: a[0]!, cap: a[1]!, asc: a[2]!, desc: a[3]!, w: a[4]!, stem: a[5], contrast: a[6], round: a[7], g2: a[8] ?? null, a2: a[9] ?? null, sq: a[10] ?? null, prof: a.slice(11) };
+  return { x: a[0]!, cap: a[1]!, asc: a[2]!, desc: a[3]!, w: a[4]!, stem: a[5], contrast: a[6], round: a[7], g2: a[8] ?? null, a2: a[9] ?? null, sq: a[10] ?? null, prof: a.slice(11, 20), tl: a[20] ?? null, dot: a[21] ?? null };
 }

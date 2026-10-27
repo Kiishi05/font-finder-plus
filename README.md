@@ -28,7 +28,7 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
 - **Licence, in plain language** (font detail): what you can do with the font (websites, print, apps, logos, changing it, selling it). Open licences (OFL, Apache, Ubuntu) are summarised from their published text. About 50 well-known commercial families are matched to the foundry that sells them, with a link; their exact terms are never guessed. Anything else is shown as unknown. Always marked "This is a summary, not legal advice."
 - **Languages** (font detail): checks 35 languages (including English, Spanish, French, German, Italian, Portuguese, Yoruba, Igbo, Hausa, Swahili, Twi, Zulu, Russian, Greek, Arabic, Hebrew, Hindi, Bengali, Thai, Amharic, Chinese, Japanese and Korean) against the font's real character list. A language counts as supported only when every letter of its alphabet is present. Chinese, Japanese and Korean have thousands of characters, so a set of very common ones is checked. Missing letters are listed.
 - **On this computer** (font detail): a quick yes or no, and, with Chrome's Local Font Access (Chrome asks once), the installed styles. The installed copy can then be used for the language check and glyphs.
-- **Glyphs** (font detail): every character in the font, grouped by Unicode block, searchable by letter or code point. Click one to copy it, or its CSS or HTML code.
+- **Glyphs** (font detail): every character in the font, grouped by Unicode block, searchable by letter or code point, with each character's official Unicode name (from the Unicode Character Database, `npm run build:unicode`). Click one to copy it, or its CSS or HTML code.
 - Previews never borrow letters from another font: a missing character shows as a box (Adobe NotDef).
 - **Similar free fonts** (font detail): the closest Google Fonts families by measured shape (x-height, cap height, ascenders, descenders, width, weight, contrast and roundness of "o"), with a similarity score and a plain reason ("Similar x-height and width. A little bolder."). Only Google Fonts are suggested, so every suggestion is free.
 - **Try on page:** shows a suggestion on the real page in place of the original font, optionally keeping the original x-height (`font-size-adjust`). Undo puts it back; reloading the page also does. The font is added with the FontFace API and inline styles, so page security rules do not block it, and nothing on the site changes.
@@ -134,6 +134,7 @@ Rename the product in `src/shared/brand.ts` and `public/manifest.json`.
 ## Credits and licences
 
 - Interface fonts: [Inter](https://rsms.me/inter/) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/), both under the SIL Open Font License 1.1 (see `public/fonts/`).
+- Character names: Unicode Character Database, Unicode License v3 (`public/data/LICENSE-unicode.txt`).
 - [Adobe NotDef](https://github.com/adobe-fonts/adobe-notdef), SIL Open Font License 1.1, draws boxes for missing characters in previews.
 - Icons: [Hugeicons](https://hugeicons.com) free set, MIT License.
 - Font parsing: fontkit, MIT License. Database: Dexie, Apache 2.0.
