@@ -71,9 +71,11 @@ function ensureUi() {
           <div class="meta"></div>
           <div class="fallback" hidden></div>
         </div>
-        <span class="chip"></span>
-        <button class="iconbtn pin" aria-label="Pin this card" title="Pin or unpin (or click the page)">${iconSvg(PinIcon, 15)}</button>
-        <button class="iconbtn close" aria-label="Close the card" title="Close the card">${iconSvg(Cancel01Icon, 14)}</button>
+        <div class="tools">
+          <span class="chip"></span>
+          <button class="iconbtn pin" aria-label="Pin this card" title="Pin or unpin (or click the page)">${iconSvg(PinIcon, 15)}</button>
+          <button class="iconbtn close" aria-label="Close the card" title="Close the card">${iconSvg(Cancel01Icon, 14)}</button>
+        </div>
       </div>
       <canvas class="metrics" width="576" height="208"></canvas>
       <div class="rows"></div>

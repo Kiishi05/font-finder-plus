@@ -12,6 +12,8 @@ import { CollectionPicker } from '../components/CollectionPicker';
 import { MissingNote } from '../components/MissingNote';
 import { similarTo, type Match } from '../../shared/similar';
 import { trySwap, undoSwap, useSwaps } from '../lib/google';
+import { measureOnPage } from '../lib/shapes';
+import type { Shape } from '../../shared/shape';
 import { Icon } from '../components/Icon';
 import { Tester, sampleText, type TesterState } from '../components/Tester';
 import { copyToClipboard, usePageScan, useSettings, type TabState } from '../lib/hooks';
@@ -163,6 +165,16 @@ export function PageView({ tab, tester, onTester, onOpen, toast }: Props) {
         <FontCard key={f.key} f={f} tester={tester} tabId={tab.tabId} host={scan.host} swappedTo={swaps[f.key] ?? null} onOpen={onOpen} toast={toast} />
       ))}
 
+      {!!scan?.pictureText?.count && (
+        <div className="notice neutral">
+          <Icon icon={Alert02Icon} size={15} />
+          <span>
+            {scan.pictureText.count === 1 ? 'Some text on this page is' : `${scan.pictureText.count} pieces of text on this page are`} drawn as pictures (SVG or images)
+            {scan.pictureText.examples.length ? `, such as ${scan.pictureText.examples.map((e) => `“${e}”`).join(', ')}` : ''}. Pictures have no font to read, so they are not listed. Identifying fonts from images is coming in a later update.
+          </span>
+        </div>
+      )}
+
       {!!scan?.iconFonts?.length && (
         <div className="notice neutral">
           Icon {scan.iconFonts.length === 1 ? 'font' : 'fonts'} on this page, not listed because {scan.iconFonts.length === 1 ? 'it draws' : 'they draw'} symbols rather than text: {scan.iconFonts.join(', ')}.
@@ -289,6 +301,10 @@ function FontCard({ f, tester, tabId, host, swappedTo, onOpen, toast }: { f: Pag
 /** A short "how it works" card. Hidden once dismissed; Settings can bring it back. */
 function Guide({ force = false }: { force?: boolean }) {
   const [settings, update] = useSettings();
+  const [allSites, setAllSites] = useState(false);
+  useEffect(() => {
+    hasAllSitesAccess().then(setAllSites);
+  }, []);
   if (settings.guideDismissed && !force) return null;
   return (
     <section className="guide" aria-label="How it works">
@@ -305,6 +321,19 @@ function Guide({ force = false }: { force?: boolean }) {
         <li><span className="n">2</span><span><b>Click</b> to pin the card in place, click again to unpin. While it is pinned, click any value in it to copy it.</span></li>
         <li><span className="n">3</span><span>To stop, click <b>Stop</b> on the black bar at the bottom of the web page, or close this panel. The switch at the top of this panel turns hovering on and off too.</span></li>
         <li><span className="n">4</span><span>This panel lists every font on the page. <b>Details</b> shows the file facts and a link to Google Fonts when it is there.</span></li>
+        <li>
+          <span className="n">5</span>
+          <span className="stack" style={{ gap: 6 }}>
+            <span>
+              <b>Read every page by itself.</b> Chrome normally lets the extension read a page only after you click its icon there. Allow access to all sites and the panel reads each page you open, without clicking. You can turn it off in Settings.
+            </span>
+            {allSites ? (
+              <span className="lic free"><i />Access to all sites is on</span>
+            ) : (
+              <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={async () => setAllSites(await requestAllSitesAccess())}>Allow access to all sites</button>
+            )}
+          </span>
+        </li>
       </ol>
       <p className="hint" style={{ margin: 0 }}>
         Another way to start: right-click anywhere on the web page itself (not in this panel) and choose <b>Inspect fonts on this page</b>.
@@ -323,18 +352,32 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
   const records = useLiveQuery(() => db.fonts.bulkGet(ids), [ids.join('|')]) ?? [];
   const [busy, setBusy] = useState(false);
   const [all, setAll] = useState(false);
+  // Fonts whose file could not be read are measured as the page draws them.
+  const [measured, setMeasured] = useState<Record<string, Shape | null | 'pending'>>({});
   const rows = candidates
     .map((f, i) => {
       const r = records[i];
       const lic = r?.licenseType ?? f.licenseType;
       if (lic !== 'commercial' && lic !== 'unknown') return null;
       if (r?.catalogFamily) return null;
-      const shape = r?.parsed?.shape;
-      const wc = r?.parsed?.weightClass ?? 400;
+      const pageShape = measured[f.key];
+      const shape = r?.parsed?.shape ?? (pageShape && pageShape !== 'pending' ? pageShape : null);
+      const sampleW = Number(f.sample.fontWeight) || 400;
+      const wc = r?.parsed?.shape ? r?.parsed?.weightClass ?? 400 : sampleW;
       const match: Match | null = shape ? similarTo(shape, { classification: r?.classification ?? f.classification, limit: 1, ignoreWeight: wc < 350 || wc > 450 })[0] ?? null : null;
-      return { f, name: r?.displayName ?? f.displayName ?? f.family, lic, match, aspect: shape?.x ?? null };
+      const state: 'ok' | 'measuring' | 'failed' = match ? 'ok' : pageShape === 'pending' || pageShape === undefined ? 'measuring' : 'failed';
+      return { f, name: r?.displayName ?? f.displayName ?? f.family, lic, match, aspect: shape?.x ?? null, state, needsPage: !r?.parsed?.shape };
     })
     .filter((x): x is NonNullable<typeof x> => !!x);
+  const toMeasure = rows.filter((r) => r.needsPage && measured[r.f.key] === undefined).map((r) => r.f);
+  useEffect(() => {
+    if (tabId == null || !toMeasure.length) return;
+    setMeasured((m) => ({ ...m, ...Object.fromEntries(toMeasure.map((f) => [f.key, 'pending' as const])) }));
+    for (const f of toMeasure) {
+      measureOnPage(tabId, f.family, f.sample.fontWeight, f.sample.fontStyle).then((sh) => setMeasured((m) => ({ ...m, [f.key]: sh })));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabId, toMeasure.map((f) => f.key).join('|')]);
   if (!rows.length || tabId == null) return null;
   const anySwapped = rows.some((r) => swaps[r.f.key]);
   const swapAll = async () => {
@@ -371,7 +414,7 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
           <div key={r.f.key} className="freerow">
             <span className="grow">{r.name}</span>
             <span className="muted">to</span>
-            <span className="grow" style={{ textAlign: 'right' }}>{r.match ? <><b>{r.match.family}</b> <span className="mono muted" style={{ fontSize: 11 }}>{r.match.score}%</span></> : <span className="muted">Not measured yet</span>}</span>
+            <span className="grow" style={{ textAlign: 'right' }}>{r.match ? <><b>{r.match.family}</b> <span className="mono muted" style={{ fontSize: 11 }}>{r.match.score}%</span></> : r.state === 'measuring' ? <span className="muted">Measuring…</span> : <span className="muted" title="The font file could not be read and the page could not draw its letters for measuring.">Could not be measured</span>}</span>
           </div>
         ))}
       </div>

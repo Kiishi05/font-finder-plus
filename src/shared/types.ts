@@ -87,6 +87,8 @@ export interface PageScan {
   notLoaded: NotLoadedFont[];
   /** Icon fonts (they draw symbols, not text). Named here, left out of the list. */
   iconFonts: string[];
+  /** Words drawn as pictures (SVG or images), which have no font to read. */
+  pictureText?: { count: number; examples: string[] };
 }
 
 /** What the hover tooltip shows for one element. */

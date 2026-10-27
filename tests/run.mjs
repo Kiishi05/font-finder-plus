@@ -4,6 +4,7 @@
 //
 //   npm run build:test && node tests/run.mjs
 import { createRequire } from 'node:module';
+import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { mkdtemp, mkdir } from 'node:fs/promises';
@@ -83,6 +84,12 @@ try {
   const nonexist = scan.notLoaded.find((n) => n.family === 'Nonexistent Serif');
   check('missing local font is reported', !!nonexist, nonexist ? `fell back to ${nonexist.fellBackTo}` : '');
   check('icon font left out of the list', !scan.fonts.some((f) => /Icons/.test(f.family)) && scan.iconFonts.includes('Site Icons'), JSON.stringify(scan.iconFonts));
+  check('words drawn as pictures are noted', scan.pictureText?.count >= 1 && scan.pictureText.examples.includes('Specimen Name'), JSON.stringify(scan.pictureText));
+  check('real SVG text is read', fam('__Geist_Mono_9a8b7c')?.elementCount === 2, String(fam('__Geist_Mono_9a8b7c')?.elementCount));
+  const measured = await sw.evaluate(async (id) => chrome.tabs.sendMessage(id, { type: 'ffp:measure', family: 'Fraunces', weight: '400', style: 'normal' }), tabId);
+  const ref = JSON.parse(fs.readFileSync(path.join(root, 'src/shared/data/gf-shapes.json'), 'utf8')).families.Fraunces;
+  const ms = measured?.shape;
+  check('measuring on the page matches the measured font data', !!ms && Math.abs(ms.x - ref[0]) < 0.02 && Math.abs(ms.w - ref[4]) < 0.03 && Math.abs(ms.contrast - ref[6]) / ref[6] < 0.3 && ms.g2 === ref[8] && ms.a2 === ref[9], JSON.stringify({ page: ms && [ms.x, ms.w, ms.contrast, ms.g2, ms.a2], data: [ref[0], ref[4], ref[6], ref[8], ref[9]] }));
   check('system font detected for button', scan.fonts.some((f) => f.roles.button && (f.kind === 'local' || f.kind === 'generic')));
 
   // Hover card on the heading
@@ -366,6 +373,13 @@ try {
   const cmp = await panel.locator('#sys-compare').innerText();
   check('compare shows the other tab', cmp.includes('127.0.0.1') && /Fonts/.test(cmp) && /Body text/.test(cmp), cmp.slice(0, 120).replace(/\n/g, ' '));
 
+  // Make it free: a font with no file to read is measured on the page
+  await panel.locator('.tabs button', { hasText: 'Page' }).click();
+  await panel.waitForFunction(() => /Acme Mono/.test(document.querySelector('.freelist')?.textContent ?? ''), null, { timeout: 20000 }).catch(() => {});
+  await panel.waitForFunction(() => { const r = [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Acme Mono')); return r && !/Measuring/.test(r.textContent); }, null, { timeout: 20000 }).catch(() => {});
+  const acme = await panel.evaluate(() => [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Acme Mono'))?.textContent ?? 'missing');
+  check('Make it free measures fonts it cannot download', /%/.test(acme) && !/Could not|Not measured/.test(acme), acme);
+
   // A font that loads later is picked up without clicking anything
   await panel.locator('.tabs button', { hasText: 'Page' }).click();
   await panel.waitForFunction(() => [...document.querySelectorAll('.fcard')].some((c) => c.textContent.includes('Lobster')), null, { timeout: 20000 }).catch(() => {});
@@ -400,6 +414,11 @@ try {
   const { tidyStack } = await import(tmp);
   const long = ['anthropic-sans', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'PingFang SC', 'Noto Sans Thai', 'sans-serif', 'ui-sans-serif'];
   check('Copy CSS keeps a short font stack', JSON.stringify(tidyStack(long, 'anthropic-sans')) === JSON.stringify(['anthropic-sans', 'sans-serif']), JSON.stringify(tidyStack(long, 'anthropic-sans')));
+  const tmp2 = path.join(root, 'node_modules/.cache/ffp-lic.mjs');
+  await build({ entryPoints: [path.join(root, 'src/shared/catalog.ts')], outfile: tmp2, format: 'esm', bundle: true, platform: 'node', logLevel: 'silent', loader: { '.json': 'json' } });
+  const cat = await import(tmp2);
+  check('ALL_CAPS CSS names are shown in normal case', cat.cleanFamilyName('MARTINA_PLANTIJN') === 'Martina Plantijn' && cat.cleanFamilyName('SOEHNE') === 'Soehne');
+  check('Soehne spelling is recognised as a Klim font', cat.licenseFromCatalog('SOEHNE', 'self-hosted') === 'commercial');
   check('Copy CSS keeps fallbacks up to the font that renders', JSON.stringify(tidyStack(['Söhne', 'Helvetica', 'Arial', 'sans-serif'], 'Arial')) === JSON.stringify(['Söhne', 'Helvetica', 'Arial', 'sans-serif']));
 }
 

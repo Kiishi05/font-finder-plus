@@ -34,6 +34,10 @@ export function cleanFamilyName(raw: string): string {
     s = s.replace(/^_+/, '').replace(/_[0-9a-f]{5,10}$/i, '').replace(/_+/g, ' ');
   }
   s = s.replace(/\s+Fallback$/i, '');
+  // ALL_CAPS names used as CSS aliases ("MARTINA_PLANTIJN", "SOEHNE"): show them in normal case.
+  if (/^[A-Z0-9_ -]{4,}$/.test(s) && /[A-Z]{3}/.test(s)) {
+    s = s.replace(/_+/g, ' ').toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  }
   return s.trim() || raw.trim();
 }
 

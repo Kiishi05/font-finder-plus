@@ -66,7 +66,8 @@ export function SimilarCard({ shape, loading, exclude, classification, pageKey, 
           </div>
           <span className="muted" style={{ fontSize: 11.5 }}>
             Free fonts from Google Fonts, ranked by measured proportions: x-height, width, weight, contrast and roundness.
-            {shape.from === 'rendered' ? ' Weight and contrast could not be measured for an installed font.' : ''}
+            {shape.from === 'page' ? ' The font file could not be read, so the font was measured from how the page draws it.' : ''}
+            {shape.from === 'rendered' ? ' Measured from how the installed font draws.' : ''}
             {shape.notRegular ? ' Measured from a non-regular weight, so weight counts for less.' : ''}
             {' '}Similar is not identical; check details like the shapes of a, g and R.
           </span>

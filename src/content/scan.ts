@@ -4,6 +4,40 @@ import { clearRenderCache, facesFor, fontFacts, isGeneric, loadFaceMap, parseFam
 
 const SKIP = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'SVG', 'MATH', 'IFRAME', 'CANVAS', 'VIDEO', 'AUDIO']);
 export const MAX_ELEMENTS = 6000;
+const SVG_TEXT = new Set(['TEXT', 'TSPAN', 'TEXTPATH']);
+
+/**
+ * Words drawn as pictures: SVG drawings with a name but no real text (common
+ * for logos and font specimens), and images inside headings. These have no
+ * font to read.
+ */
+function pictureText(): { count: number; examples: string[] } {
+  const examples: string[] = [];
+  let count = 0;
+  const seen = new Set<string>();
+  for (const svg of document.querySelectorAll('svg')) {
+    if (svg.querySelector('text') || svg.closest('#ffp-root')) continue;
+    const r = svg.getBoundingClientRect();
+    if (r.width < 100 || r.height < 24) continue;
+    const label = (svg.getAttribute('aria-label') ?? svg.querySelector('title')?.textContent ?? svg.querySelector('desc')?.textContent ?? '').trim();
+    if (!label || label.length > 60) continue;
+    count++;
+    if (!seen.has(label) && examples.length < 4) {
+      seen.add(label);
+      examples.push(label);
+    }
+  }
+  for (const img of document.querySelectorAll<HTMLImageElement>('h1 img, h2 img, h3 img')) {
+    const label = img.alt.trim();
+    if (!label) continue;
+    count++;
+    if (!seen.has(label) && examples.length < 4) {
+      seen.add(label);
+      examples.push(label);
+    }
+  }
+  return { count, examples };
+}
 
 // Names that icon fonts use. These draw symbols, not text, so they are left
 // out of the font list and out of "Show on page".
@@ -41,7 +75,9 @@ export function textElements(): { els: Element[]; hidden: Set<Element>; truncate
     acceptNode(node) {
       if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
       const p = node.parentElement;
-      if (!p || SKIP.has(p.tagName.toUpperCase()) || p.closest('svg,#ffp-root')) return NodeFilter.FILTER_REJECT;
+      if (!p || SKIP.has(p.tagName.toUpperCase()) || p.closest('#ffp-root')) return NodeFilter.FILTER_REJECT;
+      // Inside SVG, only real text elements draw with fonts (not titles or descriptions).
+      if (p.closest('svg') && !SVG_TEXT.has(p.tagName.toUpperCase())) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
     },
   });
@@ -218,6 +254,7 @@ export async function scanPage(): Promise<PageScan> {
     fonts: out,
     notLoaded: [...notLoaded.values()].sort((a, b) => b.count - a.count),
     iconFonts: [...iconFonts],
+    pictureText: pictureText(),
   };
 }
 

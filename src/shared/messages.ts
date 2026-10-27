@@ -12,6 +12,7 @@ export type ToContent =
   | { type: 'ffp:vary'; key: string; settings: string | null; weight: string | null }
   | { type: 'ffp:swaps' }
   | { type: 'ffp:system' }
+  | { type: 'ffp:measure'; family: string; weight: string; style: string }
   | { type: 'ffp:highlight-issue'; id: string; label: string };
 
 export interface PingReply {

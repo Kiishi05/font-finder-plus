@@ -172,6 +172,123 @@ function run(b: Bitmap, row: number, col: number, dr: number, dc: number): numbe
   return n;
 }
 
+/** Features read from glyph pictures: weight, contrast, roundness, squareness, a and g. */
+function pixelFeatures(get: (ch: string) => Bitmap | null, emPx: number) {
+  let stem: number | null = null;
+  let contrast: number | null = null;
+  let round: number | null = null;
+  let sq: number | null = null;
+  const ob = get('o');
+  if (ob) {
+    const midRow = Math.floor(ob.h / 2);
+    const midCol = Math.floor(ob.w / 2);
+    const side = (run(ob, midRow, 0, 0, 1) + run(ob, midRow, ob.w - 1, 0, -1)) / 2;
+    const capT = (run(ob, 0, midCol, 1, 0) + run(ob, ob.h - 1, midCol, -1, 0)) / 2;
+    if (side > 0 && capT > 0) {
+      stem = r3(side / emPx);
+      contrast = r3(side / capT);
+    }
+    round = r3((ob.w - 2) / Math.max(1, ob.h - 2));
+    // Squareness: ink plus counters, over the box.
+    const hole = holes(ob).reduce((t, [n]) => t + n, 0);
+    const ink = ob.px.reduce((t, v) => t + v, 0);
+    sq = r3((ink + hole) / Math.max(1, (ob.w - 2) * (ob.h - 2)));
+  }
+  let g2: number | null = null;
+  const gb = get('g');
+  if (gb) g2 = holes(gb).length >= 2 ? 1 : 0;
+  let a2: number | null = null;
+  const ab = get('a');
+  const hs = ab ? holes(ab) : [];
+  // Double-storey "a": its counter sits in the lower part of the letter.
+  if (ab && hs.length) a2 = hs[0][1] / Math.max(1, ab.h) > 0.38 ? 1 : 0;
+  return { stem, contrast, round, sq, g2, a2 };
+}
+
+/**
+ * Shape of a font measured from how the browser draws it. Used when the font
+ * file cannot be read (the page or the panel already has the font loaded).
+ * `familyCss` is a CSS font-family value, e.g. '"Söhne", sans-serif'.
+ */
+export function shapeFromCanvas(familyCss: string, weight = '400', style = 'normal'): Shape | null {
+  // Draw at a normal text size (16px) and scale the canvas up 10 times. Variable
+  // fonts with optical sizes pick their design from the font size, so this keeps
+  // the text design instead of the large display design.
+  const F = 16;
+  const K = 10;
+  const S = F * K;
+  const canvas = document.createElement('canvas');
+  const c = canvas.getContext('2d', { willReadFrequently: true });
+  if (!c) return null;
+  c.font = `${style} ${weight} ${F}px ${familyCss}`;
+  const fontCss = c.font;
+  const m = (t: string) => {
+    c.font = fontCss;
+    return c.measureText(t);
+  };
+  // Text measurements are rounded at small sizes, so heights come from the
+  // enlarged drawing: rows of ink above (or below) the baseline.
+  const PAD = K * 2;
+  const baselines = new Map<string, number>();
+  const bitmap = (ch: string): Bitmap | null => {
+    const mt = m(ch);
+    const left = Math.ceil(mt.actualBoundingBoxLeft * K) + PAD;
+    const asc = Math.ceil(mt.actualBoundingBoxAscent * K) + PAD;
+    const w = left + Math.ceil(mt.actualBoundingBoxRight * K) + PAD;
+    const h = asc + Math.ceil(mt.actualBoundingBoxDescent * K) + PAD;
+    if (w < 3 || h < 3) return null;
+    canvas.width = w;
+    canvas.height = h;
+    c.setTransform(K, 0, 0, K, 0, 0);
+    c.font = fontCss;
+    c.clearRect(0, 0, w, h);
+    c.fillStyle = '#000';
+    c.fillText(ch, left / K, asc / K);
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    const data = c.getImageData(0, 0, w, h).data;
+    const px = new Uint8Array(w * h);
+    for (let i = 0; i < px.length; i++) px[i] = data[i * 4 + 3] > 127 ? 1 : 0;
+    // Crop to the ink so the measurements match those taken from outlines.
+    let top = h, bottom = -1, l = w, r = -1;
+    for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) if (px[y * w + xx]) {
+      if (y < top) top = y;
+      if (y > bottom) bottom = y;
+      if (xx < l) l = xx;
+      if (xx > r) r = xx;
+    }
+    if (bottom < 0) return null;
+    const cw = r - l + 3;
+    const chh = bottom - top + 3;
+    const out = new Uint8Array(cw * chh);
+    for (let y = top; y <= bottom; y++) for (let xx = l; xx <= r; xx++) out[(y - top + 1) * cw + (xx - l + 1)] = px[y * w + xx];
+    baselines.set(ch, asc - top);
+    return { w: cw, h: chh, px: out, x0: 0, y0: 0, scale: 1 };
+  };
+  const above = (ch: string) => (bitmap(ch) ? (baselines.get(ch) ?? NaN) / S : NaN);
+  const below = (ch: string) => {
+    const b = bitmap(ch);
+    return b ? (b.h - 2 - (baselines.get(ch) ?? 0)) / S : NaN;
+  };
+  const x = above('x');
+  const cap = above('H');
+  if (!(x > 0) || !(cap > 0)) return null;
+  const adv = (ch: string) => m(ch).width;
+  const letters = 'abcdefghijklmnopqrstuvwxyz'.split('');
+  const w = letters.reduce((t, ch) => t + adv(ch), 0) / letters.length / F;
+  const f = pixelFeatures(bitmap, S);
+  const oW = adv('o');
+  const hW = adv('H');
+  return {
+    x: r3(x),
+    cap: r3(cap),
+    asc: r3(above('d')),
+    desc: r3(below('p')),
+    w: r3(w),
+    ...f,
+    prof: [...PROF_LOWER.split('').map((ch) => adv(ch) / oW), ...PROF_UPPER.split('').map((ch) => adv(ch) / hW)].map((v) => (Number.isFinite(v) ? r3(v) : null)),
+  };
+}
+
 export function shapeFromFont(font: FontLike): Shape | null {
   const upm: number = font.unitsPerEm;
   if (!upm) return null;
@@ -183,40 +300,7 @@ export function shapeFromFont(font: FontLike): Shape | null {
   const letters = 'abcdefghijklmnopqrstuvwxyz'.split('').filter(has);
   const w = letters.reduce((s, ch) => s + g(ch).advanceWidth, 0) / Math.max(1, letters.length) / upm;
 
-  let stem: number | null = null;
-  let contrast: number | null = null;
-  let round: number | null = null;
-  let sq: number | null = null;
-  const ob = raster(g('o'), upm);
-  if (ob) {
-    const midRow = Math.floor(ob.h / 2);
-    const midCol = Math.floor(ob.w / 2);
-    const side = (run(ob, midRow, 0, 0, 1) + run(ob, midRow, ob.w - 1, 0, -1)) / 2;
-    const capT = (run(ob, 0, midCol, 1, 0) + run(ob, ob.h - 1, midCol, -1, 0)) / 2;
-    if (side > 0 && capT > 0) {
-      stem = r3(side / ob.scale / upm);
-      contrast = r3(side / capT);
-    }
-    round = r3((ob.w - 2) / Math.max(1, ob.h - 2));
-    // Squareness: ink plus counters, over the box.
-    const hole = holes(ob).reduce((t, [n]) => t + n, 0);
-    const ink = ob.px.reduce((t, v) => t + v, 0);
-    sq = r3((ink + hole) / Math.max(1, (ob.w - 2) * (ob.h - 2)));
-  }
-  let g2: number | null = null;
-  if (has('g')) {
-    const gb = raster(g('g'), upm);
-    if (gb) g2 = holes(gb).length >= 2 ? 1 : 0;
-  }
-  let a2: number | null = null;
-  if (has('a')) {
-    const ab = raster(g('a'), upm);
-    const hs = ab ? holes(ab) : [];
-    if (ab && hs.length) {
-      // Double-storey "a": its counter sits in the lower part of the letter.
-      a2 = hs[0][1] / Math.max(1, ab.h) > 0.38 ? 1 : 0;
-    }
-  }
+  const { stem, contrast, round, sq, g2, a2 } = pixelFeatures((ch) => (has(ch) ? raster(g(ch), upm) : null), 160);
   const adv = (ch: string) => (has(ch) ? g(ch).advanceWidth : NaN);
   const oW = adv('o');
   const hW = adv('H');

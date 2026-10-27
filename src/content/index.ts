@@ -3,6 +3,7 @@ import { arrayBufferToBase64 } from '../shared/messages';
 import { clearRenderCache } from './detect';
 import { highlightElements, highlightKey, isInspecting, setStateListener, start, stop } from './inspector';
 import { scanPage, watchNewFonts } from './scan';
+import { SHAPE_TEXT, shapeFromCanvas } from '../shared/shape';
 import { elementsForIssue, scanSystem } from './system';
 import { activeSwaps, swapFont, unswap, varyFont } from './swap';
 
@@ -57,6 +58,16 @@ if (!window.__ffpLoaded) {
       case 'ffp:swaps':
         reply({ ok: true, swaps: activeSwaps() });
         return false;
+      case 'ffp:measure': {
+        // Measure the font the way this page draws it (works even when its file cannot be downloaded).
+        const fam = `"${msg.family.replace(/"/g, '')}"`;
+        document.fonts
+          .load(`${msg.style} ${msg.weight} 40px ${fam}`, SHAPE_TEXT)
+          .catch(() => undefined)
+          .then(() => reply({ ok: true, shape: shapeFromCanvas(fam, msg.weight, msg.style) }))
+          .catch(() => reply({ ok: false }));
+        return true;
+      }
       case 'ffp:system':
         try {
           reply({ ok: true, system: scanSystem() });

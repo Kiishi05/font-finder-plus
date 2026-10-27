@@ -57,9 +57,19 @@
   <p class="faint">A pale line of supporting text that is hard to read against the warm background colour of this page.</p>
   <p class="note">A quiet aside in a font that is not installed.</p>
   <button><i class="ico" aria-hidden="true">&#xE001;</i> Subscribe</button>
+  <svg width="320" height="60" viewBox="0 0 320 60" role="img"><desc>Specimen Name</desc><path d="M0 0h320v60H0z" fill="#ddd"/></svg>
+  <svg width="320" height="40"><text x="0" y="30" style="font-family: '__Geist_Mono_9a8b7c'; font-size: 20px">Vector label</text></svg>
+  <p class="acme">Set in a font added by a script, with no file to download.</p>
   <section id="late"></section>
 </main>
 <script>
+  // A font made by a script from bytes (no URL), like many paid-font loaders.
+  fetch('fonts/GeistMono.woff2').then((r) => r.arrayBuffer()).then(async (buf) => {
+    const f = new FontFace('Acme Mono', buf);
+    await f.load();
+    document.fonts.add(f);
+    document.querySelector('.acme').style.fontFamily = "'Acme Mono', monospace";
+  });
   // A font that arrives later, the way many sites load fonts after the page settles.
   setTimeout(() => {
     const l = document.createElement('link');

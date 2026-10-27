@@ -1,13 +1,14 @@
 import { shapeOf } from '../../shared/similar';
-import type { Shape } from '../../shared/shape';
+import { shapeFromCanvas, type Shape } from '../../shared/shape';
+import { sendToTab } from '../../shared/messages';
 import type { FaceFile } from '../../shared/types';
 import { facesForCoverage } from './coverage';
 import { getFontBytes, parseFontBytes } from './fonts';
 
 export interface ShapeResult {
   shape: Shape;
-  /** google: measured from the Google Fonts family. file: from this site's regular font file. rendered: measured from how the installed font draws (no weight or contrast). */
-  from: 'google' | 'file' | 'rendered';
+  /** google: the Google Fonts family. file: this site's regular font file. page: how the page draws it. rendered: how the installed font draws in the panel. */
+  from: 'google' | 'file' | 'page' | 'rendered';
   /** True when the measured file is not the regular weight, so weight counts for less. */
   notRegular: boolean;
 }
@@ -43,33 +44,20 @@ export async function shapeFor(opts: { catalogFamily: string | null; files: Face
       }
     }
   }
+  if (opts.kind === 'web' && tabId != null) {
+    // The file could not be read: measure the font as the page draws it.
+    const s = await measureOnPage(tabId, opts.family);
+    if (s) return { shape: s, from: 'page', notRegular: false };
+  }
   if (opts.kind !== 'web') {
-    const s = renderedShape(opts.family);
+    const s = shapeFromCanvas(`"${opts.family.replace(/"/g, '')}", "FFP NotDef"`);
     if (s) return { shape: s, from: 'rendered', notRegular: false };
   }
   return null;
 }
 
-/** Proportions measured from how an installed font draws in the panel. */
-export function renderedShape(family: string): Shape | null {
-  const c = document.createElement('canvas').getContext('2d');
-  if (!c) return null;
-  const S = 200;
-  c.font = `${S}px "${family.replace(/"/g, '')}", "FFP NotDef"`;
-  const m = (t: string) => c.measureText(t);
-  const x = m('x').actualBoundingBoxAscent / S;
-  const cap = m('H').actualBoundingBoxAscent / S;
-  if (!x || !cap) return null;
-  const o = m('o');
-  const r3 = (n: number) => Math.round(n * 1000) / 1000;
-  return {
-    x: r3(x),
-    cap: r3(cap),
-    asc: r3(m('d').actualBoundingBoxAscent / S),
-    desc: r3(m('p').actualBoundingBoxDescent / S),
-    w: r3(m('abcdefghijklmnopqrstuvwxyz').width / 26 / S),
-    stem: null,
-    contrast: null,
-    round: r3((o.actualBoundingBoxLeft + o.actualBoundingBoxRight) / (o.actualBoundingBoxAscent + o.actualBoundingBoxDescent)),
-  };
+export async function measureOnPage(tabId: number, family: string, weight = '400', style = 'normal'): Promise<Shape | null> {
+  const r = await sendToTab<{ ok: boolean; shape?: Shape | null }>(tabId, { type: 'ffp:measure', family, weight, style }, 8000);
+  return r?.ok && r.shape ? r.shape : null;
 }
+
