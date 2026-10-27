@@ -41,7 +41,7 @@ function pictureText(): { count: number; examples: string[] } {
 
 // Names that icon fonts use. These draw symbols, not text, so they are left
 // out of the font list and out of "Show on page".
-const ICON_NAME = /(^|[\s_-])(icons?|iconfont|glyphs?|symbols?)([\s_-]|$)|font ?awesome|material ?(icons|symbols)|ionicons|feather|dashicons|glyphicons|lucide|phosphor|remixicon|codicon|tabler|bootstrap-icons|icomoon/i;
+const ICON_NAME = /(^|[\s_-])(icons?|ikons?|iconfont|glyphs?|symbols?)([\s_-]|$)|font ?awesome|material ?(icons|symbols)|ionicons|feather|dashicons|glyphicons|lucide|phosphor|remixicon|codicon|tabler|bootstrap-icons|icomoon/i;
 // Text made only of Private Use Area characters is how most icon fonts draw icons.
 const ONLY_PUA = /^[\s\uE000-\uF8FF\u{F0000}-\u{FFFFD}\u{100000}-\u{10FFFD}]+$/u;
 
