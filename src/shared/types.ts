@@ -223,10 +223,15 @@ export interface FontFile {
 
 export interface ImageJob {
   id?: number;
+  /** The cropped, prepared image the letters were read from. */
   image: Blob;
   createdAt: number;
   ocrText?: string;
-  results?: unknown;
+  /** Closest matches, best first. */
+  results?: { family: string; bold: boolean; score: number; reason: string }[];
+  /** Where the image came from. */
+  source?: 'page' | 'upload' | 'paste' | 'image';
+  pageUrl?: string;
 }
 
 /** One distinct text style on a page (System tab). */

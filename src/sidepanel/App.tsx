@@ -10,6 +10,7 @@ import { LibraryView } from './views/LibraryView';
 import { PageView } from './views/PageView';
 import { SettingsView } from './views/SettingsView';
 import { SystemView } from './views/SystemView';
+import { IdentifyView } from './views/IdentifyView';
 import { ShareView } from './views/ShareView';
 import { BoardEditor, BoardsView } from './views/BoardsView';
 
@@ -17,6 +18,7 @@ export type View =
   | { name: 'page' }
   | { name: 'library' }
   | { name: 'system' }
+  | { name: 'image' }
   | { name: 'boards' }
   | { name: 'board'; id: number }
   | { name: 'share'; fontId: string; back: View }
@@ -30,6 +32,24 @@ export function App() {
   const [toast, showToast] = useToast();
   const [tester, setTester] = useState<TesterState>(DEFAULT_TESTER);
   const [libTester, setLibTester] = useState<TesterState>({ ...DEFAULT_TESTER, size: 36 });
+
+  // Right-click "Identify the font in this image" opens the Image tab with that image.
+  const [pending, setPending] = useState<{ srcUrl: string; tabId: number; pageUrl: string } | null>(null);
+  useEffect(() => {
+    const take = (v: unknown) => {
+      const p = v as { srcUrl: string; tabId: number; pageUrl: string; at: number } | undefined;
+      if (p && Date.now() - p.at < 60000) {
+        setPending(p);
+        setView({ name: 'image' });
+      }
+    };
+    chrome.storage.session.get('identify:pending').then((st) => take(st['identify:pending']));
+    const on = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === 'session' && changes['identify:pending']?.newValue) take(changes['identify:pending'].newValue);
+    };
+    chrome.storage.onChanged.addListener(on);
+    return () => chrome.storage.onChanged.removeListener(on);
+  }, []);
 
   useEffect(() => {
     const el = document.documentElement;
@@ -47,6 +67,7 @@ export function App() {
           <div className="brand">{BRAND.shortName}</div>
           <nav className="tabs" aria-label="Sections">
             <button aria-current={top === 'page' ? 'page' : undefined} onClick={() => setView({ name: 'page' })}>Page</button>
+            <button aria-current={top === 'image' ? 'page' : undefined} onClick={() => setView({ name: 'image' })}>Image</button>
             <button aria-current={top === 'system' ? 'page' : undefined} onClick={() => setView({ name: 'system' })}>System</button>
             <button aria-current={top === 'library' ? 'page' : undefined} onClick={() => setView({ name: 'library' })}>Library</button>
           </nav>
@@ -63,6 +84,9 @@ export function App() {
         <LibraryView tester={libTester} onTester={setLibTester} onOpen={(fontId) => setView({ name: 'detail', fontId, from: 'library' })} onBoards={() => setView({ name: 'boards' })} toast={showToast} />
       )}
       {view.name === 'system' && <SystemView tab={tab} toast={showToast} />}
+      {view.name === 'image' && (
+        <IdentifyView tab={tab} whatFontIsKey={settings.whatFontIsKey} pending={pending} onPendingUsed={() => { setPending(null); chrome.storage.session.remove('identify:pending'); }} toast={showToast} />
+      )}
       {view.name === 'settings' && <SettingsView settings={settings} update={updateSettings} toast={showToast} />}
       {view.name === 'detail' && (
         <FontDetail

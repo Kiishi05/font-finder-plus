@@ -33,17 +33,41 @@ export function familyParam(family: string, opts: { axes?: boolean } = {}): stri
   return `${name}:ital,wght@${tuples.join(';')}`;
 }
 
-const linked = new Set<string>();
+const linked = new Map<string, Promise<void>>();
 
-/** Add a Google Fonts stylesheet to the panel (once per family). */
-export function linkGoogleFamily(family: string, opts: { axes?: boolean } = {}) {
+/** Add a Google Fonts stylesheet to the panel (once per family). Resolves when the stylesheet has loaded. */
+export function linkGoogleFamily(family: string, opts: { axes?: boolean } = {}): Promise<void> {
   const param = familyParam(family, opts);
-  if (linked.has(param)) return;
-  linked.add(param);
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = `https://fonts.googleapis.com/css2?family=${param}&display=swap`;
-  document.head.appendChild(link);
+  const hit = linked.get(param);
+  if (hit) return hit;
+  const p = new Promise<void>((resolve) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${param}&display=swap`;
+    link.onload = () => resolve();
+    link.onerror = () => resolve();
+    document.head.appendChild(link);
+  });
+  linked.set(param, p);
+  return p;
+}
+
+/** Like useGoogleFont, and also says when the font's files have loaded (for checks that measure it). */
+export function useGoogleFontReady(family: string | null): { css: string; ready: boolean } {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (!family) return;
+    let off = false;
+    setReady(false);
+    const name = googleFamily(family)?.family ?? family;
+    linkGoogleFamily(family)
+      .then(() => document.fonts.load(`16px "${name}"`))
+      .catch(() => undefined)
+      .finally(() => !off && setReady(true));
+    return () => { off = true; };
+  }, [family]);
+  const name = googleFamily(family ?? '')?.family ?? family;
+  return { css: name ? `"${name}", "FFP NotDef"` : 'inherit', ready };
 }
 
 /** Add a Google Fonts stylesheet to the panel so text can be drawn in the family. */

@@ -40,7 +40,7 @@ const r3 = (n: number) => Math.round(n * 1000) / 1000;
 // Glyphs are drawn into a small bitmap (non-zero fill, so overlapping
 // outlines in variable fonts are handled) and measured from the pixels.
 
-interface Bitmap { w: number; h: number; px: Uint8Array; x0: number; y0: number; scale: number }
+export interface Bitmap { w: number; h: number; px: Uint8Array; x0: number; y0: number; scale: number }
 
 function flatten(glyph: FontLike): number[][] {
   const polys: number[][] = [];
@@ -87,7 +87,7 @@ function flatten(glyph: FontLike): number[][] {
   return polys;
 }
 
-function raster(glyph: FontLike, upm: number, em = 160): Bitmap | null {
+export function raster(glyph: FontLike, upm: number, em = 160): Bitmap | null {
   const polys = flatten(glyph);
   if (!polys.length) return null;
   const scale = em / upm;

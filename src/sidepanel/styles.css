@@ -358,3 +358,29 @@ a.btn { text-decoration: none; }
 .totop { position: fixed; right: 14px; bottom: 16px; z-index: 9; width: 40px; height: 40px; border-radius: 50%; border: none; background: var(--ink); color: var(--card); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.22); cursor: pointer; }
 .viewer { display: flex; flex-direction: column; gap: 14px; padding: 20px; max-width: 1400px; margin: 0 auto; }
 .viewer img { width: 100%; height: auto; border-radius: 10px; box-shadow: 0 0 0 1px var(--line); }
+
+/* identify from image */
+.idsrc { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.idsrc .btn { height: 42px; border-radius: 12px; white-space: normal; text-align: center; line-height: 1.2; }
+.dropzone { padding: 16px; border: 1.5px dashed var(--border); border-radius: 12px; text-align: center; font-size: 12px; color: var(--muted); }
+.editbox { position: relative; border-radius: 10px; overflow: hidden; background: var(--field); touch-action: none; cursor: crosshair; user-select: none; }
+.editbox canvas { display: block; width: 100%; height: auto; }
+.cropbox { position: absolute; border: 2px solid var(--green); box-shadow: 0 0 0 9999px rgba(0,0,0,0.35); pointer-events: none; }
+.quad { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.quad polygon { fill: rgba(25,192,90,0.12); stroke: var(--green); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.handle { position: absolute; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: var(--card); border: 2px solid var(--green); cursor: grab; }
+.prepared { width: 100%; height: auto; max-height: 160px; object-fit: contain; border-radius: 8px; box-shadow: 0 0 0 1px var(--line); background: #fff; }
+.ocrlines { display: flex; flex-direction: column; gap: 4px; }
+.ocrline { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--field); font-size: 13px; cursor: pointer; }
+.ocrline.on { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.tiles { display: flex; flex-wrap: wrap; gap: 4px; }
+.tile { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px; border-radius: 8px; background: var(--field); width: 40px; }
+.tile.unsure { box-shadow: inset 0 0 0 1.5px var(--amber); }
+.tile img { height: 28px; max-width: 34px; object-fit: contain; background: #fff; border-radius: 4px; }
+.tile input { width: 30px; height: 24px; text-align: center; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--ink); font: 13px var(--mono); }
+.cmpimg { width: 100%; max-height: 90px; object-fit: contain; object-position: left; background: #fff; border-radius: 8px; box-shadow: 0 0 0 1px var(--line); }
+.histrow { display: flex; align-items: center; gap: 6px; }
+.histmain { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 8px; border: none; border-radius: 12px; background: var(--field); color: var(--ink); text-align: left; cursor: pointer; }
+.histmain img { width: 64px; height: 40px; object-fit: cover; border-radius: 6px; background: #fff; flex: none; }
+.wfi { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: var(--field); color: var(--ink); text-decoration: none; font-size: 12.5px; }
+.wfi img { height: 28px; max-width: 160px; object-fit: contain; background: #fff; border-radius: 4px; }

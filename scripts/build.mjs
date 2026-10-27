@@ -4,7 +4,7 @@
 //   content.js                                 (single IIFE file, injected on demand)
 import { build } from 'vite';
 import react from '@vitejs/plugin-react';
-import { readFile, writeFile, rm } from 'node:fs/promises';
+import { readFile, writeFile, rm, mkdir, copyFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -66,6 +66,25 @@ try {
   await readFile(nested);
 } catch {
   /* already at root */
+}
+
+// 4. Text recognition (Tesseract) and HEIC decoding (libheif), copied as they
+// are from node_modules so they run locally; nothing is downloaded at run time.
+const nm = (p) => path.join(root, 'node_modules', p);
+const copies = [
+  ['tesseract.js/dist/worker.min.js', 'ocr/worker.min.js'],
+  ['tesseract.js-core/tesseract-core-lstm.wasm.js', 'ocr/core/tesseract-core-lstm.wasm.js'],
+  ['tesseract.js-core/tesseract-core-simd-lstm.wasm.js', 'ocr/core/tesseract-core-simd-lstm.wasm.js'],
+  ['tesseract.js-core/tesseract-core-relaxedsimd-lstm.wasm.js', 'ocr/core/tesseract-core-relaxedsimd-lstm.wasm.js'],
+  ['tesseract.js-core/LICENSE', 'ocr/LICENSE-tesseract-core.txt'],
+  ['@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz', 'ocr/lang/eng.traineddata.gz'],
+  ['libheif-js/libheif-wasm/libheif.js', 'heic/libheif.js'],
+  ['libheif-js/libheif-wasm/libheif.wasm', 'heic/libheif.wasm'],
+  ['libheif-js/LICENSE', 'heic/LICENSE-libheif-LGPL-3.0.txt'],
+];
+for (const [from, to] of copies) {
+  await mkdir(path.dirname(path.join(outDir, to)), { recursive: true });
+  await copyFile(nm(from), path.join(outDir, to));
 }
 
 // Test builds get host access up front so automated tests need no permission prompt.

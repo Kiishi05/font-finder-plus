@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "build:catalog": "node scripts/build-gf-catalog.mjs",
     "test": "node tests/run.mjs",
-    "build:shapes": "node scripts/build-gf-shapes.mjs"
+    "build:shapes": "node scripts/build-gf-shapes.mjs",
+    "build:glyphs": "node scripts/build-glyph-index.mjs"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "4.3.5",
@@ -19,7 +20,7 @@
     "dexie": "4.0.11",
     "dexie-react-hooks": "1.1.7",
     "fontkit": "2.0.4",
-    "heic2any": "0.0.4",
+    "libheif-js": "1.23.5",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "tesseract.js": "7.0.0"

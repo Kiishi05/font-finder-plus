@@ -3,6 +3,7 @@ import { arrayBufferToBase64 } from '../shared/messages';
 import { clearRenderCache } from './detect';
 import { hideUi, highlightElements, highlightKey, isInspecting, setStateListener, start, stop } from './inspector';
 import { scanPage, watchNewFonts } from './scan';
+import { afterPaint, imageRect, selectArea } from './select';
 import { SHAPE_TEXT, shapeFromCanvas } from '../shared/shape';
 import { elementsForIssue, scanSystem } from './system';
 import { activeSwaps, swapFont, unswap, varyFont } from './swap';
@@ -66,6 +67,18 @@ if (!window.__ffpLoaded) {
           .catch(() => undefined)
           .then(() => reply({ ok: true, shape: shapeFromCanvas(fam, msg.weight, msg.style) }))
           .catch(() => reply({ ok: false }));
+        return true;
+      }
+      case 'ffp:select-area':
+        hideUi(true);
+        selectArea().then((r) => {
+          reply({ ok: true, rect: r });
+        });
+        return true;
+      case 'ffp:image-rect': {
+        const r = imageRect(msg.src);
+        hideUi(true);
+        afterPaint(() => reply({ ok: true, rect: r }));
         return true;
       }
       case 'ffp:hide-ui':

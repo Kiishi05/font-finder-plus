@@ -4,3 +4,4 @@ dist-test/
 *.zip
 .DS_Store
 tests/output/
+tests/fixtures/heading.png

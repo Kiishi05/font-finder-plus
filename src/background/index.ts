@@ -4,12 +4,18 @@ import { arrayBufferToBase64, sendToTab, type PingReply, type ToExtension } from
 import { recordFromInfo, sampleFromInfo } from '../shared/records';
 
 const MENU_ID = 'ffp-inspect';
+const IMAGE_MENU_ID = 'ffp-identify-image';
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: MENU_ID,
     title: 'Inspect fonts on this page',
-    contexts: ['page', 'selection', 'link', 'image'],
+    contexts: ['page', 'selection', 'link'],
+  });
+  chrome.contextMenus.create({
+    id: IMAGE_MENU_ID,
+    title: 'Identify the font in this image',
+    contexts: ['image'],
   });
 });
 
@@ -76,6 +82,13 @@ chrome.tabs.onUpdated.addListener((tabId, info) => {
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === IMAGE_MENU_ID && tab?.id != null) {
+    chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => undefined);
+    // The side panel picks this up and opens Identify with the image.
+    chrome.storage.session.set({ 'identify:pending': { srcUrl: info.srcUrl, tabId: tab.id, pageUrl: info.pageUrl, at: Date.now() } });
+    ensureInjected(tab.id);
+    return;
+  }
   if (info.menuItemId !== MENU_ID || tab?.id == null) return;
   chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => undefined);
   toggleInspector(tab.id, true);

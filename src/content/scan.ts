@@ -61,7 +61,7 @@ export function familyOf(el: Element, cs: CSSStyleDeclaration): string {
 export function isOurNode(node: Node | null): boolean {
   let n: Node | null = node;
   while (n) {
-    if (n instanceof Element && n.id === 'ffp-root') return true;
+    if (n instanceof Element && (n.id === 'ffp-root' || n.id === 'ffp-select')) return true;
     n = n instanceof ShadowRoot ? n.host : n.parentNode;
   }
   return false;

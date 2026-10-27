@@ -13,6 +13,8 @@ export type ToContent =
   | { type: 'ffp:swaps' }
   | { type: 'ffp:system' }
   | { type: 'ffp:hide-ui'; hidden: boolean }
+  | { type: 'ffp:select-area' }
+  | { type: 'ffp:image-rect'; src: string }
   | { type: 'ffp:measure'; family: string; weight: string; style: string }
   | { type: 'ffp:highlight-issue'; id: string; label: string };
 

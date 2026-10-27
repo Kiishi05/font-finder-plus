@@ -3,7 +3,7 @@
   "name": "Font Finder Plus",
   "short_name": "Finder+",
   "version": "0.1.0",
-  "description": "Identify the real fonts on any website, save them to collections, and copy their CSS.",
+  "description": "Identify the real fonts on any website or image, save them to collections, and copy their CSS.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon16.png",
@@ -25,19 +25,37 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["sidePanel", "activeTab", "scripting", "storage", "contextMenus"],
-  "optional_host_permissions": ["<all_urls>"],
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "scripting",
+    "storage",
+    "contextMenus"
+  ],
+  "optional_host_permissions": [
+    "<all_urls>"
+  ],
   "commands": {
     "_execute_action": {
-      "suggested_key": { "default": "Alt+Shift+F" },
+      "suggested_key": {
+        "default": "Alt+Shift+F"
+      },
       "description": "Inspect fonts on this page"
     }
   },
   "web_accessible_resources": [
     {
-      "resources": ["fonts/Inter.woff2", "fonts/JetBrainsMono.woff2"],
-      "matches": ["<all_urls>"],
+      "resources": [
+        "fonts/Inter.woff2",
+        "fonts/JetBrainsMono.woff2"
+      ],
+      "matches": [
+        "<all_urls>"
+      ],
       "use_dynamic_url": true
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
 }

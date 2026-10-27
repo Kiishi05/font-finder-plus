@@ -212,7 +212,7 @@ try {
   check('detail shows designers from catalogue', detailText.includes('Undercase Type'));
   check('detail read the font file (format WOFF2)', detailText.includes('WOFF2'));
   check('detail shows variable axes', /opsz/i.test(detailText));
-  await panel.waitForFunction(() => /of \d+ supported/i.test(document.body.innerText), null, { timeout: 20000 }).catch(() => {});
+  await panel.waitForFunction(() => /of \d+ supported/i.test(document.body.innerText) && document.body.innerText.includes('full family on Google Fonts'), null, { timeout: 30000 }).catch(() => {});
   await panel.waitForSelector('.glyphs button', { timeout: 20000 }).catch(() => {});
   await panel.screenshot({ path: path.join(out, 'panel-detail-phase2.png'), fullPage: true });
   const d2 = await panel.locator('body').innerText();
@@ -476,6 +476,85 @@ try {
   check('a new page in the tab is read by itself', navCards.length === 1 && navCards[0] === 'Inter', JSON.stringify(navCards));
   await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'networkidle' });
 
+  // Phase 6: identify fonts from images
+  const logs = [];
+  panel.on('console', (m) => m.type() === 'error' && logs.push('panel: ' + m.text().slice(0, 200)));
+  panel.on('pageerror', (e) => logs.push('panel error: ' + e.message.slice(0, 200)));
+  page.on('console', (m) => m.type() === 'error' && logs.push('page: ' + m.text().slice(0, 200)));
+  await page.bringToFront();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const shotPath = path.join(out, 'heading.png');
+  await page.locator('h1').screenshot({ path: shotPath });
+  await panel.bringToFront();
+  await panel.locator('.tabs button', { hasText: 'Image' }).click();
+  await panel.setInputFiles('input[aria-label="Upload an image"]', shotPath);
+  await panel.waitForSelector('.editbox canvas', { timeout: 10000 });
+  await panel.locator('button', { hasText: 'Read the text' }).click();
+  await panel.waitForSelector('.ocrline', { timeout: 90000 }).catch(() => {});
+  const ocrText = await panel.locator('.ocrline').first().innerText().catch(() => '');
+  check('text recognition runs inside the extension', /slow|careful|Notes/i.test(ocrText), ocrText.replace(/\s+/g, ' ').slice(0, 60));
+  check('letters are shown to check and correct', (await panel.locator('.tile').count()) >= 10);
+  await panel.locator('button', { hasText: 'Find the closest fonts' }).click();
+  await panel.waitForSelector('.match', { timeout: 60000 }).catch(() => {});
+  const found = await panel.evaluate(() => [...document.querySelectorAll('.match b')].map((b) => b.textContent));
+  check('the font in the image is among the closest matches', found.slice(0, 3).some((f) => /Fraunces/.test(f)), found.slice(0, 5).join(', '));
+  await panel.waitForFunction(() => /Has every letter|Missing \d+/.test(document.querySelector('.match')?.textContent ?? ''), null, { timeout: 15000 }).catch(() => {});
+  const first = await panel.locator('.match').first().innerText();
+  check('matches show the free licence and letter coverage', /Free · SIL Open Font License/.test(first) && /Has every letter of your text/.test(first), first.replace(/\s+/g, ' ').slice(0, 160));
+  check('the text read keeps its spaces', /Notes on slow/.test(await panel.locator('.match .mprev').first().innerText()));
+  await panel.screenshot({ path: path.join(out, 'panel-identify.png'), fullPage: true });
+  await panel.locator('button', { hasText: 'Use another image' }).click();
+  await panel.waitForSelector('.histrow', { timeout: 5000 }).catch(() => {});
+  check('the search is kept in history', (await panel.locator('.histrow').count()) >= 1);
+
+  // Select an area on the page
+  await panel.locator('button', { hasText: 'Select an area on the page' }).click();
+  await page.bringToFront();
+  const overlay = await page.waitForSelector('#ffp-select', { timeout: 5000 }).then(() => true).catch(() => false);
+  console.log('  select overlay shown:', overlay);
+  const hb = await page.locator('h1').boundingBox();
+  await page.mouse.move(hb.x - 4, hb.y - 4);
+  await page.mouse.down();
+  await page.mouse.move(hb.x + hb.width * 0.6, hb.y + hb.height * 0.5, { steps: 5 });
+  await page.mouse.up();
+  // Keep the page in front: the screenshot is of the visible tab (in real use the side panel sits beside it).
+  await panel.waitForSelector('.editbox canvas', { timeout: 10000 }).catch(() => {});
+  await panel.bringToFront();
+  const sel = await panel.evaluate(() => { const c = document.querySelector('.editbox canvas'); return c ? { w: c.width, h: c.height } : document.querySelector('.notice')?.textContent ?? 'no notice'; });
+  check('selecting an area of the page captures it', !!sel && sel.w > 100 && sel.h > 20, JSON.stringify(sel));
+  await panel.locator('button', { hasText: 'Use another image' }).click().catch(() => {});
+
+  // Paste an image
+  const pngB64 = fs.readFileSync(shotPath).toString('base64');
+  await panel.evaluate(async (b64) => {
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const dt = new DataTransfer();
+    dt.items.add(new File([bytes], 'pasted.png', { type: 'image/png' }));
+    window.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt }));
+  }, pngB64);
+  await panel.waitForSelector('.editbox canvas', { timeout: 10000 }).catch(() => {});
+  check('pasting an image opens it', (await panel.locator('.editbox canvas').count()) === 1);
+  await panel.locator('button', { hasText: 'Use another image' }).click();
+
+  // Right-click an image (the menu itself cannot be clicked in a test; it stores this request)
+  const imgUrl = `http://127.0.0.1:${PORT}/heading.png`;
+  fs.copyFileSync(shotPath, path.join(root, 'tests/fixtures/heading.png'));
+  await sw.evaluate(async ([src, id]) => chrome.storage.session.set({ 'identify:pending': { srcUrl: src, tabId: id, pageUrl: 'http://127.0.0.1/', at: Date.now() } }), [imgUrl, tabId]);
+  await panel.waitForSelector('.editbox canvas', { timeout: 10000 }).catch(() => {});
+  check('right-click "Identify the font in this image" opens the image', (await panel.locator('.editbox canvas').count()) === 1);
+  await panel.locator('button', { hasText: 'Use another image' }).click();
+
+  // HEIC (iPhone) photo
+  const heic = '/tmp/claude-0/-home-user-font-finder-plus/d778d12b-bf83-5531-b188-a6c1d99ab026/scratchpad/heic/example.heic';
+  if (fs.existsSync(heic)) {
+    await panel.setInputFiles('input[aria-label="Upload an image"]', heic);
+    await panel.waitForSelector('.editbox canvas', { timeout: 30000 }).catch(() => {});
+    const hc = await panel.evaluate(() => { const c = document.querySelector('.editbox canvas'); return c ? { w: c.width, h: c.height } : document.querySelector('.notice')?.textContent ?? 'no notice'; });
+    check('HEIC photos open', !!hc && hc.w > 100, JSON.stringify(hc));
+    await panel.locator('button', { hasText: 'Use another image' }).click().catch(() => {});
+  }
+
+  if (logs.length) console.log('  logs:\n   ' + logs.slice(0, 12).join('\n   '));
   // Dark theme screenshot
   await panel.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await panel.locator('.tabs button', { hasText: 'Page' }).click();

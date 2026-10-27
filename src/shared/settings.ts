@@ -4,6 +4,8 @@
 export interface Settings {
   theme: 'system' | 'light' | 'dark';
   googleFontsApiKey: string;
+  /** Optional, for exact matches of paid fonts in Identify. Stored only here, sent only to whatfontis.com when you ask. */
+  whatFontIsKey: string;
   tipDismissed: boolean;
   guideDismissed: boolean;
   testerText: string;
@@ -13,6 +15,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   googleFontsApiKey: '',
+  whatFontIsKey: '',
   tipDismissed: false,
   guideDismissed: false,
   testerText: '',
