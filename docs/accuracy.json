@@ -1,0 +1,4226 @@
+{
+ "version": "0.1.0",
+ "date": "2026-11-13",
+ "lookalike": {
+  "file": {
+   "rows": [
+    {
+     "name": "Liberation Sans",
+     "expect": [
+      "Arimo"
+     ],
+     "why": "same design",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Arimo 100",
+      "Archivo 79",
+      "Strichpunkt Sans 78"
+     ]
+    },
+    {
+     "name": "Liberation Serif",
+     "expect": [
+      "Tinos"
+     ],
+     "why": "same design",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Tinos 100",
+      "Charis SIL 78",
+      "STIX Two Text 75"
+     ]
+    },
+    {
+     "name": "Liberation Mono",
+     "expect": [
+      "Cousine"
+     ],
+     "why": "same design",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Cousine 100",
+      "Fragment Mono 80",
+      "Roboto Mono 77"
+     ]
+    },
+    {
+     "name": "FreeSans (Helvetica copy)",
+     "expect": [
+      "Arimo"
+     ],
+     "why": "Arial/Arimo is the free Helvetica stand-in",
+     "final": 1,
+     "metric": 1,
+     "letters": 2,
+     "top": [
+      "Arimo 84",
+      "Almarai 83",
+      "Strichpunkt Sans 78"
+     ]
+    },
+    {
+     "name": "FreeSerif (Times copy)",
+     "expect": [
+      "Tinos",
+      "STIX Two Text"
+     ],
+     "why": "Tinos matches Times New Roman; STIX Two is also Times-based",
+     "final": 1,
+     "metric": 3,
+     "letters": 4,
+     "top": [
+      "STIX Two Text 82",
+      "Charis SIL 77",
+      "Libertinus Serif 73"
+     ]
+    },
+    {
+     "name": "FreeMono (Courier copy)",
+     "expect": [
+      "Courier Prime"
+     ],
+     "why": "Courier Prime is the free Courier",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Courier Prime 75",
+      "Cutive Mono 54",
+      "Libertinus Mono 45"
+     ]
+    },
+    {
+     "name": "Carlito (Calibri metrics)",
+     "expect": [
+      "Lato"
+     ],
+     "why": "Carlito is built from Lato",
+     "final": 1,
+     "metric": 7,
+     "letters": 1,
+     "top": [
+      "Lato 84",
+      "Source Sans 3 77",
+      "Commissioner 76"
+     ]
+    },
+    {
+     "name": "Noto Sans",
+     "expect": [
+      "Open Sans"
+     ],
+     "why": "Noto Sans Latin is built from Open Sans",
+     "final": 1,
+     "metric": 13,
+     "letters": 1,
+     "top": [
+      "Open Sans 95",
+      "Lunasima 93",
+      "AR One Sans 87"
+     ]
+    },
+    {
+     "name": "Open Sans",
+     "expect": [
+      "Noto Sans"
+     ],
+     "why": "same design",
+     "final": 1,
+     "metric": 4,
+     "letters": 2,
+     "top": [
+      "Noto Sans 95",
+      "Noto Sans Display 89",
+      "Lunasima 82"
+     ]
+    },
+    {
+     "name": "Public Sans",
+     "expect": [
+      "Libre Franklin"
+     ],
+     "why": "Public Sans is built from Libre Franklin",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Libre Franklin 88",
+      "Special Gothic 81",
+      "Hanken Grotesk 77"
+     ]
+    },
+    {
+     "name": "Libre Franklin",
+     "expect": [
+      "Public Sans"
+     ],
+     "why": "same design",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Public Sans 88",
+      "Special Gothic 82",
+      "Zalando Sans 77"
+     ]
+    },
+    {
+     "name": "Heebo (Roboto Latin)",
+     "expect": [
+      "Roboto"
+     ],
+     "why": "Heebo extends Roboto",
+     "final": 1,
+     "metric": 1,
+     "letters": 2,
+     "top": [
+      "Roboto 100",
+      "Roboto Flex 95",
+      "Vazirmatn 95"
+     ]
+    },
+    {
+     "name": "Yantramanav (Roboto Latin)",
+     "expect": [
+      "Roboto",
+      "Heebo"
+     ],
+     "why": "Latin is Roboto",
+     "final": 1,
+     "metric": 28,
+     "letters": 1,
+     "top": [
+      "Roboto 85",
+      "Heebo 85",
+      "Roboto Flex 82"
+     ]
+    },
+    {
+     "name": "Assistant (Source Sans Latin)",
+     "expect": [
+      "Source Sans 3"
+     ],
+     "why": "Assistant extends Source Sans",
+     "final": 2,
+     "metric": 2,
+     "letters": 4,
+     "top": [
+      "Varta 100",
+      "Source Sans 3 97",
+      "Alegreya Sans 77"
+     ]
+    },
+    {
+     "name": "Cairo (Titillium Latin)",
+     "expect": [
+      "Titillium Web"
+     ],
+     "why": "Latin is Titillium Web",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Titillium Web 100",
+      "Exo 81",
+      "Open Sans 75"
+     ]
+    },
+    {
+     "name": "Readex Pro (Lexend)",
+     "expect": [
+      "Lexend"
+     ],
+     "why": "Readex Pro extends Lexend",
+     "final": 1,
+     "metric": 41,
+     "letters": 1,
+     "top": [
+      "Lexend 92",
+      "Funnel Sans 83",
+      "Figtree 81"
+     ]
+    },
+    {
+     "name": "Crimson Pro",
+     "expect": [
+      "Crimson Text"
+     ],
+     "why": "redraw of Crimson Text",
+     "final": 11,
+     "metric": 12,
+     "letters": 24,
+     "top": [
+      "Yrsa 79",
+      "Ancizar Serif 78",
+      "Gentium Book Plus 76"
+     ]
+    },
+    {
+     "name": "Crimson Text",
+     "expect": [
+      "Crimson Pro"
+     ],
+     "why": "same design",
+     "final": 10,
+     "metric": 23,
+     "letters": 26,
+     "top": [
+      "Amiri 89",
+      "Libertinus Serif 80",
+      "Average 79"
+     ]
+    },
+    {
+     "name": "Fira Code",
+     "expect": [
+      "Fira Mono"
+     ],
+     "why": "Fira Code extends Fira Mono",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Fira Mono 100",
+      "Noto Sans Mono 83",
+      "Oxygen Mono 80"
+     ]
+    },
+    {
+     "name": "PT Sans Caption",
+     "expect": [
+      "PT Sans"
+     ],
+     "why": "caption cut of PT Sans",
+     "final": 3,
+     "metric": 4,
+     "letters": 9,
+     "top": [
+      "Golos Text 83",
+      "AR One Sans 79",
+      "PT Sans 78"
+     ]
+    },
+    {
+     "name": "PT Serif Caption",
+     "expect": [
+      "PT Serif"
+     ],
+     "why": "caption cut of PT Serif",
+     "final": 1,
+     "metric": 2,
+     "letters": 1,
+     "top": [
+      "PT Serif 82",
+      "Tienne 79",
+      "Source Serif 4 76"
+     ]
+    },
+    {
+     "name": "Ubuntu Sans",
+     "expect": [
+      "Ubuntu"
+     ],
+     "why": "rework of Ubuntu",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Ubuntu 93",
+      "Encode Sans 75",
+      "Encode Sans Semi Expanded 74"
+     ]
+    },
+    {
+     "name": "Roboto Flex",
+     "expect": [
+      "Roboto"
+     ],
+     "why": "variable Roboto",
+     "final": 1,
+     "metric": 1,
+     "letters": 2,
+     "top": [
+      "Roboto 95",
+      "Heebo 95",
+      "Vazirmatn 90"
+     ]
+    },
+    {
+     "name": "Atkinson Hyperlegible Next",
+     "expect": [
+      "Atkinson Hyperlegible"
+     ],
+     "why": "new version",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Atkinson Hyperlegible 97",
+      "SN Pro 79",
+      "TikTok Sans 77"
+     ]
+    },
+    {
+     "name": "Lato",
+     "expect": [
+      "Carlito"
+     ],
+     "why": "Carlito is built from Lato",
+     "final": 2,
+     "metric": 17,
+     "letters": 2,
+     "top": [
+      "Commissioner 87",
+      "Carlito 84",
+      "Open Sans 76"
+     ]
+    },
+    {
+     "name": "Titillium Web",
+     "expect": [
+      "Cairo"
+     ],
+     "why": "Cairo Latin is Titillium",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Cairo 95",
+      "Exo 82",
+      "Open Sans 75"
+     ]
+    },
+    {
+     "name": "Source Sans 3",
+     "expect": [
+      "Assistant",
+      "Varta"
+     ],
+     "why": "Assistant extends Source Sans",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Varta 99",
+      "Assistant 92",
+      "Basic 82"
+     ]
+    },
+    {
+     "name": "Lexend",
+     "expect": [
+      "Readex Pro"
+     ],
+     "why": "Readex Pro extends Lexend",
+     "final": 1,
+     "metric": 15,
+     "letters": 1,
+     "top": [
+      "Readex Pro 87",
+      "Be Vietnam Pro 80",
+      "Inclusive Sans 77"
+     ]
+    },
+    {
+     "name": "Fira Mono",
+     "expect": [
+      "Fira Code"
+     ],
+     "why": "same design",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Fira Code 100",
+      "Noto Sans Mono 83",
+      "Oxygen Mono 80"
+     ]
+    },
+    {
+     "name": "Inter Tight",
+     "expect": [
+      "Inter"
+     ],
+     "why": "tight-spaced Inter",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Inter 98",
+      "TikTok Sans 90",
+      "Roboto 88"
+     ]
+    }
+   ],
+   "top1": 25,
+   "top3": 28,
+   "n": 30
+  },
+  "page": {
+   "rows": [
+    {
+     "name": "Liberation Sans",
+     "expect": [
+      "Arimo"
+     ],
+     "why": "same design",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Arimo 100",
+      "Strichpunkt Sans 79",
+      "Zalando Sans 78"
+     ]
+    },
+    {
+     "name": "Liberation Serif",
+     "expect": [
+      "Tinos"
+     ],
+     "why": "same design",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Tinos 100",
+      "Charis SIL 78",
+      "STIX Two Text 75"
+     ]
+    },
+    {
+     "name": "Liberation Mono",
+     "expect": [
+      "Cousine"
+     ],
+     "why": "same design",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Cousine 100",
+      "Fragment Mono 79",
+      "Roboto Mono 75"
+     ]
+    },
+    {
+     "name": "FreeSans (Helvetica copy)",
+     "expect": [
+      "Arimo"
+     ],
+     "why": "Arial/Arimo is the free Helvetica stand-in",
+     "final": 1,
+     "metric": 1,
+     "letters": 2,
+     "top": [
+      "Arimo 85",
+      "Almarai 83",
+      "Strichpunkt Sans 79"
+     ]
+    },
+    {
+     "name": "FreeSerif (Times copy)",
+     "expect": [
+      "Tinos",
+      "STIX Two Text"
+     ],
+     "why": "Tinos matches Times New Roman; STIX Two is also Times-based",
+     "final": 1,
+     "metric": 4,
+     "letters": 4,
+     "top": [
+      "STIX Two Text 79",
+      "Charis SIL 76",
+      "Castoro 72"
+     ]
+    },
+    {
+     "name": "FreeMono (Courier copy)",
+     "expect": [
+      "Courier Prime"
+     ],
+     "why": "Courier Prime is the free Courier",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Courier Prime 75",
+      "Cutive Mono 55",
+      "Libertinus Mono 46"
+     ]
+    },
+    {
+     "name": "Carlito (Calibri metrics)",
+     "expect": [
+      "Lato"
+     ],
+     "why": "Carlito is built from Lato",
+     "final": 1,
+     "metric": 7,
+     "letters": 1,
+     "top": [
+      "Lato 82",
+      "Source Sans 3 76",
+      "Commissioner 75"
+     ]
+    },
+    {
+     "name": "Noto Sans",
+     "expect": [
+      "Open Sans"
+     ],
+     "why": "Noto Sans Latin is built from Open Sans",
+     "final": 1,
+     "metric": 9,
+     "letters": 1,
+     "top": [
+      "Open Sans 94",
+      "Lunasima 89",
+      "AR One Sans 86"
+     ]
+    },
+    {
+     "name": "Open Sans",
+     "expect": [
+      "Noto Sans"
+     ],
+     "why": "same design",
+     "final": 1,
+     "metric": 4,
+     "letters": 3,
+     "top": [
+      "Noto Sans 93",
+      "Noto Sans Display 87",
+      "Lunasima 81"
+     ]
+    },
+    {
+     "name": "Public Sans",
+     "expect": [
+      "Libre Franklin"
+     ],
+     "why": "Public Sans is built from Libre Franklin",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Libre Franklin 89",
+      "Special Gothic 79",
+      "Hanken Grotesk 76"
+     ]
+    },
+    {
+     "name": "Libre Franklin",
+     "expect": [
+      "Public Sans"
+     ],
+     "why": "same design",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Public Sans 88",
+      "Special Gothic 81",
+      "Zalando Sans 78"
+     ]
+    },
+    {
+     "name": "Heebo (Roboto Latin)",
+     "expect": [
+      "Roboto"
+     ],
+     "why": "Heebo extends Roboto",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Roboto 100",
+      "Vazirmatn 95",
+      "Roboto Flex 92"
+     ]
+    },
+    {
+     "name": "Yantramanav (Roboto Latin)",
+     "expect": [
+      "Roboto",
+      "Heebo"
+     ],
+     "why": "Latin is Roboto",
+     "final": 1,
+     "metric": 31,
+     "letters": 2,
+     "top": [
+      "Roboto 84",
+      "Heebo 83",
+      "Roboto Flex 81"
+     ]
+    },
+    {
+     "name": "Assistant (Source Sans Latin)",
+     "expect": [
+      "Source Sans 3"
+     ],
+     "why": "Assistant extends Source Sans",
+     "final": 2,
+     "metric": 2,
+     "letters": 4,
+     "top": [
+      "Varta 100",
+      "Source Sans 3 95",
+      "Open Sans 77"
+     ]
+    },
+    {
+     "name": "Cairo (Titillium Latin)",
+     "expect": [
+      "Titillium Web"
+     ],
+     "why": "Latin is Titillium Web",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Titillium Web 100",
+      "Exo 81",
+      "Open Sans 75"
+     ]
+    },
+    {
+     "name": "Readex Pro (Lexend)",
+     "expect": [
+      "Lexend"
+     ],
+     "why": "Readex Pro extends Lexend",
+     "final": 1,
+     "metric": 42,
+     "letters": 1,
+     "top": [
+      "Lexend 92",
+      "Funnel Sans 83",
+      "Alan Sans 83"
+     ]
+    },
+    {
+     "name": "Crimson Pro",
+     "expect": [
+      "Crimson Text"
+     ],
+     "why": "redraw of Crimson Text",
+     "final": 8,
+     "metric": 9,
+     "letters": 28,
+     "top": [
+      "Yrsa 79",
+      "Ancizar Serif 78",
+      "Spectral 75"
+     ]
+    },
+    {
+     "name": "Crimson Text",
+     "expect": [
+      "Crimson Pro"
+     ],
+     "why": "same design",
+     "final": 11,
+     "metric": 16,
+     "letters": 29,
+     "top": [
+      "Amiri 86",
+      "Libertinus Serif 80",
+      "Average 77"
+     ]
+    },
+    {
+     "name": "Fira Code",
+     "expect": [
+      "Fira Mono"
+     ],
+     "why": "Fira Code extends Fira Mono",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Fira Mono 100",
+      "Noto Sans Mono 83",
+      "Oxygen Mono 79"
+     ]
+    },
+    {
+     "name": "PT Sans Caption",
+     "expect": [
+      "PT Sans"
+     ],
+     "why": "caption cut of PT Sans",
+     "final": 3,
+     "metric": 4,
+     "letters": 13,
+     "top": [
+      "Golos Text 83",
+      "AR One Sans 80",
+      "PT Sans 77"
+     ]
+    },
+    {
+     "name": "PT Serif Caption",
+     "expect": [
+      "PT Serif"
+     ],
+     "why": "caption cut of PT Serif",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "PT Serif 83",
+      "Tienne 78",
+      "Noto Serif 75"
+     ]
+    },
+    {
+     "name": "Ubuntu Sans",
+     "expect": [
+      "Ubuntu"
+     ],
+     "why": "rework of Ubuntu",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Ubuntu 92",
+      "Encode Sans 77",
+      "Comme 76"
+     ]
+    },
+    {
+     "name": "Roboto Flex",
+     "expect": [
+      "Roboto"
+     ],
+     "why": "variable Roboto",
+     "final": 1,
+     "metric": 1,
+     "letters": 2,
+     "top": [
+      "Roboto 93",
+      "Heebo 93",
+      "Vazirmatn 88"
+     ]
+    },
+    {
+     "name": "Atkinson Hyperlegible Next",
+     "expect": [
+      "Atkinson Hyperlegible"
+     ],
+     "why": "new version",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Atkinson Hyperlegible 94",
+      "SN Pro 79",
+      "TikTok Sans 75"
+     ]
+    },
+    {
+     "name": "Lato",
+     "expect": [
+      "Carlito"
+     ],
+     "why": "Carlito is built from Lato",
+     "final": 2,
+     "metric": 16,
+     "letters": 2,
+     "top": [
+      "Commissioner 85",
+      "Carlito 81",
+      "Open Sans 73"
+     ]
+    },
+    {
+     "name": "Titillium Web",
+     "expect": [
+      "Cairo"
+     ],
+     "why": "Cairo Latin is Titillium",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Cairo 95",
+      "Exo 82",
+      "Open Sans 74"
+     ]
+    },
+    {
+     "name": "Source Sans 3",
+     "expect": [
+      "Assistant",
+      "Varta"
+     ],
+     "why": "Assistant extends Source Sans",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Varta 99",
+      "Assistant 92",
+      "Basic 81"
+     ]
+    },
+    {
+     "name": "Lexend",
+     "expect": [
+      "Readex Pro"
+     ],
+     "why": "Readex Pro extends Lexend",
+     "final": 1,
+     "metric": 14,
+     "letters": 1,
+     "top": [
+      "Readex Pro 87",
+      "Be Vietnam Pro 80",
+      "Inclusive Sans 77"
+     ]
+    },
+    {
+     "name": "Fira Mono",
+     "expect": [
+      "Fira Code"
+     ],
+     "why": "same design",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Fira Code 100",
+      "Noto Sans Mono 82",
+      "Oxygen Mono 79"
+     ]
+    },
+    {
+     "name": "Inter Tight",
+     "expect": [
+      "Inter"
+     ],
+     "why": "tight-spaced Inter",
+     "final": 1,
+     "metric": 1,
+     "letters": 1,
+     "top": [
+      "Inter 97",
+      "TikTok Sans 90",
+      "Roboto 88"
+     ]
+    }
+   ],
+   "top1": 25,
+   "top3": 28,
+   "n": 30
+  }
+ },
+ "image": {
+  "rows": [
+   {
+    "font": "Roboto",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Roboto",
+      97
+     ],
+     [
+      "Heebo",
+      96
+     ],
+     [
+      "Vazirmatn",
+      97
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Roboto",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Roboto",
+      79
+     ],
+     [
+      "Vazirmatn",
+      79
+     ],
+     [
+      "Yantramanav",
+      78
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Roboto",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Roboto",
+      77
+     ],
+     [
+      "Heebo",
+      77
+     ],
+     [
+      "Vazirmatn",
+      77
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Open Sans",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Open Sans",
+      83
+     ],
+     [
+      "Noto Sans",
+      81
+     ],
+     [
+      "Noto Sans Display",
+      80
+     ]
+    ],
+    "lead": 2
+   },
+   {
+    "font": "Open Sans",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Open Sans",
+      65
+     ],
+     [
+      "Noto Sans",
+      64
+     ],
+     [
+      "Istok Web",
+      62
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Open Sans",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Open Sans",
+      73
+     ],
+     [
+      "Noto Sans",
+      73
+     ],
+     [
+      "Merriweather Sans",
+      72
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Montserrat",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Montserrat",
+      97
+     ],
+     [
+      "Montserrat Alternates",
+      90
+     ],
+     [
+      "Wix Madefor Display",
+      80
+     ]
+    ],
+    "lead": 7
+   },
+   {
+    "font": "Montserrat",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Montserrat",
+      62
+     ],
+     [
+      "Plus Jakarta Sans",
+      61
+     ],
+     [
+      "Alexandria",
+      62
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Montserrat",
+    "quality": "rough",
+    "rank": 999,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Alexandria",
+      62
+     ],
+     [
+      "Gantari",
+      58
+     ],
+     [
+      "Readex Pro",
+      58
+     ]
+    ],
+    "lead": 4
+   },
+   {
+    "font": "Lato",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Lato",
+      85
+     ],
+     [
+      "Carlito",
+      78
+     ],
+     [
+      "Commissioner",
+      75
+     ]
+    ],
+    "lead": 7
+   },
+   {
+    "font": "Lato",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Lato",
+      69
+     ],
+     [
+      "Commissioner",
+      64
+     ],
+     [
+      "Carlito",
+      62
+     ]
+    ],
+    "lead": 5
+   },
+   {
+    "font": "Lato",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Lato",
+      71
+     ],
+     [
+      "Carlito",
+      71
+     ],
+     [
+      "Ubuntu Sans",
+      65
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Poppins",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Poppins",
+      96
+     ],
+     [
+      "Parkinsans",
+      95
+     ],
+     [
+      "Rethink Sans",
+      78
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Poppins",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Poppins",
+      76
+     ],
+     [
+      "Parkinsans",
+      72
+     ],
+     [
+      "DM Sans",
+      57
+     ]
+    ],
+    "lead": 4
+   },
+   {
+    "font": "Poppins",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Poppins",
+      80
+     ],
+     [
+      "Manrope",
+      75
+     ],
+     [
+      "Parkinsans",
+      75
+     ]
+    ],
+    "lead": 5
+   },
+   {
+    "font": "Inter",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Inter",
+      87
+     ],
+     [
+      "Inter Tight",
+      87
+     ],
+     [
+      "Liter",
+      83
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Inter",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Inter",
+      52
+     ],
+     [
+      "Atkinson Hyperlegible",
+      51
+     ],
+     [
+      "Radio Canada Big",
+      51
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Inter",
+    "quality": "rough",
+    "rank": 2,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Radio Canada Big",
+      72
+     ],
+     [
+      "Inter",
+      71
+     ],
+     [
+      "Inter Tight",
+      68
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Oswald",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Oswald",
+      95
+     ],
+     [
+      "Teko",
+      84
+     ],
+     [
+      "Homenaje",
+      78
+     ]
+    ],
+    "lead": 11
+   },
+   {
+    "font": "Oswald",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Oswald",
+      72
+     ],
+     [
+      "Teko",
+      68
+     ],
+     [
+      "Sofia Sans Extra Condensed",
+      64
+     ]
+    ],
+    "lead": 4
+   },
+   {
+    "font": "Oswald",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Oswald",
+      80
+     ],
+     [
+      "Fjalla One",
+      70
+     ],
+     [
+      "Teko",
+      70
+     ]
+    ],
+    "lead": 10
+   },
+   {
+    "font": "Raleway",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Raleway",
+      94
+     ],
+     [
+      "Figtree",
+      79
+     ],
+     [
+      "Plus Jakarta Sans",
+      78
+     ]
+    ],
+    "lead": 15
+   },
+   {
+    "font": "Raleway",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Raleway",
+      71
+     ],
+     [
+      "SN Pro",
+      66
+     ],
+     [
+      "Red Hat Display",
+      64
+     ]
+    ],
+    "lead": 5
+   },
+   {
+    "font": "Raleway",
+    "quality": "rough",
+    "rank": 5,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "SN Pro",
+      74
+     ],
+     [
+      "Golos Text",
+      71
+     ],
+     [
+      "Gabarito",
+      72
+     ]
+    ],
+    "lead": 3
+   },
+   {
+    "font": "Nunito",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Nunito",
+      78
+     ],
+     [
+      "Nunito Sans",
+      76
+     ],
+     [
+      "Mulish",
+      70
+     ]
+    ],
+    "lead": 2
+   },
+   {
+    "font": "Nunito",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Nunito",
+      54
+     ],
+     [
+      "Nunito Sans",
+      51
+     ],
+     [
+      "Inder",
+      48
+     ]
+    ],
+    "lead": 3
+   },
+   {
+    "font": "Nunito",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Nunito",
+      82
+     ],
+     [
+      "Istok Web",
+      82
+     ],
+     [
+      "Oxygen",
+      80
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Playfair Display",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Playfair Display",
+      92
+     ],
+     [
+      "IBM Plex Serif",
+      77
+     ],
+     [
+      "PT Serif",
+      74
+     ]
+    ],
+    "lead": 15
+   },
+   {
+    "font": "Playfair Display",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Playfair Display",
+      44
+     ],
+     [
+      "PT Serif",
+      41
+     ],
+     [
+      "Aleo",
+      42
+     ]
+    ],
+    "lead": 3
+   },
+   {
+    "font": "Playfair Display",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Playfair Display",
+      33
+     ],
+     [
+      "Asap",
+      29
+     ],
+     [
+      "Carlito",
+      29
+     ]
+    ],
+    "lead": 4
+   },
+   {
+    "font": "Merriweather",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Merriweather",
+      98
+     ],
+     [
+      "Bitter",
+      91
+     ],
+     [
+      "Martel",
+      91
+     ]
+    ],
+    "lead": 7
+   },
+   {
+    "font": "Merriweather",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Merriweather",
+      69
+     ],
+     [
+      "Martel",
+      63
+     ],
+     [
+      "Roboto Slab",
+      60
+     ]
+    ],
+    "lead": 6
+   },
+   {
+    "font": "Merriweather",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Merriweather",
+      74
+     ],
+     [
+      "Slabo 13px",
+      71
+     ],
+     [
+      "Roboto Slab",
+      69
+     ]
+    ],
+    "lead": 3
+   },
+   {
+    "font": "Rubik",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Rubik",
+      86
+     ],
+     [
+      "Radio Canada Big",
+      77
+     ],
+     [
+      "Zalando Sans",
+      77
+     ]
+    ],
+    "lead": 9
+   },
+   {
+    "font": "Rubik",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Rubik",
+      47
+     ],
+     [
+      "Radio Canada Big",
+      43
+     ],
+     [
+      "Inter",
+      41
+     ]
+    ],
+    "lead": 4
+   },
+   {
+    "font": "Rubik",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Rubik",
+      70
+     ],
+     [
+      "Radio Canada Big",
+      69
+     ],
+     [
+      "Overpass",
+      65
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Work Sans",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Work Sans",
+      96
+     ],
+     [
+      "Mulish",
+      87
+     ],
+     [
+      "Alan Sans",
+      87
+     ]
+    ],
+    "lead": 9
+   },
+   {
+    "font": "Work Sans",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Work Sans",
+      66
+     ],
+     [
+      "Kanit",
+      60
+     ],
+     [
+      "Mulish",
+      58
+     ]
+    ],
+    "lead": 6
+   },
+   {
+    "font": "Work Sans",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Work Sans",
+      82
+     ],
+     [
+      "Funnel Sans",
+      83
+     ],
+     [
+      "Alan Sans",
+      82
+     ]
+    ],
+    "lead": -1
+   },
+   {
+    "font": "Lora",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Lora",
+      95
+     ],
+     [
+      "Charis SIL",
+      83
+     ],
+     [
+      "Caladea",
+      83
+     ]
+    ],
+    "lead": 12
+   },
+   {
+    "font": "Lora",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Lora",
+      50
+     ],
+     [
+      "Prata",
+      48
+     ],
+     [
+      "Cantata One",
+      48
+     ]
+    ],
+    "lead": 2
+   },
+   {
+    "font": "Lora",
+    "quality": "rough",
+    "rank": 7,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Averia Libre",
+      59
+     ],
+     [
+      "Charis SIL",
+      59
+     ],
+     [
+      "Headland One",
+      59
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "PT Serif",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "PT Serif",
+      78
+     ],
+     [
+      "Merriweather",
+      68
+     ],
+     [
+      "IBM Plex Serif",
+      68
+     ]
+    ],
+    "lead": 10
+   },
+   {
+    "font": "PT Serif",
+    "quality": "small",
+    "rank": 2,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Cherry Swash",
+      50
+     ],
+     [
+      "PT Serif",
+      49
+     ],
+     [
+      "Gelasio",
+      49
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "PT Serif",
+    "quality": "rough",
+    "rank": 999,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Asap Sharp",
+      79
+     ],
+     [
+      "Asap",
+      77
+     ],
+     [
+      "Carlito",
+      76
+     ]
+    ],
+    "lead": 2
+   },
+   {
+    "font": "Libre Baskerville",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Libre Baskerville",
+      97
+     ],
+     [
+      "Castoro",
+      83
+     ],
+     [
+      "Alice",
+      79
+     ]
+    ],
+    "lead": 14
+   },
+   {
+    "font": "Libre Baskerville",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Libre Baskerville",
+      79
+     ],
+     [
+      "Castoro",
+      70
+     ],
+     [
+      "Newsreader",
+      67
+     ]
+    ],
+    "lead": 9
+   },
+   {
+    "font": "Libre Baskerville",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Libre Baskerville",
+      63
+     ],
+     [
+      "Charis SIL",
+      63
+     ],
+     [
+      "Averia Serif Libre",
+      62
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "DM Sans",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "DM Sans",
+      95
+     ],
+     [
+      "Google Sans Flex",
+      88
+     ],
+     [
+      "Rethink Sans",
+      87
+     ]
+    ],
+    "lead": 7
+   },
+   {
+    "font": "DM Sans",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "DM Sans",
+      45
+     ],
+     [
+      "Rethink Sans",
+      44
+     ],
+     [
+      "Albert Sans",
+      41
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "DM Sans",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "DM Sans",
+      81
+     ],
+     [
+      "Plus Jakarta Sans",
+      79
+     ],
+     [
+      "Manrope",
+      77
+     ]
+    ],
+    "lead": 2
+   },
+   {
+    "font": "Space Grotesk",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Space Grotesk",
+      95
+     ],
+     [
+      "Questrial",
+      84
+     ],
+     [
+      "Gantari",
+      82
+     ]
+    ],
+    "lead": 11
+   },
+   {
+    "font": "Space Grotesk",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Space Grotesk",
+      73
+     ],
+     [
+      "Epilogue",
+      69
+     ],
+     [
+      "Turret Road",
+      69
+     ]
+    ],
+    "lead": 4
+   },
+   {
+    "font": "Space Grotesk",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Space Grotesk",
+      81
+     ],
+     [
+      "Darker Grotesque",
+      75
+     ],
+     [
+      "Miranda Sans",
+      75
+     ]
+    ],
+    "lead": 6
+   },
+   {
+    "font": "Bebas Neue",
+    "quality": "clean",
+    "rank": 1,
+    "read": "QUICK BROWN FOXES JUMP OVER LAZY DOGS",
+    "letters": 31,
+    "top": [
+     [
+      "Bebas Neue",
+      95
+     ],
+     [
+      "Anton",
+      88
+     ],
+     [
+      "Fjalla One",
+      86
+     ]
+    ],
+    "lead": 7
+   },
+   {
+    "font": "Bebas Neue",
+    "quality": "small",
+    "rank": 1,
+    "read": "QUICK BROWN FOXES JUMP OVER LAZY DOGS",
+    "letters": 31,
+    "top": [
+     [
+      "Bebas Neue",
+      76
+     ],
+     [
+      "Anton",
+      72
+     ],
+     [
+      "Antonio",
+      72
+     ]
+    ],
+    "lead": 4
+   },
+   {
+    "font": "Bebas Neue",
+    "quality": "rough",
+    "rank": 1,
+    "read": "QUICK BROWN FOXES JUMP OVER LAZY DOGS",
+    "letters": 31,
+    "top": [
+     [
+      "Bebas Neue",
+      76
+     ],
+     [
+      "Mohave",
+      75
+     ],
+     [
+      "Anton",
+      71
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Abril Fatface",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Abril Fatface",
+      96
+     ],
+     [
+      "Brygada 1918",
+      80
+     ],
+     [
+      "Libre Caslon Text",
+      78
+     ]
+    ],
+    "lead": 16
+   },
+   {
+    "font": "Abril Fatface",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Abril Fatface",
+      47
+     ],
+     [
+      "Vollkorn",
+      40
+     ],
+     [
+      "Enriqueta",
+      37
+     ]
+    ],
+    "lead": 7
+   },
+   {
+    "font": "Abril Fatface",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Abril Fatface",
+      13
+     ],
+     [
+      "Enriqueta",
+      6
+     ],
+     [
+      "SUSE Mono",
+      5
+     ]
+    ],
+    "lead": 7
+   },
+   {
+    "font": "Pacifico",
+    "quality": "clean",
+    "rank": 999,
+    "read": "",
+    "letters": 0,
+    "top": [],
+    "lead": 0
+   },
+   {
+    "font": "Pacifico",
+    "quality": "small",
+    "rank": 999,
+    "read": "",
+    "letters": 0,
+    "top": [],
+    "lead": 0
+   },
+   {
+    "font": "Pacifico",
+    "quality": "rough",
+    "rank": 999,
+    "read": "Quick Brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Edu TAS Beginner",
+      0
+     ],
+     [
+      "Kavoon",
+      0
+     ],
+     [
+      "Edu SA Beginner",
+      0
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Lobster",
+    "quality": "clean",
+    "rank": 999,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Fruktur",
+      0
+     ],
+     [
+      "Agbalumo",
+      0
+     ],
+     [
+      "Kavoon",
+      0
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Lobster",
+    "quality": "small",
+    "rank": 999,
+    "read": "‘Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Kavoon",
+      0
+     ],
+     [
+      "Fruktur",
+      0
+     ],
+     [
+      "Amaranth",
+      0
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Lobster",
+    "quality": "rough",
+    "rank": 999,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Chela One",
+      0
+     ],
+     [
+      "Spicy Rice",
+      0
+     ],
+     [
+      "Kavoon",
+      0
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Dancing Script",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump sver lagy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Dancing Script",
+      0
+     ],
+     [
+      "Knewave",
+      0
+     ],
+     [
+      "Oleo Script",
+      0
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Dancing Script",
+    "quality": "small",
+    "rank": 999,
+    "read": "Quich brown foxes jump ser lagy dogs",
+    "letters": 30,
+    "top": [
+     [
+      "Belanosima",
+      0
+     ],
+     [
+      "Martian Mono",
+      0
+     ],
+     [
+      "Sono",
+      0
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Dancing Script",
+    "quality": "rough",
+    "rank": 999,
+    "read": "Quick brown fsxes jump sver lazy dsgs",
+    "letters": 30,
+    "top": [
+     [
+      "Rubik Glitch",
+      0
+     ],
+     [
+      "Fascinate",
+      0
+     ],
+     [
+      "Oleo Script",
+      0
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Source Code Pro",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Source Code Pro",
+      98
+     ],
+     [
+      "Sometype Mono",
+      87
+     ],
+     [
+      "Noto Sans Mono",
+      80
+     ]
+    ],
+    "lead": 11
+   },
+   {
+    "font": "Source Code Pro",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Source Code Pro",
+      80
+     ],
+     [
+      "Sometype Mono",
+      77
+     ],
+     [
+      "Noto Sans Mono",
+      71
+     ]
+    ],
+    "lead": 3
+   },
+   {
+    "font": "Source Code Pro",
+    "quality": "rough",
+    "rank": 2,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Inconsolata",
+      76
+     ],
+     [
+      "Source Code Pro",
+      75
+     ],
+     [
+      "Roboto Mono",
+      73
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "JetBrains Mono",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "JetBrains Mono",
+      94
+     ],
+     [
+      "Victor Mono",
+      80
+     ],
+     [
+      "Oxygen Mono",
+      72
+     ]
+    ],
+    "lead": 14
+   },
+   {
+    "font": "JetBrains Mono",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "JetBrains Mono",
+      84
+     ],
+     [
+      "Martian Mono",
+      75
+     ],
+     [
+      "Cousine",
+      73
+     ]
+    ],
+    "lead": 9
+   },
+   {
+    "font": "JetBrains Mono",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "JetBrains Mono",
+      85
+     ],
+     [
+      "Victor Mono",
+      77
+     ],
+     [
+      "Martian Mono",
+      70
+     ]
+    ],
+    "lead": 8
+   },
+   {
+    "font": "Fira Sans",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Fira Sans",
+      95
+     ],
+     [
+      "IBM Plex Sans",
+      82
+     ],
+     [
+      "Asap",
+      82
+     ]
+    ],
+    "lead": 13
+   },
+   {
+    "font": "Fira Sans",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Fira Sans",
+      48
+     ],
+     [
+      "Changa",
+      43
+     ],
+     [
+      "Asap",
+      42
+     ]
+    ],
+    "lead": 5
+   },
+   {
+    "font": "Fira Sans",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Fira Sans",
+      78
+     ],
+     [
+      "Overpass",
+      77
+     ],
+     [
+      "Changa",
+      78
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "IBM Plex Serif",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "IBM Plex Serif",
+      96
+     ],
+     [
+      "Frank Ruhl Libre",
+      87
+     ],
+     [
+      "Merriweather",
+      84
+     ]
+    ],
+    "lead": 9
+   },
+   {
+    "font": "IBM Plex Serif",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "IBM Plex Serif",
+      74
+     ],
+     [
+      "Caladea",
+      70
+     ],
+     [
+      "Frank Ruhl Libre",
+      69
+     ]
+    ],
+    "lead": 4
+   },
+   {
+    "font": "IBM Plex Serif",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "IBM Plex Serif",
+      69
+     ],
+     [
+      "Averia Libre",
+      68
+     ],
+     [
+      "Slabo 13px",
+      67
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Crimson Text",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Crimson Text",
+      93
+     ],
+     [
+      "Amiri",
+      87
+     ],
+     [
+      "Crimson Pro",
+      82
+     ]
+    ],
+    "lead": 6
+   },
+   {
+    "font": "Crimson Text",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Crimson Text",
+      53
+     ],
+     [
+      "Spectral",
+      50
+     ],
+     [
+      "Vollkorn",
+      48
+     ]
+    ],
+    "lead": 3
+   },
+   {
+    "font": "Crimson Text",
+    "quality": "rough",
+    "rank": 999,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Averia Serif Libre",
+      63
+     ],
+     [
+      "Averia Libre",
+      61
+     ],
+     [
+      "Charis SIL",
+      61
+     ]
+    ],
+    "lead": 2
+   },
+   {
+    "font": "EB Garamond",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "EB Garamond",
+      64
+     ],
+     [
+      "Joan",
+      54
+     ],
+     [
+      "Ibarra Real Nova",
+      50
+     ]
+    ],
+    "lead": 10
+   },
+   {
+    "font": "EB Garamond",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "EB Garamond",
+      34
+     ],
+     [
+      "IM Fell English",
+      29
+     ],
+     [
+      "Average",
+      27
+     ]
+    ],
+    "lead": 5
+   },
+   {
+    "font": "EB Garamond",
+    "quality": "rough",
+    "rank": 9,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Ysabeau Office",
+      43
+     ],
+     [
+      "Ysabeau Infant",
+      42
+     ],
+     [
+      "GFS Neohellenic",
+      42
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Archivo",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Archivo",
+      89
+     ],
+     [
+      "Arimo",
+      75
+     ],
+     [
+      "Schibsted Grotesk",
+      75
+     ]
+    ],
+    "lead": 14
+   },
+   {
+    "font": "Archivo",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Archivo",
+      72
+     ],
+     [
+      "Schibsted Grotesk",
+      63
+     ],
+     [
+      "Balsamiq Sans",
+      63
+     ]
+    ],
+    "lead": 9
+   },
+   {
+    "font": "Archivo",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Archivo",
+      82
+     ],
+     [
+      "Radio Canada Big",
+      81
+     ],
+     [
+      "Familjen Grotesk",
+      80
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Barlow",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Barlow",
+      94
+     ],
+     [
+      "Epunda Sans",
+      84
+     ],
+     [
+      "Noto Sans Display",
+      81
+     ]
+    ],
+    "lead": 10
+   },
+   {
+    "font": "Barlow",
+    "quality": "small",
+    "rank": 5,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Yantramanav",
+      67
+     ],
+     [
+      "Spline Sans",
+      67
+     ],
+     [
+      "Quantico",
+      65
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Barlow",
+    "quality": "rough",
+    "rank": 3,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Barlow Semi Condensed",
+      79
+     ],
+     [
+      "Scada",
+      79
+     ],
+     [
+      "Barlow",
+      76
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Karla",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Karla",
+      95
+     ],
+     [
+      "Noto Sans",
+      83
+     ],
+     [
+      "Open Sans",
+      82
+     ]
+    ],
+    "lead": 12
+   },
+   {
+    "font": "Karla",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Karla",
+      72
+     ],
+     [
+      "Varela",
+      68
+     ],
+     [
+      "Scoutie Sans",
+      68
+     ]
+    ],
+    "lead": 4
+   },
+   {
+    "font": "Karla",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Karla",
+      81
+     ],
+     [
+      "Cairo",
+      77
+     ],
+     [
+      "Varta",
+      76
+     ]
+    ],
+    "lead": 4
+   },
+   {
+    "font": "Manrope",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Manrope",
+      91
+     ],
+     [
+      "Inter Tight",
+      82
+     ],
+     [
+      "Almarai",
+      82
+     ]
+    ],
+    "lead": 9
+   },
+   {
+    "font": "Manrope",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Manrope",
+      66
+     ],
+     [
+      "Golos Text",
+      65
+     ],
+     [
+      "Hedvig Letters Sans",
+      66
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Manrope",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Manrope",
+      76
+     ],
+     [
+      "Radio Canada Big",
+      74
+     ],
+     [
+      "Golos Text",
+      73
+     ]
+    ],
+    "lead": 2
+   },
+   {
+    "font": "Outfit",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Outfit",
+      80
+     ],
+     [
+      "Comfortaa",
+      66
+     ],
+     [
+      "Lexend",
+      64
+     ]
+    ],
+    "lead": 14
+   },
+   {
+    "font": "Outfit",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Outfit",
+      63
+     ],
+     [
+      "Catamaran",
+      62
+     ],
+     [
+      "Sniglet",
+      61
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Outfit",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Outfit",
+      69
+     ],
+     [
+      "Albert Sans",
+      67
+     ],
+     [
+      "Catamaran",
+      67
+     ]
+    ],
+    "lead": 2
+   },
+   {
+    "font": "Sora",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Sora",
+      95
+     ],
+     [
+      "Gantari",
+      85
+     ],
+     [
+      "TASA Orbiter",
+      84
+     ]
+    ],
+    "lead": 10
+   },
+   {
+    "font": "Sora",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Sora",
+      66
+     ],
+     [
+      "Stack Sans Headline",
+      61
+     ],
+     [
+      "Stack Sans Text",
+      61
+     ]
+    ],
+    "lead": 5
+   },
+   {
+    "font": "Sora",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Sora",
+      85
+     ],
+     [
+      "Plus Jakarta Sans",
+      81
+     ],
+     [
+      "Quicksand",
+      80
+     ]
+    ],
+    "lead": 4
+   },
+   {
+    "font": "Josefin Sans",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Josefin Sans",
+      92
+     ],
+     [
+      "Jost",
+      64
+     ],
+     [
+      "Alata",
+      61
+     ]
+    ],
+    "lead": 28
+   },
+   {
+    "font": "Josefin Sans",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Josefin Sans",
+      53
+     ],
+     [
+      "Afacad",
+      36
+     ],
+     [
+      "Afacad Flux",
+      36
+     ]
+    ],
+    "lead": 17
+   },
+   {
+    "font": "Josefin Sans",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Josefin Sans",
+      61
+     ],
+     [
+      "Belanosima",
+      51
+     ],
+     [
+      "Afacad",
+      48
+     ]
+    ],
+    "lead": 10
+   },
+   {
+    "font": "Quicksand",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Quicksand",
+      82
+     ],
+     [
+      "Albert Sans",
+      65
+     ],
+     [
+      "Lato",
+      63
+     ]
+    ],
+    "lead": 17
+   },
+   {
+    "font": "Quicksand",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 30,
+    "top": [
+     [
+      "Quicksand",
+      53
+     ],
+     [
+      "Onest",
+      49
+     ],
+     [
+      "Funnel Sans",
+      48
+     ]
+    ],
+    "lead": 4
+   },
+   {
+    "font": "Quicksand",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Quicksand",
+      71
+     ],
+     [
+      "Funnel Sans",
+      70
+     ],
+     [
+      "Alan Sans",
+      67
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Cormorant Garamond",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Cormorant Garamond",
+      50
+     ],
+     [
+      "Cormorant",
+      49
+     ],
+     [
+      "Cormorant Infant",
+      41
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Cormorant Garamond",
+    "quality": "small",
+    "rank": 999,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Spectral",
+      16
+     ],
+     [
+      "Bellefair",
+      16
+     ],
+     [
+      "Ysabeau Office",
+      16
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Cormorant Garamond",
+    "quality": "rough",
+    "rank": 999,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Dosis",
+      0
+     ],
+     [
+      "Ysabeau Office",
+      0
+     ],
+     [
+      "Quattrocento Sans",
+      0
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Spectral",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Spectral",
+      95
+     ],
+     [
+      "Crimson Text",
+      81
+     ],
+     [
+      "Habibi",
+      82
+     ]
+    ],
+    "lead": 14
+   },
+   {
+    "font": "Spectral",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Spectral",
+      76
+     ],
+     [
+      "Crimson Text",
+      70
+     ],
+     [
+      "Crimson Pro",
+      70
+     ]
+    ],
+    "lead": 6
+   },
+   {
+    "font": "Spectral",
+    "quality": "rough",
+    "rank": 999,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Dosis",
+      73
+     ],
+     [
+      "Quattrocento Sans",
+      72
+     ],
+     [
+      "Capriola",
+      72
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Bitter",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Bitter",
+      96
+     ],
+     [
+      "Frank Ruhl Libre",
+      87
+     ],
+     [
+      "Slabo 13px",
+      87
+     ]
+    ],
+    "lead": 9
+   },
+   {
+    "font": "Bitter",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Bitter",
+      72
+     ],
+     [
+      "Merriweather",
+      68
+     ],
+     [
+      "Headland One",
+      68
+     ]
+    ],
+    "lead": 4
+   },
+   {
+    "font": "Bitter",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Bitter",
+      42
+     ],
+     [
+      "Averia Libre",
+      41
+     ],
+     [
+      "Quando",
+      41
+     ]
+    ],
+    "lead": 1
+   },
+   {
+    "font": "Arvo",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Arvo",
+      96
+     ],
+     [
+      "Charis SIL",
+      82
+     ],
+     [
+      "Bitter",
+      81
+     ]
+    ],
+    "lead": 14
+   },
+   {
+    "font": "Arvo",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Arvo",
+      61
+     ],
+     [
+      "Bitter",
+      54
+     ],
+     [
+      "Crete Round",
+      54
+     ]
+    ],
+    "lead": 7
+   },
+   {
+    "font": "Arvo",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Arvo",
+      82
+     ],
+     [
+      "Bitter",
+      74
+     ],
+     [
+      "Averia Libre",
+      74
+     ]
+    ],
+    "lead": 8
+   },
+   {
+    "font": "Zilla Slab",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Zilla Slab",
+      86
+     ],
+     [
+      "Solway",
+      73
+     ],
+     [
+      "Averia Serif Libre",
+      71
+     ]
+    ],
+    "lead": 13
+   },
+   {
+    "font": "Zilla Slab",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Zilla Slab",
+      68
+     ],
+     [
+      "Averia Serif Libre",
+      64
+     ],
+     [
+      "Arbutus Slab",
+      63
+     ]
+    ],
+    "lead": 4
+   },
+   {
+    "font": "Zilla Slab",
+    "quality": "rough",
+    "rank": 3,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Reddit Sans",
+      58
+     ],
+     [
+      "Roboto Slab",
+      55
+     ],
+     [
+      "Zilla Slab",
+      55
+     ]
+    ],
+    "lead": 3
+   },
+   {
+    "font": "Anton",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Anton",
+      98
+     ],
+     [
+      "Alumni Sans",
+      75
+     ],
+     [
+      "Khand",
+      72
+     ]
+    ],
+    "lead": 23
+   },
+   {
+    "font": "Anton",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Anton",
+      86
+     ],
+     [
+      "Alumni Sans",
+      75
+     ],
+     [
+      "Khand",
+      74
+     ]
+    ],
+    "lead": 11
+   },
+   {
+    "font": "Anton",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Anton",
+      91
+     ],
+     [
+      "Alumni Sans",
+      72
+     ],
+     [
+      "Khand",
+      70
+     ]
+    ],
+    "lead": 19
+   },
+   {
+    "font": "Righteous",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Righteous",
+      97
+     ],
+     [
+      "Tajawal",
+      81
+     ],
+     [
+      "Barlow",
+      79
+     ]
+    ],
+    "lead": 16
+   },
+   {
+    "font": "Righteous",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Righteous",
+      75
+     ],
+     [
+      "Onest",
+      69
+     ],
+     [
+      "Chakra Petch",
+      68
+     ]
+    ],
+    "lead": 6
+   },
+   {
+    "font": "Righteous",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Righteous",
+      65
+     ],
+     [
+      "Special Gothic",
+      49
+     ],
+     [
+      "Blinker",
+      48
+     ]
+    ],
+    "lead": 16
+   },
+   {
+    "font": "Comfortaa",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Comfortaa",
+      95
+     ],
+     [
+      "Red Hat Display",
+      76
+     ],
+     [
+      "Raleway",
+      75
+     ]
+    ],
+    "lead": 19
+   },
+   {
+    "font": "Comfortaa",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Comfortaa",
+      67
+     ],
+     [
+      "Fredoka",
+      55
+     ],
+     [
+      "Red Hat Display",
+      55
+     ]
+    ],
+    "lead": 12
+   },
+   {
+    "font": "Comfortaa",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Comfortaa",
+      71
+     ],
+     [
+      "SN Pro",
+      68
+     ],
+     [
+      "Lexend",
+      67
+     ]
+    ],
+    "lead": 3
+   },
+   {
+    "font": "Caveat",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Caveat",
+      66
+     ],
+     [
+      "Courgette",
+      23
+     ],
+     [
+      "Edu TAS Beginner",
+      22
+     ]
+    ],
+    "lead": 43
+   },
+   {
+    "font": "Caveat",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Caveat",
+      31
+     ],
+     [
+      "Courgette",
+      0
+     ],
+     [
+      "Edu TAS Beginner",
+      0
+     ]
+    ],
+    "lead": 31
+   },
+   {
+    "font": "Caveat",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Caveat",
+      50
+     ],
+     [
+      "Courgette",
+      13
+     ],
+     [
+      "Edu TAS Beginner",
+      11
+     ]
+    ],
+    "lead": 37
+   },
+   {
+    "font": "Shadows Into Light",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown fokes mp wer lazy dogs",
+    "letters": 28,
+    "top": [
+     [
+      "Shadows Into Light",
+      65
+     ],
+     [
+      "Shadows Into Light Two",
+      0
+     ],
+     [
+      "Patrick Hand",
+      0
+     ]
+    ],
+    "lead": 65
+   },
+   {
+    "font": "Shadows Into Light",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown fares ump over lbizy digs",
+    "letters": 31,
+    "top": [
+     [
+      "Shadows Into Light",
+      6
+     ],
+     [
+      "Shadows Into Light Two",
+      0
+     ],
+     [
+      "Odibee Sans",
+      0
+     ]
+    ],
+    "lead": 6
+   },
+   {
+    "font": "Shadows Into Light",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Guick brown foxes ump wer lazy digs",
+    "letters": 29,
+    "top": [
+     [
+      "Shadows Into Light",
+      0
+     ],
+     [
+      "Kenia",
+      0
+     ],
+     [
+      "Passero One",
+      0
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Inconsolata",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Inconsolata",
+      95
+     ],
+     [
+      "Roboto Mono",
+      83
+     ],
+     [
+      "Ubuntu Mono",
+      83
+     ]
+    ],
+    "lead": 12
+   },
+   {
+    "font": "Inconsolata",
+    "quality": "small",
+    "rank": 2,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Source Code Pro",
+      72
+     ],
+     [
+      "Inconsolata",
+      72
+     ],
+     [
+      "Marmelad",
+      69
+     ]
+    ],
+    "lead": 0
+   },
+   {
+    "font": "Inconsolata",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Inconsolata",
+      78
+     ],
+     [
+      "Ubuntu Mono",
+      76
+     ],
+     [
+      "Ubuntu Sans Mono",
+      76
+     ]
+    ],
+    "lead": 2
+   },
+   {
+    "font": "Space Mono",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Space Mono",
+      97
+     ],
+     [
+      "Space Grotesk",
+      80
+     ],
+     [
+      "PT Mono",
+      75
+     ]
+    ],
+    "lead": 17
+   },
+   {
+    "font": "Space Mono",
+    "quality": "small",
+    "rank": 2,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Turret Road",
+      72
+     ],
+     [
+      "Space Mono",
+      70
+     ],
+     [
+      "Intel One Mono",
+      67
+     ]
+    ],
+    "lead": 2
+   },
+   {
+    "font": "Space Mono",
+    "quality": "rough",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Space Mono",
+      79
+     ],
+     [
+      "Space Grotesk",
+      73
+     ],
+     [
+      "Cousine",
+      73
+     ]
+    ],
+    "lead": 6
+   },
+   {
+    "font": "Noto Serif",
+    "quality": "clean",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Noto Serif",
+      97
+     ],
+     [
+      "Noto Serif Hentaigana",
+      95
+     ],
+     [
+      "Epunda Slab",
+      82
+     ]
+    ],
+    "lead": 2
+   },
+   {
+    "font": "Noto Serif",
+    "quality": "small",
+    "rank": 1,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Noto Serif",
+      79
+     ],
+     [
+      "Noto Serif Hentaigana",
+      77
+     ],
+     [
+      "Bitter",
+      71
+     ]
+    ],
+    "lead": 2
+   },
+   {
+    "font": "Noto Serif",
+    "quality": "rough",
+    "rank": 2,
+    "read": "Quick brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Epunda Slab",
+      59
+     ],
+     [
+      "Noto Serif",
+      58
+     ],
+     [
+      "Merriweather",
+      55
+     ]
+    ],
+    "lead": 1
+   }
+  ],
+  "all": {
+   "n": 150,
+   "top1": 124,
+   "top5": 134
+  },
+  "byQuality": {
+   "clean": {
+    "n": 50,
+    "top1": 48,
+    "top5": 48
+   },
+   "small": {
+    "n": 50,
+    "top1": 42,
+    "top5": 46
+   },
+   "rough": {
+    "n": 50,
+    "top1": 34,
+    "top5": 40
+   }
+  }
+ }
+}

@@ -654,6 +654,45 @@ try {
   await panel.waitForTimeout(1500);
   await panel.screenshot({ path: path.join(out, 'panel-page-dark.png'), fullPage: true });
 
+  // Phase 8: every font in a social post, names read from it, save all, details
+  const postPage = await ctx.newPage();
+  await postPage.goto(`http://127.0.0.1:${PORT}/post.html`, { waitUntil: 'networkidle' });
+  await postPage.evaluate(() => document.fonts.ready);
+  const postPath = path.join(out, 'post.png');
+  await postPage.locator('#post').screenshot({ path: postPath });
+  await postPage.close();
+  await panel.bringToFront();
+  await panel.locator('.tabs button', { hasText: 'Image' }).click();
+  if (await panel.locator('button', { hasText: 'Use another image' }).count()) await panel.locator('button', { hasText: 'Use another image' }).click();
+  await panel.setInputFiles('input[aria-label="Upload an image"]', postPath);
+  await panel.waitForSelector('.editbox canvas', { timeout: 10000 });
+  await panel.locator('button', { hasText: 'Read the text' }).click();
+  await panel.waitForSelector('#allfonts', { timeout: 90000 }).catch(() => {});
+  await panel.waitForFunction(() => document.querySelector('#allfonts') && !/Comparing letters|Matching…/.test(document.querySelector('#allfonts').textContent), null, { timeout: 90000 }).catch(() => {});
+  const allText = await panel.locator('#allfonts').innerText().catch(() => '');
+  check('a post with several fonts opens "Every font in the image"', (await panel.locator('.seg button[aria-selected="true"]').innerText().catch(() => '')) === 'Every font in the image');
+  check('each text style is matched on its own', (await panel.locator('.blockcard').count()) >= 4, `${await panel.locator('.blockcard').count()} blocks`);
+  check('font names written in the image are found', /Clash Display/.test(allText) && /Space Mono/.test(allText) && /Fraunces/.test(allText), allText.replace(/\s+/g, ' ').slice(0, 200));
+  const monoCard = await panel.evaluate(() => [...document.querySelectorAll('.blockcard')].find((c) => /Named here:\s*Space Mono/.test(c.textContent))?.textContent ?? '');
+  check('the block set in Space Mono is matched to Space Mono', /Likely this font\s*Space Mono/.test(monoCard), monoCard.replace(/\s+/g, ' ').slice(0, 160));
+  check('paid or other-catalogue names say where to get them', /Get it from Indian Type Foundry/.test(allText));
+  const clashCard = await panel.evaluate(() => [...document.querySelectorAll('.blockcard')].find((c) => /Named here:\s*Clash Display/.test(c.textContent))?.textContent ?? '');
+  check('a block named as one font but looking like another is not called "Likely"', /The image names Clash Display/.test(clashCard) && !/Likely this font/.test(clashCard), clashCard.replace(/\s+/g, ' ').slice(0, 160));
+  const colsBefore = await panel.evaluate(async () => (await new Promise((r) => { const q = indexedDB.open('font-finder-plus'); q.onsuccess = () => { const t = q.result.transaction('collections').objectStore('collections').count(); t.onsuccess = () => r(t.result); }; q.onerror = () => r(-1); })));
+  await panel.locator('#allfonts button', { hasText: 'Save all to a new collection' }).click();
+  await panel.waitForSelector('.toast', { timeout: 10000 }).catch(() => {});
+  const saveToast = await panel.locator('.toast').innerText().catch(() => '');
+  check('Save all saves every font found to a new collection', /Saved [3-9] fonts to a new collection/.test(saveToast), saveToast);
+  void colsBefore;
+  await panel.locator('#allfonts .named', { hasText: 'Clash Display' }).locator('button', { hasText: 'Details' }).first().click();
+  await panel.waitForSelector('button[aria-label="Back"]', { timeout: 10000 });
+  const namedDetail = await panel.locator('body').innerText();
+  check('Details on a named font says who makes it and where to get it', /Get it from Indian Type Foundry \(Fontshare\)/.test(namedDetail) && /named in an image/.test(namedDetail), namedDetail.replace(/\s+/g, ' ').slice(0, 160));
+  await panel.locator('button[aria-label="Back"]').click();
+  await panel.waitForSelector('#allfonts', { timeout: 5000 }).catch(() => {});
+  check('going back keeps the image results', (await panel.locator('#allfonts .blockcard').count()) >= 4);
+  await panel.screenshot({ path: path.join(out, 'panel-image-allfonts.png'), fullPage: true });
+
   // Accessibility audit with axe-core, light and dark, on each main view.
   const axeSrc = await fs.promises.readFile(require.resolve('axe-core/axe.min.js'), 'utf8');
   const a11y = [];
@@ -724,6 +763,12 @@ try {
     const b = await runBench({ quiet: true, canvas });
     check(`look-alike accuracy (${canvas ? 'as the page draws it' : 'from font files'}): right family first in 80%+, top 3 in 90%+`, b.top1 / b.n >= 0.8 && b.top3 / b.n >= 0.9, `top 1 ${b.top1}/${b.n}, top 3 ${b.top3}/${b.n}`);
   }
+  const tmp3 = path.join(root, 'node_modules/.cache/ffp-access.mjs');
+  await build({ entryPoints: [path.join(root, 'src/shared/pageaccess.ts')], outfile: tmp3, format: 'esm', bundle: true, platform: 'node', logLevel: 'silent' });
+  const acc = await import(tmp3);
+  check('a local file explains how to allow file access', /Allow access to file URLs/.test(acc.explainInjectError('Cannot access contents of url "file:///Users/me/site.html"', undefined, false)));
+  check("Chrome's own pages, the Web Store and PDFs get clear reasons", /Chrome's own pages/.test(acc.explainInjectError('Cannot access a chrome:// URL', 'chrome://newtab/', false)) && /Web Store/.test(acc.explainInjectError('The extensions gallery cannot be scripted.', 'https://chromewebstore.google.com/detail/x', false)) && /PDF/.test(acc.explainInjectError('Cannot access contents of url "https://a.com/doc.pdf"', undefined, false)));
+  check('Google Docs and Figma are recognised as drawing text as pictures', !!acc.drawsTextAsPictures('https://docs.google.com/document/d/abc/edit') && !!acc.drawsTextAsPictures('https://www.figma.com/design/abc/x') && !acc.drawsTextAsPictures('https://stripe.com'));
   check('names ending in VF are grouped under the family', cat.familyGroupName(cat.cleanFamilyName('die-grotesk-vf')) === 'Die Grotesk', cat.familyGroupName(cat.cleanFamilyName('die-grotesk-vf')));
   check('Soehne spelling is recognised as a Klim font', cat.licenseFromCatalog('SOEHNE', 'self-hosted') === 'commercial');
   check('Copy CSS keeps fallbacks up to the font that renders', JSON.stringify(tidyStack(['Söhne', 'Helvetica', 'Arial', 'sans-serif'], 'Arial')) === JSON.stringify(['Söhne', 'Helvetica', 'Arial', 'sans-serif']));

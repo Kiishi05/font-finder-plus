@@ -1,3 +1,4 @@
+import { explainInjectError } from '../shared/pageaccess';
 import { googleFamily } from '../shared/catalog';
 import { saveFont } from '../shared/db';
 import { arrayBufferToBase64, sendToTab, type PingReply, type ToExtension } from '../shared/messages';
@@ -27,9 +28,9 @@ async function ensureInjected(tabId: number): Promise<{ ok: boolean; inspecting:
     await chrome.storage.session.remove(`injectError:${tabId}`);
     return { ok: true, inspecting: false };
   } catch (err) {
-    const error = /cannot access|cannot be scripted|chrome:\/\/|extensions gallery/i.test(String(err))
-      ? 'Chrome does not let extensions read this page (for example chrome:// pages, the Chrome Web Store and PDF viewer).'
-      : 'Could not start on this page. Reload the page and try again.';
+    const url = await chrome.tabs.get(tabId).then((t) => t.url, () => undefined);
+    const fileAccess = await chrome.extension.isAllowedFileSchemeAccess().catch(() => false);
+    const error = explainInjectError(String(err), url, fileAccess);
     await chrome.storage.session.set({ [`injectError:${tabId}`]: error });
     return { ok: false, inspecting: false, error };
   }

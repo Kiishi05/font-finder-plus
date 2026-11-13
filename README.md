@@ -60,9 +60,18 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
 - The side panel stays open across tabs in a window and follows the tab you are on. With access to all sites, the inspector starts by itself on each tab; without it, click the icon once on each tab (Chrome's rule).
 - **Sample text:** each font's name, your own text, or a sample sentence in one of 16 languages.
 
+## Fonts in images and social posts
+
+In the Image tab, paste, upload or drop a picture (or right-click one on a page). After **Read the text**:
+
+- **Every font in the image** (the default when there is more than one text style): each block of text in a different size or style is matched on its own. Font names written in the image ("Font: Clash Display", or a list of names) are looked up in Google Fonts and the known foundry list. **Save all to a new collection** saves every font found, with the image.
+- **Pick one line** compares just the lines you choose, with letters you can correct.
+- Each match is labelled **Likely this font** (only for very close matches, right every time in the accuracy test), **Closest free fonts**, or **Probably a paid or custom font**.
+- **Details** opens the full font page: who made it, the licence, where to get it (Google Fonts, the foundry, or Fontshare), letters, languages and look-alikes.
+
 ## Figma plugin
 
-**Send to Figma** (bottom of the Page tab, or the Figma section of the System tab) copies every font on the page with its licence, where to get it, a preview and its closest free stand-in, plus the page's text styles. Paste it into the Font Finder Plus Figma plugin to get text styles, variables and a specimen page, with installed and missing fonts marked. See [figma-plugin/README.md](figma-plugin/README.md) to load it (`npm run build:figma`, then in the Figma desktop app: Plugins > Development > Import plugin from manifest).
+**Send to Figma** (bottom of the Page tab, or the Figma section of the System tab) copies every font on the page with its licence, where to get it, a preview and its closest free stand-in, plus the page's text styles. Paste it into the Font Finder Plus Figma plugin to get text styles, variables and a specimen page, with installed and missing fonts marked. The plugin can also **fix a captured page**: in a file imported with Figma's capture or HTML to Figma, it finds text in fonts you do not have, swaps in look-alikes Figma has, and switches back once you install the real font. See [figma-plugin/README.md](figma-plugin/README.md) to load it (`npm run build:figma`, then in the Figma desktop app: Plugins > Development > Import plugin from manifest).
 
 ## Permissions, and why each one is needed
 
@@ -75,7 +84,14 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
 | `contextMenus` | Adds **Inspect fonts on this page** to the right-click menu, and **Identify the font in this image** when you right-click a picture. |
 | `<all_urls>` (optional, off by default) | Only if you turn it on in Settings. Lets the extension download font files from sites that block other pages from reading them, so foundry, format and metrics can be shown there, lets you start inspecting from the side panel, and keeps the inspector following you when you switch tabs or open a new page while the panel is open. Chrome asks you first, and you can turn it off again in Settings. |
 
-The extension does not ask for access to all your sites when you install it.
+The extension does not ask for access to all your sites when you install it, and never asks on its own: only when you click **Allow access to all sites** (Page tab or Settings).
+
+What works without it (click the icon on a page first): everything on that page, including the hover card, the Page, System and Image tabs, Make it free, Send to Figma and identifying fonts in images. What all-sites access adds:
+
+- Reading font files that a site does not share with other sites, for the foundry, version, letters and languages read from the file. Without it, those fonts are measured as the page draws them.
+- Keeping the inspector on when you switch tabs or open a new page while the side panel is open.
+
+Files on your computer (file://) can be read only if you turn on **Allow access to file URLs** on the extension's details page in chrome://extensions. The panel shows a button to open that page when you need it.
 
 The manifest allows WebAssembly (`'wasm-unsafe-eval'` in the extension's content security policy) because text recognition and HEIC decoding are WebAssembly. No code is loaded from the internet.
 
@@ -110,7 +126,7 @@ Make it free, Similar fonts and the Figma stand-ins all pick the closest free Go
 - **Proportions (30%).** x-height, cap height, ascenders, descenders, width, weight, contrast, roundness, how open "c" and "e" are, and the width of each letter.
 - Families made first for another alphabet (for example Arabic or Devanagari fonts that carry a Latin set), symbol fonts and variants of the font itself are left out. When two families score the same, the better known one comes first.
 
-`npm run test:accuracy` measures it on 28 fonts whose right answer is known: copies of famous fonts that ship with Linux (Helvetica, Times, Courier, Arial, Calibri) and Google Fonts families built from others (Public Sans from Libre Franklin, Noto Sans from Open Sans, Heebo from Roboto...). It runs twice: from the font files, and from how Chrome draws the fonts (as on a page whose files cannot be read). Today the right family comes first in 23 of 28 cases and in the top 3 in 26 of 28, both ways. The main test suite fails if this drops below 80% first and 90% top 3.
+See [docs/accuracy.md](docs/accuracy.md) for the latest measured results (rerun with `npm run accuracy`; `npm run package` reruns it for every release). `npm run test:accuracy` measures it on 28 fonts whose right answer is known: copies of famous fonts that ship with Linux (Helvetica, Times, Courier, Arial, Calibri) and Google Fonts families built from others (Public Sans from Libre Franklin, Noto Sans from Open Sans, Heebo from Roboto...). It runs twice: from the font files, and from how Chrome draws the fonts (as on a page whose files cannot be read). Today the right family comes first in 23 of 28 cases and in the top 3 in 26 of 28, both ways. The main test suite fails if this drops below 80% first and 90% top 3.
 
 A free look-alike is still a different font. Paid fonts have no free copy, so check the preview before you use one.
 

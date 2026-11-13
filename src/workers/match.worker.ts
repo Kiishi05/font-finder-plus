@@ -33,7 +33,7 @@ function fingerprintFile(buf: ArrayBuffer): Uint8Array | null {
   }
 }
 
-interface Req { id: number; type: 'match'; indexUrl: string; families: string[]; weights: number[]; glyphs: Query[]; limit: number; extra?: Extra[]; file?: ArrayBuffer }
+interface Req { id: number; type: 'match'; indexUrl: string; families: string[]; weights: number[]; glyphs: Query[]; limit: number; extra?: Extra[]; file?: ArrayBuffer; lookalike?: boolean }
 
 let index: Uint8Array | null = null;
 let loading: Promise<Uint8Array> | null = null;
@@ -98,7 +98,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
         wts = [...weights, ...ws];
       }
     }
-    const results = rankFonts(ix, fams, wts, glyphs, limit).map((r) => ({ ...r, onPage: onPage.has(r.family) }));
+    const results = rankFonts(ix, fams, wts, glyphs, limit, !file && !e.data.lookalike).map((r) => ({ ...r, onPage: onPage.has(r.family) }));
     (self as unknown as Worker).postMessage({ id, ok: true, results });
   } catch (err) {
     (self as unknown as Worker).postMessage({ id, ok: false, error: String((err as Error)?.message ?? err) });

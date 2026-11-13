@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BRAND } from '../shared/brand';
 import { ArrowUp01Icon, Settings02Icon } from '../shared/icons';
 import type { PageFontUsage } from '../shared/types';
@@ -25,10 +25,11 @@ export type View =
   | { name: 'share'; fontId: string; back: View }
   | { name: 'siteshare' }
   | { name: 'settings' }
-  | { name: 'detail'; fontId: string; usage?: PageFontUsage; from: 'page' | 'library' };
+  | { name: 'detail'; fontId: string; usage?: PageFontUsage; from: 'page' | 'library' | 'image' };
 
 export function App() {
   const [view, setView] = useState<View>({ name: 'page' });
+  const imageScroll = useRef(0);
   const [settings, updateSettings] = useSettings();
   const tab = useActiveTab();
   const [toast, showToast] = useToast();
@@ -86,8 +87,18 @@ export function App() {
         <LibraryView tester={libTester} onTester={setLibTester} onOpen={(fontId) => setView({ name: 'detail', fontId, from: 'library' })} onBoards={() => setView({ name: 'boards' })} toast={showToast} />
       )}
       {view.name === 'system' && <SystemView tab={tab} toast={showToast} />}
-      {view.name === 'image' && (
-        <IdentifyView tab={tab} pending={pending} onPendingUsed={() => { setPending(null); chrome.storage.session.remove('identify:pending'); }} onOpenFont={(usage, fontId) => setView({ name: 'detail', fontId, usage, from: 'page' })} toast={showToast} />
+      {/* Kept open behind a font's details, so going back keeps the image and its results. */}
+      {(view.name === 'image' || (view.name === 'detail' && view.from === 'image')) && (
+        <div hidden={view.name !== 'image'}>
+          <IdentifyView
+            tab={tab}
+            pending={pending}
+            onPendingUsed={() => { setPending(null); chrome.storage.session.remove('identify:pending'); }}
+            onOpenFont={(usage, fontId) => { imageScroll.current = window.scrollY; setView({ name: 'detail', fontId, usage, from: 'image' }); }}
+            onOpenFontId={(fontId) => { imageScroll.current = window.scrollY; setView({ name: 'detail', fontId, from: 'image' }); }}
+            toast={showToast}
+          />
+        </div>
       )}
       {view.name === 'settings' && <SettingsView settings={settings} update={updateSettings} toast={showToast} />}
       {view.name === 'detail' && (
@@ -96,7 +107,10 @@ export function App() {
           usage={view.usage}
           tabId={tab.tabId}
           pageHost={tab.ping?.host ?? null}
-          onBack={() => setView(view.from === 'page' ? { name: 'page' } : { name: 'library' })}
+          onBack={() => {
+            setView(view.from === 'page' ? { name: 'page' } : view.from === 'image' ? { name: 'image' } : { name: 'library' });
+            if (view.from === 'image') requestAnimationFrame(() => window.scrollTo(0, imageScroll.current));
+          }}
           onShare={(fontId) => setView({ name: 'share', fontId, back: view })}
           pageUrl={tab.ping?.url}
           scanVersion={tab.fontsVersion}

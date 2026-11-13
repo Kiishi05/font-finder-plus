@@ -4,6 +4,7 @@
 // that are not installed; "Check again" swaps the real fonts in once they are.
 import type { FigmaFont, FigmaPayload, FigmaStyle } from '../../src/shared/figma-payload';
 import { familyIndex, findFamily, pickStyle, slug, textCase, type AvailableFont } from './match';
+import { findMissing, replaceMissing, restoreOriginals, textLayers } from './fix';
 
 declare const __html__: string;
 
@@ -23,6 +24,7 @@ const TIMEOUT = 8000;
 figma.showUI(__html__, { width: 420, height: 640, themeColors: true });
 
 let index: Index | null = null;
+let lastPayload: FigmaPayload | null = null;
 async function getIndex(fresh = false): Promise<Index> {
   if (!index || fresh) index = familyIndex((await figma.listAvailableFontsAsync()).map((f) => f.fontName as AvailableFont));
   return index;
@@ -318,18 +320,36 @@ async function recheck() {
 }
 
 async function countSaved() {
-  return (await figma.getLocalTextStylesAsync()).filter((s) => s.getPluginData('ffp')).length;
+  const styles = (await figma.getLocalTextStylesAsync()).filter((s) => s.getPluginData('ffp')).length;
+  const layers = textLayers([figma.currentPage]).filter((t) => t.getPluginData('ffp-original')).length;
+  return styles + layers;
 }
 
 figma.ui.onmessage = async (msg: { type: string; [k: string]: unknown }) => {
   try {
-    if (msg.type === 'check') figma.ui.postMessage({ type: 'checked', status: await check(msg.payload as FigmaPayload) });
-    else if (msg.type === 'build') {
+    if (msg.type === 'check') {
+      lastPayload = msg.payload as FigmaPayload;
+      figma.clientStorage.setAsync('ffp-last-payload', lastPayload).catch(() => undefined);
+      figma.ui.postMessage({ type: 'checked', status: await check(lastPayload) });
+    } else if (msg.type === 'find-missing') {
+      lastPayload ??= ((await figma.clientStorage.getAsync('ffp-last-payload').catch(() => null)) as FigmaPayload | null) ?? null;
+      const sel = figma.currentPage.selection;
+      const r = findMissing(textLayers(sel.length ? sel : [figma.currentPage]), await getIndex(true), lastPayload);
+      figma.ui.postMessage({ type: 'missing', ...r, scope: sel.length ? 'selection' : 'page', site: lastPayload?.site.host ?? null });
+    } else if (msg.type === 'fix-missing') {
+      const sel = figma.currentPage.selection;
+      const r = await replaceMissing(textLayers(sel.length ? sel : [figma.currentPage]), await getIndex(), msg.choices as Record<string, string>, load);
+      figma.ui.postMessage({ type: 'fixed', ...r });
+      figma.notify(`Font Finder Plus: replaced missing fonts in ${r.changed} text layers.`);
+    } else if (msg.type === 'build') {
       const r = await build(msg.payload as FigmaPayload, msg.choices as Choice[], msg.opts as Opts);
       figma.ui.postMessage({ type: 'built', result: r });
       figma.notify(`Font Finder Plus: ${r.styles} text styles${r.page ? ` and the page "${r.page}"` : ''} created.`);
-    } else if (msg.type === 'recheck') figma.ui.postMessage({ type: 'rechecked', result: await recheck() });
-    else if (msg.type === 'open') figma.openExternal(String(msg.url));
+    } else if (msg.type === 'recheck') {
+      const result = await recheck();
+      const back = await restoreOriginals(textLayers([figma.currentPage]), await getIndex(), load);
+      figma.ui.postMessage({ type: 'rechecked', result: { ...result, swapped: result.swapped + back.restored, still: [...new Set([...result.still, ...back.still])] } });
+    } else if (msg.type === 'open') figma.openExternal(String(msg.url));
     else if (msg.type === 'close') figma.closePlugin();
   } catch (err) {
     figma.ui.postMessage({ type: 'error', msg: String((err as Error)?.message ?? err) });

@@ -166,7 +166,7 @@ export async function runBench({ quiet = false, share, canvas = false } = {}) {
     const self = src.startsWith('gf:') ? src.slice(3) : m.shapeOf(name.replace(/ \(.*$/, '')) ? name.replace(/ \(.*$/, '') : undefined;
     const cls = m.classOf?.(self) ?? undefined;
     const metric = m.similarTo(shape, { exclude: self, limit: 5000 });
-    const ranked = m.rankFonts(ix, meta.families, meta.weights, queryPrints ?? prints(font), meta.families.length);
+    const ranked = m.rankFonts(ix, meta.families, meta.weights, queryPrints ?? prints(font), meta.families.length, false);
     const letters = new Map(ranked.map((x) => [x.family, Math.round(Math.max(0, Math.min(1, (x.total - 0.75) / 0.23)) * 100)]));
     const blended = m.blend(metric.filter((x) => x.family !== self), letters, 50, share);
     const lettersOnly = ranked.map((x) => x.family).filter((f) => f !== self && !(self && f.startsWith(self + ' ')));

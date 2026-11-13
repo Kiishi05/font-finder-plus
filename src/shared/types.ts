@@ -12,6 +12,7 @@ export type SourceKind =
   | 'embedded' // data: URI inside CSS
   | 'script' // added with the FontFace API, no URL visible
   | 'system' // installed on this computer, not a web font
+  | 'image' // named in an image (a social post), no file
   | 'unknown';
 
 export type LicenseType = 'OFL' | 'APACHE' | 'UFL' | 'free-other' | 'system' | 'commercial' | 'unknown';

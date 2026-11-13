@@ -6,7 +6,7 @@ export interface RankedFont { family: string; bold: boolean; total: number; perC
 
 const per = GLYPH_CHARS.length * RECORD;
 
-function scoreFace(ix: Uint8Array, base: number, q: Query[]) {
+function scoreFace(ix: Uint8Array, base: number, q: Query[], trim: boolean) {
   const perChar: number[] = [];
   const ch: number[] = [];
   const cb: number[] = [];
@@ -41,18 +41,23 @@ function scoreFace(ix: Uint8Array, base: number, q: Query[]) {
   });
   const heights = n ? 1 - Math.min(1, hd / n / 0.18) : 0;
   const bottoms = n ? 1 - Math.min(1, bd / n / 0.12) : 0;
-  const letters = perChar.reduce((a, b) => a + b, 0) / Math.max(1, perChar.length);
+  // Ignore the worst-matching fifth of the letters: they are usually letters cut out
+  // badly (touching neighbours, blur), not real differences.
+  const sorted = [...perChar].sort((a, b) => b - a);
+  const keep = trim && sorted.length >= 8 ? sorted.slice(0, Math.ceil(sorted.length * 0.8)) : sorted;
+  const letters = keep.reduce((a, b) => a + b, 0) / Math.max(1, keep.length);
   return { total: letters * 0.75 + heights * 0.15 + bottoms * 0.1, perChar, heights, missing };
 }
 
 
-export function rankFonts(ix: Uint8Array, families: string[], weights: number[], glyphs: Query[], limit: number): RankedFont[] {
+/** `trim`: ignore the worst-matching fifth of the letters (for letters cut from images). */
+export function rankFonts(ix: Uint8Array, families: string[], weights: number[], glyphs: Query[], limit: number, trim = true): RankedFont[] {
   const results: RankedFont[] = [];
   families.forEach((family, fi) => {
     let best: RankedFont | null = null;
     for (const wi of [0, 1]) {
       if (!(weights[fi] & (1 << wi))) continue;
-      const r = scoreFace(ix, (fi * 2 + wi) * per, glyphs);
+      const r = scoreFace(ix, (fi * 2 + wi) * per, glyphs, trim);
       if (!best || r.total > best.total) best = { family, bold: wi === 1, ...r };
     }
     if (best) results.push(best);

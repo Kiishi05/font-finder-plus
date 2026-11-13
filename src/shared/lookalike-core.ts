@@ -1,5 +1,6 @@
 // Blends the two ways of judging look-alikes. Shared by the panel and the
 // accuracy test (tests/lookalike-bench.mjs) so both use the same scoring.
+import { googleFamily } from './catalog';
 import type { Match } from './similar';
 
 /** Share of the final score that comes from letter shapes (the rest is proportions). */
@@ -15,7 +16,11 @@ export function blend(metric: Match[], letters: Map<string, number> | null, limi
     .map((m) => {
       const g = letters.get(m.family);
       if (g == null) return { ...m, score: Math.round(m.score * 0.8) };
-      const score = Math.min(100, Math.round(m.score * (1 - share) + g * share));
+      // Fonts made first for another alphabet are weaker suggestions for a Latin site,
+      // unless they are among the most used (Poppins, Heebo).
+      const gf = googleFamily(m.family);
+      const other = gf?.ps && (gf.p ?? 9999) > 60 ? 5 : 0;
+      const score = Math.min(100, Math.round(m.score * (1 - share) + g * share)) - other;
       return { ...m, score, reason: g >= 80 ? `Letters look alike. ${m.reason}` : m.reason };
     })
     // Same score: the better known family first (Roboto before the fonts that copy its Latin letters).

@@ -81,6 +81,9 @@ export function googleFamily(name: string): (CatalogEntry & { family: string }) 
   return null;
 }
 
+/** Every Google Fonts family name in the bundled catalogue. */
+export const allGoogleFamilies = (): string[] => Object.keys(families);
+
 export function googleFontsUrl(family: string): string {
   return `https://fonts.google.com/specimen/${family.trim().replace(/\s+/g, '+')}`;
 }
@@ -160,6 +163,7 @@ export const SOURCE_LABEL: Record<SourceKind, string> = {
   embedded: 'Embedded in CSS',
   script: 'Added by script',
   system: 'System font',
+  image: 'Named in an image',
   unknown: 'Unknown source',
 };
 

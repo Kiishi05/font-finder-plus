@@ -1,6 +1,7 @@
 import indexJson from '../../shared/data/glyph-index.json';
 import type { QueryGlyph } from './imageprep';
 import type { PrintQuery } from '../../shared/glyphprint';
+import { orderImageMatches } from '../../shared/imagerank';
 
 const meta = indexJson as unknown as { generated: string; families: string[]; weights: number[] };
 export const INDEX_COUNT = meta.families.length;
@@ -45,7 +46,7 @@ export function matchGlyphs(glyphs: QueryGlyph[], limit = 10, extra: PageFontFil
     pending.set(id, (r) => {
       if (!r.ok || !r.results) return reject(new Error(r.error ?? 'Matching failed.'));
       resolve(
-        r.results.map((x) => {
+        orderImageMatches(r.results, limit).map((x) => {
           const ranked = glyphs.map((g, i) => [g.char, x.perChar[i]] as const).sort((a, b) => b[1] - a[1]);
           const best = [...new Set(ranked.slice(0, 3).map(([c]) => c))];
           const parts = [`Closest letters: ${best.join(', ')}.`];
@@ -66,7 +67,8 @@ export function matchGlyphs(glyphs: QueryGlyph[], limit = 10, extra: PageFontFil
       families: meta.families,
       weights: meta.weights,
       glyphs: glyphs.map((g) => ({ ci: g.ci, bits: g.bits, aspect: g.aspect, h: g.h, bottom: g.bottom })),
-      limit,
+      // A few more than needed: families made for other alphabets are left out afterwards.
+      limit: limit + 40,
       extra,
     });
   });
@@ -92,6 +94,7 @@ export function lookalikeScores(src: { file?: ArrayBuffer; prints?: PrintQuery[]
       weights: meta.weights,
       glyphs: src.prints ?? [],
       file: src.file,
+      lookalike: true,
       limit: meta.families.length,
     });
   });

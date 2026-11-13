@@ -8,6 +8,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dir = path.join(root, 'figma-plugin');
 const out = path.join(dir, 'dist');
 fs.mkdirSync(out, { recursive: true });
+// Google Fonts family names (to tell a missing Google font from a paid one), from the bundled catalogue.
+const catalog = JSON.parse(fs.readFileSync(path.join(root, 'src/shared/data/gf-catalog.json'), 'utf8'));
+fs.mkdirSync(path.join(dir, 'src/gen'), { recursive: true });
+fs.writeFileSync(path.join(dir, 'src/gen/google-names.json'), JSON.stringify(Object.keys(catalog.families)));
 
 await build({ entryPoints: [path.join(dir, 'src/code.ts')], outfile: path.join(out, 'code.js'), bundle: true, format: 'iife', target: 'es2017', minify: true, logLevel: 'warning' });
 const ui = await build({ entryPoints: [path.join(dir, 'src/ui.ts')], bundle: true, format: 'iife', target: 'es2017', minify: true, write: false, logLevel: 'warning' });

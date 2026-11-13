@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { knownFont } from '../../shared/licences';
 import { CLASS_LABEL, SOURCE_LABEL, googleFamily, googleFontsUrl, licenseBadge } from '../../shared/catalog';
 import { declarationCss, fontStackCss, round, tidyStack } from '../../shared/css';
 import { db, saveFont, upsertFont } from '../../shared/db';
@@ -20,6 +21,7 @@ import { parseFontBytes } from '../lib/fonts';
 import type { InstalledFace } from '../lib/installed';
 import { GlyphsCard } from './details/GlyphsCard';
 import { InstalledCard } from './details/InstalledCard';
+import { FilesCard } from './details/FilesCard';
 import { LanguagesCard } from './details/LanguagesCard';
 import { LicenceCard } from './details/LicenceCard';
 import { Screenshots } from './details/Screenshots';
@@ -221,11 +223,16 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, onShare, pa
           <a className="btn primary" href={googleFontsUrl(gf.family)} target="_blank" rel="noreferrer">
             Open on Google Fonts <Icon icon={ArrowUpRight01Icon} size={15} />
           </a>
+        ) : knownFont(name) ? (
+          <a className="btn primary" href={knownFont(name)!.url} target="_blank" rel="noreferrer">
+            {knownFont(name)!.licence === 'commercial' ? `Buy from ${knownFont(name)!.by}` : `Get it from ${knownFont(name)!.by}`} <Icon icon={ArrowUpRight01Icon} size={15} />
+          </a>
         ) : (
           <span className="muted" style={{ fontSize: 11.5 }}>
-            {parsed || kind !== 'web' ? 'Not in the Google Fonts catalogue.' : 'Not matched to Google Fonts yet. The font file is being checked.'}
+            {data.source === 'image' ? 'Not in the catalogues we know. Search for it by name to find who makes it.' : parsed || kind !== 'web' ? 'Not in the Google Fonts catalogue.' : 'Not matched to Google Fonts yet. The font file is being checked.'}
           </span>
         )}
+        {data.source === 'image' && !gf && <span className="muted" style={{ fontSize: 11.5 }}>This font was named in an image. Font Finder Plus does not have its file, so previews below use a stand-in and its letters and languages cannot be checked.</span>}
       </section>
 
       <nav className="jump" aria-label="Jump to">
@@ -318,6 +325,8 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, onShare, pa
         </dl>
       </section>
 
+
+      {kind === 'web' && <FilesCard files={files} toast={toast} />}
 
       <InstalledCard family={parsed?.familyName ?? name} onFaces={onInstalled} />
 

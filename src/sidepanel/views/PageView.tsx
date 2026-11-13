@@ -14,6 +14,7 @@ import type { Match } from '../../shared/similar';
 import { trySwap, undoSwap, useSwaps } from '../lib/google';
 import { measureOnPage } from '../lib/shapes';
 import { SendToFigma } from '../components/SendToFigma';
+import { FILE_ACCESS_HINT, drawsTextAsPictures } from '../../shared/pageaccess';
 import { blendMatches, letterScores } from '../lib/lookalike';
 import type { Shape } from '../../shared/shape';
 import { Icon } from '../components/Icon';
@@ -90,7 +91,13 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
         <div className="empty">
           <h2>{tab.injectError ? 'This page cannot be read' : canInject ? 'Reading this page…' : 'Read the fonts on this page'}</h2>
           {tab.injectError ? (
-            <p>{tab.injectError}</p>
+            <>
+              <p>{tab.injectError}</p>
+              {tab.injectError.includes(FILE_ACCESS_HINT) && (
+                <button className="btn primary" onClick={() => chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` })}>Open the extension's details page</button>
+              )}
+              {!tab.injectError.includes(FILE_ACCESS_HINT) && <p className="muted">You can still identify fonts from a screenshot: open the Image tab and paste or upload it.</p>}
+            </>
           ) : canInject ? (
             <p>If nothing appears, reload the page.</p>
           ) : (
@@ -168,12 +175,19 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
         <FontCard key={f.key} f={f} tester={tester} tabId={tab.tabId} host={scan.host} swappedTo={swaps[f.key] ?? null} onOpen={onOpen} toast={toast} />
       ))}
 
+      {drawsTextAsPictures(scan?.url) && (
+        <div className="notice neutral">
+          <Icon icon={Alert02Icon} size={15} />
+          <span>{drawsTextAsPictures(scan?.url)} The fonts listed here are the app's own interface, not your document. To identify a font in the document, use Select an area in the Image tab.</span>
+        </div>
+      )}
+
       {!!scan?.pictureText?.count && (
         <div className="notice neutral">
           <Icon icon={Alert02Icon} size={15} />
           <span>
             {scan.pictureText.count === 1 ? 'Some text on this page is' : `${scan.pictureText.count} pieces of text on this page are`} drawn as pictures (SVG or images)
-            {scan.pictureText.examples.length ? `, such as ${scan.pictureText.examples.map((e) => `“${e}”`).join(', ')}` : ''}. Pictures have no font to read, so they are not listed. Identifying fonts from images is coming in a later update.
+            {scan.pictureText.examples.length ? `, such as ${scan.pictureText.examples.map((e) => `“${e}”`).join(', ')}` : ''}. Pictures have no font to read, so they are not listed. To identify one, hover it and click Identify this picture, or use Select an area in the Image tab.
           </span>
         </div>
       )}

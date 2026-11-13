@@ -51,7 +51,7 @@ async function fontFor(f: PageFontUsage, tabId: number): Promise<FigmaFont> {
   const shape = await shapeFor({ catalogFamily, files: f.files, kind: f.kind, family: f.family }, tabId).catch(() => null);
   if (shape) {
     const letters = await letterScores({ tabId, family: f.family, weight: f.sample.fontWeight, style: f.sample.fontStyle, onPage: true });
-    const m = blendMatches(shape.shape, letters, { exclude: catalogFamily ?? undefined, classification: rec?.classification ?? f.classification, limit: 4, ignoreWeight: shape.notRegular });
+    const m = blendMatches(shape.shape, letters, { exclude: catalogFamily ?? undefined, classification: rec?.classification ?? f.classification, limit: 10, ignoreWeight: shape.notRegular });
     if (m[0]) standIn = { family: m[0].family, score: m[0].score, reason: m[0].reason };
     alternatives = m.slice(1).map((x) => ({ family: x.family, score: x.score }));
   }

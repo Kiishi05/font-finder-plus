@@ -7,3 +7,4 @@ tests/output/
 tests/fixtures/heading.png
 release/
 research_notes/
+figma-plugin/src/gen/

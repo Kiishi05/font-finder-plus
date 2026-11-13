@@ -45,7 +45,11 @@ function fakeFigma(available) {
   const textStyles = [];
   const collections = [];
   const variables = [];
+  const page = { type: 'PAGE', name: 'Page 1', selection: [], children: [], findAllWithCriteria: () => page.children.filter((c) => c.type === 'TEXT') };
+  const store = {};
   const figma = {
+    currentPage: page,
+    clientStorage: { getAsync: async (k) => store[k], setAsync: async (k, v) => { store[k] = JSON.parse(JSON.stringify(v)); } },
     showUI: () => {},
     ui,
     notify: (m) => log.notify.push(m),
@@ -102,7 +106,23 @@ function fakeFigma(available) {
       },
     },
   };
-  return { figma, ui, log, textStyles, available };
+  /** A text layer as a web capture makes it: runs of text in fonts that may be missing. */
+  const textLayer = (runs) => {
+    const t = node('TEXT');
+    let segs = [];
+    let pos = 0;
+    for (const [text, family, style] of runs) { segs.push({ start: pos, end: pos + text.length, fontName: { family, style } }); pos += text.length; }
+    t.characters = runs.map((r) => r[0]).join('');
+    Object.defineProperty(t, 'hasMissingFont', { get: () => segs.some((sg) => !has(sg.fontName)) });
+    t.getStyledTextSegments = () => segs.map((sg) => ({ ...sg, fontName: { ...sg.fontName } }));
+    t.setRangeFontName = (a, b, f) => {
+      requireLoaded(f);
+      segs = segs.map((sg) => (sg.start >= a && sg.end <= b ? { ...sg, fontName: f } : sg));
+    };
+    page.children.push(t);
+    return t;
+  };
+  return { figma, ui, log, textStyles, available, textLayer, page };
 }
 
 const styles = (family, list) => list.map((style) => ({ family, style }));
@@ -163,6 +183,35 @@ check('Check again swaps the real font in once installed', re?.result?.swapped >
 const before = env.textStyles.length;
 await run(env, { type: 'build', payload, choices: [], opts: { styles: true, variables: true, specimen: false } });
 check('building again reuses the same styles and variables', env.textStyles.length === before);
+
+// ------------------------------------------------------------- fix a captured page
+const cap = fakeFigma([...base]);
+const capCtx = vm.createContext({ figma: cap.figma, __html__: '<html></html>', console, setTimeout, clearTimeout, Promise, JSON, Math, Map, Set, Array, Object, String, Number, Error, RegExp, Uint8Array });
+const h1 = cap.textLayer([['Fonts that ship', 'Helvetica Neue LT Pro', 'Bold']]);
+const p1 = cap.textLayer([['Body copy set in ', 'Montserrat', 'Regular'], ['and code', 'Geist Mono', 'Regular']]);
+const p2 = cap.textLayer([['A display line', 'Clash Display', 'Medium']]);
+const ok1 = cap.textLayer([['Already fine', 'Inter', 'Regular']]);
+vm.runInContext(code, capCtx);
+await new Promise((r) => setTimeout(r, 20));
+// The site's scan was pasted earlier in this session: its measured look-alikes are used.
+await run(cap, { type: 'check', payload });
+const [found] = await run(cap, { type: 'find-missing' });
+const fams = found?.missing?.map((m) => m.family) ?? [];
+check('fix mode finds the missing fonts on the page', found?.type === 'missing' && ['Helvetica Neue LT Pro', 'Montserrat', 'Clash Display'].every((f) => fams.includes(f)) && !fams.includes('Inter') && !fams.includes('Geist Mono'), fams.join(', '));
+const mHn = found.missing.find((m) => m.family === 'Helvetica Neue LT Pro');
+const mMont = found.missing.find((m) => m.family === 'Montserrat');
+const mClash = found.missing.find((m) => m.family === 'Clash Display');
+check('fix mode says where each one comes from', mHn.source === 'paid' && /Monotype/.test(mHn.getIt?.label ?? '') && mMont.source === 'google' && mClash.source === 'free-elsewhere', `${mHn.source} ${mMont.source} ${mClash.source}`);
+check('the paid font gets the measured look-alike Figma has (Arimo)', mHn.options[0]?.family === 'Arimo', JSON.stringify(mHn.options.slice(0, 3)));
+check('every replacement offered is one Figma has', found.missing.every((m) => m.options.every((o) => base.some((b) => b.family === o.family))));
+const [fixed] = await run(cap, { type: 'fix-missing', choices: Object.fromEntries(found.missing.map((m) => [m.family, m.options[0]?.family]).filter(([, v]) => v)) });
+check('Replace swaps the fonts in every layer', fixed?.changed === 3 && !h1.hasMissingFont && !p1.hasMissingFont && !p2.hasMissingFont, JSON.stringify(fixed));
+check('the replacement keeps bold as bold', h1.getStyledTextSegments()[0].fontName.style === 'Bold' && h1.getStyledTextSegments()[0].fontName.family === 'Arimo', JSON.stringify(h1.getStyledTextSegments()[0].fontName));
+check('untouched runs keep their font', p1.getStyledTextSegments()[1].fontName.family === 'Geist Mono' && ok1.getStyledTextSegments()[0].fontName.family === 'Inter');
+check('the original font is remembered on the layer', JSON.parse(h1.getPluginData('ffp-original'))[0].family === 'Helvetica Neue LT Pro');
+cap.available.push(...styles('Helvetica Neue LT Pro', ['Roman', 'Bold']));
+const [back] = await run(cap, { type: 'recheck' });
+check('Check again puts the real font back once installed', h1.getStyledTextSegments()[0].fontName.family === 'Helvetica Neue LT Pro' && back?.result?.still?.includes('Montserrat'), JSON.stringify(back?.result));
 
 // ------------------------------------------------------------- the window
 const { chromium } = require('playwright');

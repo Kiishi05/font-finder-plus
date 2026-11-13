@@ -8,6 +8,11 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = path.join(root, 'dist');
+// Measure accuracy for this release first (docs/accuracy.md). Skip with SKIP_ACCURACY=1.
+if (!process.env.SKIP_ACCURACY) {
+  execSync('node scripts/build.mjs', { cwd: root, stdio: 'inherit', env: { ...process.env, FFP_TEST: '1' } });
+  execSync('node scripts/accuracy-report.mjs', { cwd: root, stdio: 'inherit' });
+}
 execSync('node scripts/build.mjs', { cwd: root, stdio: 'inherit', env: { ...process.env, FFP_TEST: '' } });
 
 const manifest = JSON.parse(fs.readFileSync(path.join(dist, 'manifest.json'), 'utf8'));

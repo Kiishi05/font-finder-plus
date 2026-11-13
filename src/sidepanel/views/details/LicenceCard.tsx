@@ -3,6 +3,16 @@ import { ArrowUpRight01Icon } from '../../../shared/icons';
 import type { LicenseType, ParsedFontFile } from '../../../shared/types';
 import { Icon } from '../../components/Icon';
 
+/** General practice in paid font licences, shown as things to check, never as this font's terms. */
+const PAID_RULES = [
+  'A desktop licence (for design apps and print) usually does not cover using the font on a website. Websites need a web licence, often priced by monthly page views.',
+  'Apps, games and e-books usually need their own licence.',
+  'Many licences do not allow converting or cutting down the font files, so check before making your own web font files.',
+  'Licences are usually counted per company, per number of computers, or per site.',
+  'A logo you trademark or sell may need an extended licence.',
+  'Free trial or personal-use versions do not cover client or commercial work.',
+];
+
 const TONE: Record<Allowed, string> = { yes: 'free', conditions: 'free', licence: 'warn', check: 'neutral', no: 'neutral', unknown: 'neutral' };
 
 export function LicenceCard({ name, licenseType, source, parsed, fromCatalogue }: { name: string; licenseType: LicenseType; source: string; parsed: ParsedFontFile | null; fromCatalogue: boolean }) {
@@ -38,9 +48,18 @@ export function LicenceCard({ name, licenseType, source, parsed, fromCatalogue }
       {s.notes.map((n) => (
         <span key={n} className="muted" style={{ fontSize: 12 }}>{n}</span>
       ))}
+      {(licenseType === 'commercial' || licenseType === 'unknown') && (
+        <details className="filelicence" open={licenseType === 'commercial'}>
+          <summary>Common rules in paid font licences</summary>
+          <span className="muted" style={{ fontSize: 11.5 }}>General rules most foundries use. They are not this font's terms: check its own licence.</span>
+          <ul className="rules">
+            {PAID_RULES.map((r) => <li key={r}>{r}</li>)}
+          </ul>
+        </details>
+      )}
       {(parsed?.licenseDescription || parsed?.licenseUrl || parsed?.copyright) && (
-        <details className="filelicence">
-          <summary>What the font file itself says</summary>
+        <details className="filelicence" open>
+          <summary>What the font file itself says (shown as written)</summary>
           {parsed?.copyright && <p>{parsed.copyright}</p>}
           {parsed?.licenseDescription && <p>{parsed.licenseDescription.slice(0, 600)}{parsed.licenseDescription.length > 600 ? '…' : ''}</p>}
           {parsed?.licenseUrl && <a href={parsed.licenseUrl} target="_blank" rel="noreferrer">Licence link in the file</a>}

@@ -42,8 +42,9 @@ function load(): Entry[] {
     // Chinese, Japanese and Korean families and some other scripts carry Latin
     // letters as a secondary set; they are not good Latin suggestions.
     if (gf.s.some((x) => SECONDARY_LATIN.has(x)) || SCRIPT_NAME.test(family)) continue;
-    // Families made first for another alphabet (Arabic, Devanagari, Ethiopic...) borrow their Latin letters.
-    if (gf.ps || /\b(Symbols|Math|Emoji|Music)\b/.test(family)) continue;
+    // Little-used families made first for another alphabet often borrow their Latin
+    // letters; widely used ones (Poppins, Hind, Heebo) stay.
+    if ((gf.ps && (gf.p ?? 9999) > 300) || /\b(Symbols|Math|Emoji|Music)\b/.test(family)) continue;
     const e: Entry = { family, shape: unpackShape(arr), c: gf.c, p: gf.p ?? 9999 };
     // Script versions of a family ("Noto Sans Tamil") share its Latin letters. Keep the best known one.
     const sig = arr.join(',');

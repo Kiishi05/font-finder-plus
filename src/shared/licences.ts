@@ -133,9 +133,18 @@ export interface KnownFont {
 }
 
 const KNOWN = new Map<string, KnownFont>();
+const NAMES = new Map<string, string>();
 const add = (by: string, url: string, licence: KnownFont['licence'], names: string[], note?: string) => {
-  for (const n of names) KNOWN.set(squash(n), { by, url, licence, note });
+  for (const n of names) {
+    KNOWN.set(squash(n), { by, url, licence, note });
+    if (!NAMES.has(squash(n))) NAMES.set(squash(n), n);
+  }
 };
+
+/** Every font name in the known-foundry list, as written, with who sells or gives it. */
+export function knownFontNames(): { name: string; known: KnownFont }[] {
+  return [...NAMES].map(([k, name]) => ({ name, known: KNOWN.get(k)! }));
+}
 function squash(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
 }
