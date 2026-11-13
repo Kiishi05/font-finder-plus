@@ -102,6 +102,18 @@ CSS lists fonts in order (`font-family: "Söhne", Arial, sans-serif`). The brows
 
 Fonts the browser has not fetched yet (pages often load fonts lazily) are given up to 3 seconds to load before anything is reported as missing.
 
+## How close the free look-alikes are
+
+Make it free, Similar fonts and the Figma stand-ins all pick the closest free Google Fonts family the same way:
+
+- **Letter shapes (70%).** Each letter (a to z and A, E, G, H, M, O, R, S) is drawn and compared with the same letters of every Latin Google Fonts family, using the index built for identifying fonts in images.
+- **Proportions (30%).** x-height, cap height, ascenders, descenders, width, weight, contrast, roundness, how open "c" and "e" are, and the width of each letter.
+- Families made first for another alphabet (for example Arabic or Devanagari fonts that carry a Latin set), symbol fonts and variants of the font itself are left out. When two families score the same, the better known one comes first.
+
+`npm run test:accuracy` measures it on 28 fonts whose right answer is known: copies of famous fonts that ship with Linux (Helvetica, Times, Courier, Arial, Calibri) and Google Fonts families built from others (Public Sans from Libre Franklin, Noto Sans from Open Sans, Heebo from Roboto...). It runs twice: from the font files, and from how Chrome draws the fonts (as on a page whose files cannot be read). Today the right family comes first in 23 of 28 cases and in the top 3 in 26 of 28, both ways. The main test suite fails if this drops below 80% first and 90% top 3.
+
+A free look-alike is still a different font. Paid fonts have no free copy, so check the preview before you use one.
+
 ## Data sources
 
 - `src/shared/data/gf-shapes.json` holds the measured shape of 1,921 Google Fonts families (the rest are colour, emoji or symbol fonts without Latin letters). Rebuild it with `npm run build:shapes`; it asks the Google Fonts text API for only the letters needed, so each file is a few KB.

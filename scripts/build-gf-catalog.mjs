@@ -82,6 +82,13 @@ console.log(`Families: ${list.length}. Reading licences from google/fonts…`);
 
 const licences = await pool(list, (f) => licenseFor(f.family));
 
+/** The family's main alphabet when it is not Latin (e.g. "Arab"), from Google's metadata. */
+function primaryScript(f) {
+  if (f.primaryScript && f.primaryScript !== 'Latn') return f.primaryScript;
+  const lang = /_([A-Z][a-z]{3})$/.exec(f.primaryLanguage ?? '')?.[1] ?? /_([A-Za-z]{4})$/.exec(f.primaryLanguage ?? '')?.[1];
+  return lang && lang !== 'Latn' ? lang : null;
+}
+
 const families = {};
 let unknown = 0;
 list.forEach((f, idx) => {
@@ -95,6 +102,7 @@ list.forEach((f, idx) => {
     a: (f.axes ?? []).map((a) => [a.tag, a.min, a.max, a.defaultValue]),
     w: Object.keys(f.fonts ?? {}),
     p: f.popularity ?? null,
+    ...(primaryScript(f) ? { ps: primaryScript(f) } : {}),
   };
 });
 

@@ -42,6 +42,8 @@ function load(): Entry[] {
     // Chinese, Japanese and Korean families and some other scripts carry Latin
     // letters as a secondary set; they are not good Latin suggestions.
     if (gf.s.some((x) => SECONDARY_LATIN.has(x)) || SCRIPT_NAME.test(family)) continue;
+    // Families made first for another alphabet (Arabic, Devanagari, Ethiopic...) borrow their Latin letters.
+    if (gf.ps || /\b(Symbols|Math|Emoji|Music)\b/.test(family)) continue;
     const e: Entry = { family, shape: unpackShape(arr), c: gf.c, p: gf.p ?? 9999 };
     // Script versions of a family ("Noto Sans Tamil") share its Latin letters. Keep the best known one.
     const sig = arr.join(',');
@@ -69,6 +71,9 @@ function diffs(a: Shape, b: Shape): Partial<Record<Feat, number>> {
     const va = val(a, k);
     const vb = val(b, k);
     if (va == null || vb == null) continue;
+    // The top of "l" tells rounded from square ends on sans fonts; on serif fonts it
+    // mostly measures the serif's angle, so it is left out there.
+    if (k === 'tl' && (Math.max(a.contrast ?? 1, b.contrast ?? 1) > 1.8 || Math.max(va, vb) > 1.3)) continue;
     out[k] = (vb - va) / stats[k].sd;
   }
   return out;
@@ -121,6 +126,8 @@ export interface Match {
   score: number;
   reason: string;
   c: Classification;
+  /** Google Fonts popularity rank (1 is the most used). */
+  p?: number;
 }
 
 /**
@@ -141,7 +148,7 @@ export function similarTo(target: Shape, opts: { exclude?: string; classificatio
       // A one-bowl "g" against a two-bowl "g" is easy to see, so it counts.
       if (target.g2 != null && e.shape.g2 != null && target.g2 !== e.shape.g2) dist += 0.2;
       // Same for a one-storey "a" (as in Futura) against a two-storey "a".
-      if (target.a2 != null && e.shape.a2 != null && target.a2 !== e.shape.a2) dist += 0.35;
+      if (target.a2 != null && e.shape.a2 != null && target.a2 !== e.shape.a2) dist += 0.15;
       // Among equally close matches, prefer well-made, widely used families.
       return { e, d, dist, rank: dist + Math.min(e.p, 1500) / 1500 * 0.15 };
     })
@@ -153,6 +160,7 @@ export function similarTo(target: Shape, opts: { exclude?: string; classificatio
       score: Math.max(1, Math.round(100 * Math.exp(-(dist * dist) / 0.4))),
       reason: reason(d),
       c: e.c,
+      p: e.p,
     }))
     .sort((a, b) => b.score - a.score);
 }

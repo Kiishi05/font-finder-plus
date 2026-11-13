@@ -7,6 +7,7 @@ import type { Shape } from '../../shared/shape';
 import { similarTo, type Match } from '../../shared/similar';
 import type { Classification } from '../../shared/types';
 import { lookalikeScores } from './matcher';
+import { blend } from '../../shared/lookalike-core';
 
 const cache = new Map<string, Promise<Map<string, number> | null>>();
 
@@ -38,21 +39,11 @@ export function letterScores(src: { tabId: number | null; family: string; weight
 }
 
 /**
- * Closest Google Fonts families. With letter scores, the score is 40% shared
- * proportions and 60% alike letter shapes; without them, proportions only.
+ * Closest Google Fonts families. With letter scores, the score is 30% shared
+ * proportions and 70% alike letter shapes; without them, proportions only.
  */
 export function blendMatches(shape: Shape, letters: Map<string, number> | null, opts: { exclude?: string; classification?: Classification; limit?: number; ignoreWeight?: boolean }): Match[] {
   const limit = opts.limit ?? 8;
   if (!letters) return similarTo(shape, opts);
-  const metric = similarTo(shape, { ...opts, limit: 5000 });
-  return metric
-    .map((m) => {
-      const g = letters.get(m.family);
-      if (g == null) return { ...m, score: Math.round(m.score * 0.8) };
-      const score = Math.min(100, Math.round(m.score * 0.4 + g * 0.6));
-      const reason = g >= 80 ? `Letters look alike. ${m.reason}` : m.reason;
-      return { ...m, score, reason };
-    })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+  return blend(similarTo(shape, { ...opts, limit: 5000 }), letters, limit);
 }

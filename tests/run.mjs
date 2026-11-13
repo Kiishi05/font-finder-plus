@@ -719,6 +719,11 @@ try {
   check('ALL_CAPS CSS names are shown in normal case', cat.cleanFamilyName('MARTINA_PLANTIJN') === 'Martina Plantijn' && cat.cleanFamilyName('SOEHNE') === 'Soehne');
   check('Google Fonts preview names are cleaned (gf_Poppins variant0)', cat.cleanFamilyName('gf_Poppins variant0') === 'Poppins' && cat.cleanFamilyName('gf_Great_Vibes variant0') === 'Great Vibes', cat.cleanFamilyName('gf_Great_Vibes variant0'));
   check('joined-up names are split (HelveticaNeueLTPro)', cat.cleanFamilyName('HelveticaNeueLTPro') === 'Helvetica Neue LT Pro' && cat.cleanFamilyName('JetBrainsMono') === 'JetBrains Mono' && cat.cleanFamilyName('McLaren') === 'McLaren' && cat.cleanFamilyName('SFProText') === 'SF Pro Text', [cat.cleanFamilyName('HelveticaNeueLTPro'), cat.cleanFamilyName('SFProText')].join(', '));
+  const { runBench } = await import('./lookalike-bench.mjs');
+  for (const canvas of [false, true]) {
+    const b = await runBench({ quiet: true, canvas });
+    check(`look-alike accuracy (${canvas ? 'as the page draws it' : 'from font files'}): right family first in 80%+, top 3 in 90%+`, b.top1 / b.n >= 0.8 && b.top3 / b.n >= 0.9, `top 1 ${b.top1}/${b.n}, top 3 ${b.top3}/${b.n}`);
+  }
   check('names ending in VF are grouped under the family', cat.familyGroupName(cat.cleanFamilyName('die-grotesk-vf')) === 'Die Grotesk', cat.familyGroupName(cat.cleanFamilyName('die-grotesk-vf')));
   check('Soehne spelling is recognised as a Klim font', cat.licenseFromCatalog('SOEHNE', 'self-hosted') === 'commercial');
   check('Copy CSS keeps fallbacks up to the font that renders', JSON.stringify(tidyStack(['Söhne', 'Helvetica', 'Arial', 'sans-serif'], 'Arial')) === JSON.stringify(['Söhne', 'Helvetica', 'Arial', 'sans-serif']));

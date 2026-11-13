@@ -10,6 +10,8 @@ interface CatalogEntry {
   a: [string, number, number, number][];
   w: string[];
   p: number | null;
+  /** Main alphabet when it is not Latin (ISO 15924, e.g. "Arab"). */
+  ps?: string;
 }
 
 const families = (catalogJson as unknown as { families: Record<string, CatalogEntry> }).families;
