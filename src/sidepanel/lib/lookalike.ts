@@ -13,6 +13,9 @@ import { measureOnPage, shapeFor } from './shapes';
 import { blend } from '../../shared/lookalike-core';
 import { FINE_CHARS, FINE_SHORTLIST, fineFontScore, rerankFine, type FinePrint } from '../../shared/finematch';
 import { finePrintsFromCanvas } from '../../shared/glyphprint';
+import { shapeFromCanvas } from '../../shared/shape';
+import { facesForCoverage } from './coverage';
+import { getFontBytes } from './fonts';
 import { googleFamily } from '../../shared/catalog';
 import { fontshareFamily } from '../../shared/freecatalog';
 
@@ -93,26 +96,72 @@ export function freeLookalikes(i: LookalikeInput, tabId: number | null): Promise
     p = (async () => {
       const rec = await db.fonts.get(i.fontId).catch(() => undefined);
       const classification = rec?.classification ?? i.classification;
+      const pageDraws = i.onPage && i.kind === 'web' && tabId != null;
       let shape: Shape | null = null;
       let notRegular = false;
-      if (i.onPage && i.kind === 'web' && tabId != null) shape = await measureOnPage(tabId, i.family, i.weight, i.style);
+      if (pageDraws) shape = await measureOnPage(tabId!, i.family, i.weight, i.style);
+      let letters = shape ? await letterScores({ tabId, family: i.family, weight: i.weight, style: i.style, onPage: true }) : null;
+      // The page could not draw it (or it is saved, not on a page): draw the font's own file here instead.
+      let local: string | null = null;
+      if (!letters && i.kind === 'web' && i.files.length) {
+        local = await panelFace(i, tabId);
+        if (local) {
+          shape = shapeFromCanvas(`"${local}"`, i.weight, i.style) ?? shape;
+          const prints = printsFromCanvas(`"${local}", "FFP NotDef"`, i.weight, i.style);
+          letters = prints.length >= 10 ? await lookalikeScores({ prints }).catch(() => null) : null;
+        }
+      }
       if (!shape) {
         const r = await shapeFor({ catalogFamily: i.catalogFamily, files: i.files, kind: i.kind, family: i.family }, tabId).catch(() => null);
         shape = r?.shape ?? null;
         notRegular = r?.notRegular ?? false;
       }
+      if (!letters && i.kind !== 'web') letters = await letterScores({ tabId, family: i.family, weight: i.weight, style: i.style, onPage: false });
       if (!shape) return null;
-      const letters = await letterScores({ tabId, family: i.family, weight: i.weight, style: i.style, onPage: i.onPage && i.kind === 'web' });
       const coarse = blendMatches(shape, letters, { exclude: i.catalogFamily ?? undefined, classification, limit: FINE_SHORTLIST + 5, ignoreWeight: notRegular });
-      // A sharper second look at the best candidates, when the page can draw the font.
-      const fine = letters && i.onPage && i.kind === 'web' && tabId != null ? await fineScores(tabId, i, coarse.slice(0, FINE_SHORTLIST).map((m) => m.family)) : null;
+      if (!letters) {
+        // Proportions alone can pair fonts with different letter shapes (rounded with sharp): never call these close.
+        return { matches: coarse.slice(0, 10).map((m) => ({ ...m, score: Math.min(m.score, CLOSE_MATCH - 6) })), letters: false, x: shape.x ?? null };
+      }
+      // A sharper second look at the best candidates.
+      const query = pageDraws && !local ? await pageFinePrints(tabId!, i) : local ? finePrintsFromCanvas(`"${local}"`, i.weight, i.style) : i.kind !== 'web' ? finePrintsFromCanvas(`"${i.family.replace(/"/g, '')}", "FFP NotDef"`, i.weight, i.style) : null;
+      const fine = query ? await fineScores(query, coarse.slice(0, FINE_SHORTLIST).map((m) => m.family), i.weight) : null;
       const matches = (fine && fine.size ? rerankFine(coarse, fine) : coarse).slice(0, 10);
-      return { matches, letters: !!letters, x: shape.x ?? null };
+      return { matches, letters: true, x: shape.x ?? null };
     })().catch(() => null);
     results.set(key, p);
     p.then((r) => { if (!r) results.delete(key); });
   }
   return p;
+}
+
+/** True when a unicode-range includes basic Latin letters (or there is none). */
+function coversLatin(range: string | null): boolean {
+  if (!range) return true;
+  return range.split(',').some((part) => {
+    const [a, b] = part.trim().replace(/^u\+/i, '').split('-');
+    const start = parseInt(a.replace(/\?/g, '0'), 16);
+    const end = b ? parseInt(b, 16) : parseInt(a.replace(/\?/g, 'F'), 16);
+    return start <= 0x78 && end >= 0x78;
+  });
+}
+
+/** Loads the font's regular file into this panel, so its letters can be drawn here. Returns the name it is loaded under. */
+async function panelFace(i: LookalikeInput, tabId: number | null): Promise<string | null> {
+  const group = facesForCoverage(i.files, i.weight, i.style);
+  const face = group.find((f) => f.url && coversLatin(f.unicodeRange)) ?? group.find((f) => f.url);
+  if (!face?.url) return null;
+  const name = `FFP query ${i.fontId.replace(/[^\w]/g, '').slice(0, 40)}`;
+  try {
+    const bytes = await getFontBytes(face.url, tabId);
+    const ff = new FontFace(name, bytes.slice(0), { weight: face.weight || '1 1000', style: face.style || 'normal' });
+    await ff.load();
+    document.fonts.add(ff);
+    await document.fonts.load(`${i.style} ${i.weight} 40px "${name}"`).catch(() => undefined);
+    return name;
+  } catch {
+    return null;
+  }
 }
 
 // ------------------------------------------------------------- the sharper second look
@@ -154,14 +203,18 @@ function googleFinePrints(family: string, weight: string): Promise<Record<string
   return p;
 }
 
-async function fineScores(tabId: number, i: LookalikeInput, families: string[]): Promise<Map<string, number> | null> {
-  const r = await sendToTab<{ ok: boolean; prints?: Record<string, { px: number[]; aspect: number } | null> }>(tabId, { type: 'ffp:fine-prints', family: i.family, weight: i.weight, style: i.style }, 10000);
+async function pageFinePrints(tabId: number, i: LookalikeInput): Promise<Record<string, FinePrint | null> | null> {
+  const r = await sendToTab<{ ok: boolean; prints?: Record<string, { px: number[]; aspect: number; corner?: number | null } | null> }>(tabId, { type: 'ffp:fine-prints', family: i.family, weight: i.weight, style: i.style }, 10000);
   if (!r?.ok || !r.prints) return null;
-  const q: Record<string, FinePrint | null> = Object.fromEntries(Object.entries(r.prints).map(([k, v]) => [k, v ? { px: Uint8Array.from(v.px), aspect: v.aspect } : null]));
+  return Object.fromEntries(Object.entries(r.prints).map(([k, v]) => [k, v ? { px: Uint8Array.from(v.px), aspect: v.aspect, corner: v.corner } : null]));
+}
+
+async function fineScores(q: Record<string, FinePrint | null>, families: string[], weight: string): Promise<Map<string, number> | null> {
+  if (Object.values(q).filter(Boolean).length < 15) return null;
   const out = new Map<string, number>();
   await Promise.all(
     families.map(async (f) => {
-      const c = await googleFinePrints(f, i.weight);
+      const c = await googleFinePrints(f, weight);
       const v = c ? fineFontScore(q, c) : null;
       if (v != null) out.set(f, v);
     }),

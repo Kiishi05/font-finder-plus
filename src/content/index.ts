@@ -6,6 +6,14 @@ import { clearRenderCache } from './detect';
 import { hideUi, refreshCard, highlightElements, highlightKey, isInspecting, setStateListener, start, stop } from './inspector';
 import { fontsInRect, scanPage, watchNewFonts } from './scan';
 import { afterPaint, imageRect, selectArea } from './select';
+import { contextForSrc } from './context';
+
+/** Chrome's PDF viewer: the page is only a frame around the PDF, which extensions cannot read. */
+function isPdf(): boolean {
+  if (document.contentType === 'application/pdf') return true;
+  const embeds = document.querySelectorAll('embed[type="application/pdf"], embed[type="application/x-google-chrome-pdf"]');
+  return embeds.length > 0 && !(document.body?.innerText ?? '').trim();
+}
 import { SHAPE_TEXT, shapeFromCanvas } from '../shared/shape';
 import { elementsForIssue, scanSystem } from './system';
 import { activeSwaps, swapFont, unswap, varyFont } from './swap';
@@ -28,12 +36,12 @@ if (!window.__ffpLoaded) {
   chrome.runtime.onMessage.addListener((msg: ToContent, _sender, reply) => {
     switch (msg.type) {
       case 'ffp:ping': {
-        const r: PingReply = { ok: true, inspecting: isInspecting(), url: location.href, host: location.hostname, title: document.title };
+        const r: PingReply = { ok: true, inspecting: isInspecting(), url: location.href, host: location.hostname, title: document.title, pdf: isPdf() };
         reply(r);
         return false;
       }
       case 'ffp:inspect':
-        if (msg.on) start();
+        if (msg.on && !isPdf()) start();
         else stop();
         reply({ ok: true });
         return false;
@@ -93,7 +101,7 @@ if (!window.__ffpLoaded) {
           .catch(() => undefined)
           .then(() => {
             const prints = finePrintsFromCanvas(fam, msg.weight, msg.style);
-            reply({ ok: true, prints: Object.fromEntries(Object.entries(prints).map(([k, v]) => [k, v ? { px: Array.from(v.px), aspect: v.aspect } : null])) });
+            reply({ ok: true, prints: Object.fromEntries(Object.entries(prints).map(([k, v]) => [k, v ? { px: Array.from(v.px), aspect: v.aspect, corner: v.corner } : null])) });
           })
           .catch(() => reply({ ok: false }));
         return true;
@@ -134,6 +142,9 @@ if (!window.__ffpLoaded) {
         afterPaint(() => reply({ ok: true, rect: r }));
         return true;
       }
+      case 'ffp:picture-context':
+        reply({ ok: true, context: contextForSrc(msg.src) });
+        return false;
       case 'ffp:hide-ui':
         hideUi(msg.hidden);
         reply({ ok: true });

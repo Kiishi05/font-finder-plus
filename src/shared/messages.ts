@@ -15,6 +15,7 @@ export type ToContent =
   | { type: 'ffp:hide-ui'; hidden: boolean }
   | { type: 'ffp:select-area' }
   | { type: 'ffp:image-rect'; src: string }
+  | { type: 'ffp:picture-context'; src: string }
   | { type: 'ffp:measure'; family: string; weight: string; style: string }
   | { type: 'ffp:prints'; family: string; weight: string; style: string }
   | { type: 'ffp:fine-prints'; family: string; weight: string; style: string }
@@ -27,6 +28,8 @@ export interface PingReply {
   url: string;
   host: string;
   title: string;
+  /** The tab shows a PDF in Chrome's PDF viewer (its text cannot be read). */
+  pdf?: boolean;
 }
 
 export interface FetchFontReply {
@@ -45,7 +48,7 @@ export type ToExtension =
   | { type: 'ffp:open-detail'; family: string; source: SourceKind }
   | { type: 'ffp:fetch-font-bg'; url: string }
   | { type: 'ffp:inject'; tabId: number; startInspecting: boolean }
-  | { type: 'ffp:identify-rect'; rect: { x: number; y: number; w: number; h: number; dpr: number }; pageUrl: string };
+  | { type: 'ffp:identify-rect'; rect: { x: number; y: number; w: number; h: number; dpr: number }; pageUrl: string; context?: string[] };
 
 export type ScanReply = { ok: true; scan: PageScan } | { ok: false; error: string };
 

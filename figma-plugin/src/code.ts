@@ -4,7 +4,6 @@
 // that are not installed; "Check again" swaps the real fonts in once they are.
 import type { FigmaFont, FigmaPayload, FigmaStyle } from '../../src/shared/figma-payload';
 import { familyIndex, findFamily, pickStyle, slug, textCase, type AvailableFont } from './match';
-import { findMissing, replaceMissing, restoreOriginals, textLayers } from './fix';
 
 declare const __html__: string;
 
@@ -55,17 +54,17 @@ async function check(p: FigmaPayload) {
   return status;
 }
 
-let uiFonts: { regular: FontName; medium: FontName; bold: FontName } | null = null;
+let uiFonts: { regular: FontName; medium: FontName; semibold: FontName; bold: FontName } | null = null;
 async function loadUiFonts() {
   if (uiFonts) return uiFonts;
   const ix = await getIndex();
   // Font Finder Plus's own font is Geist; Inter (always in Figma) when Geist is not available.
   const uiFam = findFamily(ix, ['Geist', UI_FAMILY]);
   const fam = uiFam ? uiFam.family : 'Inter';
-  const styles = uiFam?.styles ?? ['Regular', 'Medium', 'Bold'];
+  const styles = uiFam?.styles ?? ['Regular', 'Medium', 'Semi Bold', 'Bold'];
   const f = (w: number): FontName => ({ family: fam, style: pickStyle(styles, w, false) ?? 'Regular' });
-  uiFonts = { regular: f(400), medium: f(500), bold: f(700) };
-  await Promise.all([load(uiFonts.regular), load(uiFonts.medium), load(uiFonts.bold)]);
+  uiFonts = { regular: f(400), medium: f(500), semibold: f(600), bold: f(700) };
+  await Promise.all([load(uiFonts.regular), load(uiFonts.medium), load(uiFonts.semibold), load(uiFonts.bold)]);
   return uiFonts;
 }
 
@@ -81,11 +80,13 @@ function familyFor(f: FigmaFont, ix: Index, chosen: string | null): { family: st
   return { ...(findFamily(ix, [UI_FAMILY]) ?? { family: UI_FAMILY, styles: ['Regular', 'Bold'] }), real: false };
 }
 
-function text(chars: string, font: FontName, size: number, opts: { color?: RGB; width?: number; link?: string } = {}): TextNode {
+function text(chars: string, font: FontName, size: number, opts: { color?: RGB; width?: number; link?: string; lineHeight?: number; tracking?: number } = {}): TextNode {
   const t = figma.createText();
   t.fontName = font;
   t.fontSize = size;
   t.characters = chars;
+  if (opts.lineHeight) t.lineHeight = { unit: 'PIXELS', value: opts.lineHeight };
+  if (opts.tracking) t.letterSpacing = { unit: 'PERCENT', value: opts.tracking };
   if (opts.color) t.fills = [{ type: 'SOLID', color: opts.color }];
   if (opts.width) {
     t.textAutoResize = 'HEIGHT';
@@ -120,10 +121,18 @@ function column(name: string, gap: number, pad: number): FrameNode {
   return fr;
 }
 
-const GREY = { r: 0.38, g: 0.4, b: 0.45 };
-const INK = { r: 0.07, g: 0.08, b: 0.1 };
-const OK = { r: 0.08, g: 0.48, b: 0.29 };
-const WARN = { r: 0.6, g: 0.38, b: 0 };
+const hexRgb = (h: string): RGB => ({ r: parseInt(h.slice(1, 3), 16) / 255, g: parseInt(h.slice(3, 5), 16) / 255, b: parseInt(h.slice(5, 7), 16) / 255 });
+const BLACK = hexRgb('#000000');
+const WHITE = hexRgb('#FFFFFF');
+const TEXT = hexRgb('#181D27');
+const LABEL = hexRgb('#667185');
+const VALUE = hexRgb('#344054');
+const HAIRLINE = hexRgb('#F7F7F7');
+const CARD = hexRgb('#F3F3F3');
+const INFO_BG = hexRgb('#F7F7F8');
+const LINK = hexRgb('#2E46E8');
+const OK = hexRgb('#147A4A');
+const WARN = hexRgb('#996100');
 
 const keyOf = (s: FigmaStyle) => slug(s.token ?? s.name);
 const GROUPS = ['Headings', 'Body', 'Buttons & labels', 'Code'] as const;
@@ -219,161 +228,179 @@ async function build(p: FigmaPayload, choices: Choice[], opts: Opts) {
     progress(`Made ${made} text styles.`);
   }
 
-  // Specimen page: a style guide.
+  // Specimen page: a style guide laid out like a designer's (1000px wide, black header,
+  // one block per font with an "Aa" card, then every text style with its values and a sample).
   let page: PageNode | null = null;
   if (opts.specimen) {
     page = figma.createPage();
     page.name = `Typography · ${site}`;
     await figma.setCurrentPageAsync(page);
-    const W = 1200;
-    const LINE = { r: 0.9, g: 0.9, b: 0.91 };
     const root = column(`Style guide · ${site}`, 0, 0);
-    root.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+    root.fills = [{ type: 'SOLID', color: WHITE }];
     root.counterAxisSizingMode = 'FIXED';
-    root.resize(W, root.height);
+    root.resize(1000, root.height);
     page.appendChild(root);
-    const full = (n: FrameNode) => {
+    const fill = <T extends SceneNode & { layoutSizingHorizontal: string }>(n: T) => {
       n.layoutSizingHorizontal = 'FILL';
       return n;
     };
-    const divider = (n: FrameNode) => {
-      n.strokes = [{ type: 'SOLID', color: LINE }];
-      n.strokeTopWeight = 0;
-      n.strokeLeftWeight = 0;
-      n.strokeRightWeight = 0;
-      n.strokeBottomWeight = 1;
-      return n;
-    };
 
-    // Header band.
-    const head = row('Header', 16, 40, 22);
-    head.fills = [{ type: 'SOLID', color: INK }];
+    // Header: black band, "Style Guide ~ Typography".
+    const head = row('Header', 10, 24, 24);
+    head.fills = [{ type: 'SOLID', color: BLACK }];
     root.appendChild(head);
-    full(head);
-    head.appendChild(text(`Style Guide · Typography`, ui.medium, 16, { color: { r: 1, g: 1, b: 1 } }));
-    head.appendChild(text(`${site} · read by Font Finder Plus on ${p.scannedAt.slice(0, 10)}${p.scale ? ` · ${p.scale.name} scale (${p.scale.ratio})` : ''}`, ui.regular, 12, { color: { r: 0.7, g: 0.72, b: 0.76 } }));
+    fill(head);
+    head.appendChild(text('Style Guide ~ Typography', ui.semibold, 16, { color: WHITE, lineHeight: 21, tracking: -3 }));
 
-    // One block per font: alphabet in the font used, a big "Aa", licence and where to get it.
+    // One block per font.
     for (const f of p.fonts) {
       const u = used.get(f.key)!;
-      const fontRow = divider(row(`Font · ${f.name}`, 40, 40, 36));
-      root.appendChild(fontRow);
-      full(fontRow);
-      const left = column('About', 10, 0);
+      const block = row(`Font · ${f.name}`, 40, 40, 24);
+      block.primaryAxisAlignItems = 'SPACE_BETWEEN';
+      block.counterAxisAlignItems = 'MIN';
+      block.strokes = [{ type: 'SOLID', color: HAIRLINE }];
+      block.strokeWeight = 1;
+      root.appendChild(block);
+      fill(block);
+
+      const left = column('Font', 75, 0);
       left.fills = [];
-      fontRow.appendChild(left);
-      left.layoutSizingHorizontal = 'FILL';
-      left.appendChild(text(`Font · ${f.name}${u.real ? '' : `  →  ${u.family}`}`, ui.bold, 18, { color: INK }));
+      block.appendChild(left);
+      left.appendChild(text(`Font ~ ${f.name}`, ui.semibold, 18, { color: BLACK, lineHeight: 18, tracking: -2 }));
+      const lower = column('Alphabet and info', 16, 0);
+      lower.fills = [];
+      left.appendChild(lower);
       const regular: FontName = { family: u.family, style: pickStyle(u.styles, 400, false) ?? 'Regular' };
       const sampleFont = (await load(regular)) ? regular : ui.regular;
-      left.appendChild(text('ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789 !@#$%^&*()', sampleFont, 16, { color: INK, width: 640 }));
+      lower.appendChild(text('ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 !@#$%^&*()', sampleFont, 18, { color: TEXT, lineHeight: 24, width: 640 }));
+
+      // Light grey box: installed or not, licence, foundry, where to get it.
+      const info = column('Font info', 6, 16);
+      info.paddingTop = info.paddingBottom = 12;
+      info.cornerRadius = 12;
+      info.fills = [{ type: 'SOLID', color: INFO_BG }];
+      info.counterAxisSizingMode = 'FIXED';
+      info.resize(640, info.height);
+      lower.appendChild(info);
+      const line = (k: string, v: string, color: RGB = VALUE, link?: string) => {
+        const t = text(`${k}  ${v}`, ui.regular, 12, { color, lineHeight: 20, width: 608, link });
+        t.setRangeFills(0, k.length, [{ type: 'SOLID', color: LABEL }]);
+        info.appendChild(t);
+      };
       const match = f.standIn && f.standIn.family === u.family ? ` (${f.standIn.score}% match, free)` : '';
-      left.appendChild(
-        text(
-          u.real ? 'Installed in Figma.' : f.catalogFamily ? `Free on Google Fonts, but this Figma does not have it yet. Shown with ${u.family}${match} until you install it.` : `Not installed in Figma. Shown with ${u.family}${match} until you install it.`,
-          ui.medium,
-          12,
-          { color: u.real ? OK : WARN, width: 640 },
-        ),
-      );
-      left.appendChild(text(`${f.licence.name}. ${f.licence.short} This is a summary, not legal advice.`, ui.regular, 12, { color: GREY, width: 640 }));
-      const facts = [f.foundry ? `Foundry: ${f.foundry}` : 'Foundry: unknown', f.designers.length ? `Design: ${f.designers.join(', ')}` : null, `Used for ${f.roles.join(', ') || 'text'} · weights ${f.weights.join(', ')}`].filter(Boolean).join(' · ');
-      left.appendChild(text(facts, ui.regular, 12, { color: GREY, width: 640 }));
-      if (f.getIt) left.appendChild(text(`Get it: ${f.getIt.label} ↗`, ui.medium, 12, { color: { r: 0.18, g: 0.27, b: 0.91 }, link: f.getIt.url }));
+      line('Status', u.real ? 'Installed in Figma' : f.catalogFamily ? `Free on Google Fonts, not installed in this Figma yet. Shown with ${u.family}${match}.` : `Not installed in Figma. Shown with ${u.family}${match}.`, u.real ? OK : WARN);
+      line('Licence', `${f.licence.name}. ${f.licence.short} This is a summary, not legal advice.`);
+      line('Foundry', [f.foundry ?? 'unknown', f.designers.length ? `design by ${f.designers.join(', ')}` : null].filter(Boolean).join(', '));
+      line('Used for', `${f.roles.join(', ') || 'text'}, weights ${f.weights.join(', ')}`);
+      if (f.getIt) line('Get it', `${f.getIt.label} ↗`, LINK, f.getIt.url);
       if (!u.real && f.preview) {
-        const label = text(`${f.name}, drawn in the real font:`, ui.regular, 11, { color: GREY });
-        left.appendChild(label);
         try {
+          let node: SceneNode;
           if (f.preview.kind === 'svg') {
-            const node = figma.createNodeFromSvg(f.preview.svg);
-            node.name = `${f.name} (preview)`;
-            node.rescale(40 / Math.max(1, f.preview.height));
-            left.appendChild(node);
+            const svg = figma.createNodeFromSvg(f.preview.svg);
+            svg.rescale(32 / Math.max(1, f.preview.height));
+            node = svg;
           } else {
             const img = figma.createImage(figma.base64Decode(f.preview.data.split(',')[1]));
             const rect = figma.createRectangle();
-            rect.name = `${f.name} (preview)`;
-            rect.resize(Math.max(1, (f.preview.width / Math.max(1, f.preview.height)) * 40), 40);
+            rect.resize(Math.max(1, (f.preview.width / Math.max(1, f.preview.height)) * 32), 32);
             rect.fills = [{ type: 'IMAGE', imageHash: img.hash, scaleMode: 'FIT' }];
-            left.appendChild(rect);
+            node = rect;
           }
+          node.name = `${f.name}, drawn in the real font`;
+          info.appendChild(node);
         } catch {
           /* the rest of the block still shows */
         }
       }
-      // The big "Aa" card.
+
+      // The "Aa" card: 217 by 166, radius 32, the letters large and cropped.
       const card = figma.createFrame();
       card.name = 'Aa';
-      card.resize(240, 200);
-      card.cornerRadius = 28;
-      card.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.95, b: 0.95 } }];
-      card.layoutMode = 'VERTICAL';
-      card.primaryAxisAlignItems = 'CENTER';
-      card.counterAxisAlignItems = 'CENTER';
-      const bold: FontName = { family: u.family, style: pickStyle(u.styles, 700, false) ?? regular.style };
-      card.appendChild(text('Aa', (await load(bold)) ? bold : sampleFont, 120, { color: INK }));
-      fontRow.appendChild(card);
+      card.resize(217, 166);
+      card.cornerRadius = 32;
+      card.clipsContent = true;
+      card.fills = [{ type: 'SOLID', color: CARD }];
+      block.appendChild(card);
+      const semi: FontName = { family: u.family, style: pickStyle(u.styles, 600, false) ?? regular.style };
+      const aa = text('Aa', (await load(semi)) ? semi : sampleFont, 150, { color: BLACK, lineHeight: 180, tracking: -4 });
+      card.appendChild(aa);
+      aa.x = -35;
+      aa.y = 23;
     }
 
-    // Text styles, grouped like a style guide, each with its values beside a sample.
-    for (const g of GROUPS) {
-      const list = p.styles.filter((s) => (s.group ?? 'Body') === g);
-      if (!list.length) continue;
-      const sec = row(g, 0, 40, 0);
-      sec.paddingTop = 36;
-      sec.paddingBottom = 8;
-      root.appendChild(sec);
-      full(sec);
-      sec.appendChild(text(g.toUpperCase(), ui.medium, 12, { color: GREY }));
-      for (const s of list) {
-        const f = byKey.get(s.fontKey);
-        if (!f) continue;
-        const u = used.get(f.key)!;
-        const r = divider(row(s.label ?? s.name, 40, 40, 28));
-        r.counterAxisAlignItems = 'MIN';
-        root.appendChild(r);
-        full(r);
-        const spec = column('Values', 14, 0);
-        spec.fills = [];
-        spec.counterAxisSizingMode = 'FIXED';
-        spec.resize(380, spec.height);
-        r.appendChild(spec);
-        spec.appendChild(text(s.label ?? s.name, ui.bold, 14, { color: INK }));
-        const grid = row('Grid', 40, 0, 0);
-        grid.fills = [];
-        spec.appendChild(grid);
-        const pair = (col: FrameNode, k: string, v: string) => {
-          const cell = column(k, 2, 0);
-          cell.fills = [];
-          cell.appendChild(text(k, ui.regular, 11, { color: GREY }));
-          cell.appendChild(text(v, ui.regular, 12, { color: INK }));
-          col.appendChild(cell);
-        };
-        const c1 = column('A', 12, 0);
-        const c2 = column('B', 12, 0);
-        c1.fills = [];
-        c2.fills = [];
-        c1.counterAxisSizingMode = c2.counterAxisSizingMode = 'FIXED';
-        c1.resize(160, c1.height);
-        c2.resize(160, c2.height);
-        grid.appendChild(c1);
-        grid.appendChild(c2);
-        pair(c1, 'Font name', u.real ? f.name : `${f.name} (shown in ${u.family})`);
-        pair(c1, 'Size', `${Math.round(s.size * 10) / 10}px`);
-        pair(c1, 'Line height', s.lineHeight ? `${Math.round(s.lineHeight * 10) / 10}px` : 'Auto');
-        pair(c2, 'Letter spacing', spacingPct(s));
-        pair(c2, 'Weight', weightName(s.weight) + (s.style !== 'normal' ? ' Italic' : ''));
-        pair(c2, 'Case', CASE[s.transform] ?? 'As typed');
-        const sampleText =
-          g === 'Headings' ? `${(s.label ?? s.name).replace(/\s*\(.*\)$/, '')}\n${weightName(s.weight)}`
-            : g === 'Code' ? 'const total = price * 1.2;'
-              : g === 'Buttons & labels' ? `${/link/i.test(s.token ?? s.name) ? 'Link' : 'Button'}\n${weightName(s.weight)}`
-                : `${(s.sample || 'The quick brown fox jumps over the lazy dog.').slice(0, 140)}\n${weightName(s.weight)}`;
-        const t = text(sampleText, ui.regular, 14, { color: INK, width: 680 });
-        const id = styleIds.get(keyOf(s));
+    // Every text style: values on the left, a sample on the right.
+    const all = column('All fonts', 64, 0);
+    all.paddingTop = all.paddingBottom = 32;
+    all.fills = [];
+    root.appendChild(all);
+    fill(all);
+    const ordered = GROUPS.flatMap((g) => p.styles.filter((s) => (s.group ?? 'Body') === g));
+    for (const s of ordered) {
+      const f = byKey.get(s.fontKey);
+      if (!f) continue;
+      const u = used.get(f.key)!;
+      const g = s.group ?? 'Body';
+      const label = s.label ?? s.name;
+      const r = row(label, 64, 40, 0);
+      r.primaryAxisAlignItems = 'SPACE_BETWEEN';
+      r.counterAxisAlignItems = 'MIN';
+      all.appendChild(r);
+      fill(r);
+
+      const spec = column('Values', 16, 0);
+      spec.fills = [];
+      spec.counterAxisSizingMode = 'FIXED';
+      spec.resize(263, spec.height);
+      r.appendChild(spec);
+      spec.appendChild(text(label, ui.medium, 14, { color: BLACK, lineHeight: 16, tracking: -2, width: 263 }));
+      const grid = row('Values grid', 24, 0, 0);
+      grid.layoutWrap = 'WRAP';
+      grid.counterAxisSpacing = 16;
+      grid.primaryAxisSizingMode = 'FIXED';
+      grid.resize(263, grid.height);
+      grid.fills = [];
+      spec.appendChild(grid);
+      const pair = (k: string, v: string) => {
+        const cell = column(k, 0, 0);
+        cell.fills = [];
+        cell.counterAxisSizingMode = 'FIXED';
+        cell.resize(119, cell.height);
+        cell.appendChild(text(k, ui.regular, 12, { color: LABEL, lineHeight: 20 }));
+        cell.appendChild(text(v, ui.regular, 12, { color: VALUE, lineHeight: 20, width: 119 }));
+        grid.appendChild(cell);
+      };
+      pair('Font', u.real ? f.name : `${f.name} (shown in ${u.family})`);
+      pair('Letter Spacing', spacingPct(s));
+      pair('Size', `${Math.round(s.size * 10) / 10}px`);
+      pair('Paragraph Spacing', `${Math.round(s.paragraphSpacing ?? 0)}px`);
+      pair('Line Height', s.lineHeight ? `${Math.round(s.lineHeight * 10) / 10}px` : 'Auto');
+      pair('Weight', weightName(s.weight) + (s.style !== 'normal' ? ' Italic' : ''));
+
+      const right = row('Sample', 40, 0, 0);
+      right.layoutWrap = 'WRAP';
+      right.counterAxisSpacing = 48;
+      right.primaryAxisSizingMode = 'FIXED';
+      right.resize(604, right.height);
+      right.fills = [];
+      r.appendChild(right);
+      const button = g === 'Buttons & labels';
+      const sample = column(label, button ? 16 : 4, 0);
+      sample.fills = [];
+      sample.counterAxisSizingMode = 'FIXED';
+      sample.resize(604, sample.height);
+      right.appendChild(sample);
+      const first =
+        g === 'Headings' ? label.replace(/\s*\(.*\)$/, '')
+          : g === 'Code' ? 'const total = price * 1.2;'
+            : button ? (/link/i.test(s.token ?? s.name) ? 'LINK' : 'BUTTON')
+              : (s.sample || 'The quick brown fox jumps over the lazy dog.').slice(0, 160);
+      const id = styleIds.get(keyOf(s));
+      for (const chars of [first, button ? weightName(s.weight).toUpperCase() : weightName(s.weight)]) {
+        const t = text(chars, ui.regular, 14, { color: BLACK, width: 604 });
         if (id) await t.setTextStyleIdAsync(id);
-        t.name = s.label ?? s.name;
-        r.appendChild(t);
+        t.name = chars;
+        sample.appendChild(t);
       }
     }
     figma.viewport.scrollAndZoomIntoView([root]);
@@ -410,9 +437,7 @@ async function recheck() {
 }
 
 async function countSaved() {
-  const styles = (await figma.getLocalTextStylesAsync()).filter((s) => s.getPluginData('ffp')).length;
-  const layers = textLayers([figma.currentPage]).filter((t) => t.getPluginData('ffp-original')).length;
-  return styles + layers;
+  return (await figma.getLocalTextStylesAsync()).filter((s) => s.getPluginData('ffp')).length;
 }
 
 figma.ui.onmessage = async (msg: { type: string; [k: string]: unknown }) => {
@@ -421,24 +446,12 @@ figma.ui.onmessage = async (msg: { type: string; [k: string]: unknown }) => {
       lastPayload = msg.payload as FigmaPayload;
       figma.clientStorage.setAsync('ffp-last-payload', lastPayload).catch(() => undefined);
       figma.ui.postMessage({ type: 'checked', status: await check(lastPayload) });
-    } else if (msg.type === 'find-missing') {
-      lastPayload ??= ((await figma.clientStorage.getAsync('ffp-last-payload').catch(() => null)) as FigmaPayload | null) ?? null;
-      const sel = figma.currentPage.selection;
-      const r = findMissing(textLayers(sel.length ? sel : [figma.currentPage]), await getIndex(true), lastPayload);
-      figma.ui.postMessage({ type: 'missing', ...r, scope: sel.length ? 'selection' : 'page', site: lastPayload?.site.host ?? null });
-    } else if (msg.type === 'fix-missing') {
-      const sel = figma.currentPage.selection;
-      const r = await replaceMissing(textLayers(sel.length ? sel : [figma.currentPage]), await getIndex(), msg.choices as Record<string, string>, load);
-      figma.ui.postMessage({ type: 'fixed', ...r });
-      figma.notify(`Font Finder Plus: replaced missing fonts in ${r.changed} text layers.`);
     } else if (msg.type === 'build') {
       const r = await build(msg.payload as FigmaPayload, msg.choices as Choice[], msg.opts as Opts);
       figma.ui.postMessage({ type: 'built', result: r });
       figma.notify(`Font Finder Plus: ${r.styles} text styles${r.page ? ` and the page "${r.page}"` : ''} created.`);
     } else if (msg.type === 'recheck') {
-      const result = await recheck();
-      const back = await restoreOriginals(textLayers([figma.currentPage]), await getIndex(), load);
-      figma.ui.postMessage({ type: 'rechecked', result: { ...result, swapped: result.swapped + back.restored, still: [...new Set([...result.still, ...back.still])] } });
+      figma.ui.postMessage({ type: 'rechecked', result: await recheck() });
     } else if (msg.type === 'open') figma.openExternal(String(msg.url));
     else if (msg.type === 'close') figma.closePlugin();
   } catch (err) {

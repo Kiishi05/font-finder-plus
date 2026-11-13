@@ -10,9 +10,57 @@ export const FINE_CHARS = 'abcdefghijklmnopqrstuvwxyzAEGHMOQRS';
 export const FINE_SHORTLIST = 25;
 
 /** Tuning, set from tests/lookalike-bench.mjs. */
-export const TUNE = { strict: 0.2, share: 0.3 };
+/** worst: how much a few clearly different letters count (a slab r, a rounded end) next to the average. */
+export const TUNE = { strict: 0.2, share: 0.3, worst: 1, corner: 1 };
 
-export interface FinePrint { px: Uint8Array; aspect: number }
+export interface FinePrint {
+  px: Uint8Array;
+  aspect: number;
+  /** H only: how rounded the stem ends are, as a share of the stem width (0 sharp, about 0.5 fully round). */
+  corner?: number | null;
+}
+
+/** Size the H is drawn at to measure its corners. */
+export const CORNER_SIZE = 400;
+
+/**
+ * How rounded the four stem ends of an H are: rows from each end until the
+ * stem reaches its full width, divided by the stem width. Rounded fonts (Rubik,
+ * Nunito) score high; sharp ones (Helvetica, Söhne) near 0. Null when the H
+ * does not have two clear stems.
+ */
+export function cornerOfInk(ink: Ink): number | null {
+  const runsAt = (y: number) => {
+    const out: [number, number][] = [];
+    let start = -1;
+    for (let x = 0; x <= ink.w; x++) {
+      const on = x < ink.w && ink.px[y * ink.w + x];
+      if (on && start < 0) start = x;
+      if (!on && start >= 0) { out.push([start, x - 1]); start = -1; }
+    }
+    return out;
+  };
+  const ends: number[] = [];
+  for (const [frac, dir] of [[0.22, -1], [0.78, 1]] as const) {
+    const y0 = Math.round(ink.h * frac);
+    const runs = runsAt(y0);
+    if (runs.length !== 2) return null;
+    for (const [x0, x1] of runs) {
+      const w = x1 - x0 + 1;
+      if (w < 6) return null;
+      let k = 0;
+      for (let y = dir < 0 ? 0 : ink.h - 1; dir < 0 ? y < y0 : y > y0; y -= dir) {
+        let n = 0;
+        for (let x = x0; x <= x1; x++) n += ink.px[y * ink.w + x];
+        if (n >= w * 0.92) break;
+        k++;
+      }
+      ends.push(k / w);
+    }
+  }
+  return ends.reduce((a, b) => a + b, 0) / ends.length;
+}
+
 
 /** The letter scaled to fit 48 by 48, keeping its proportions, centred. */
 export function fineFromInk(ink: Ink): FinePrint {
@@ -68,14 +116,23 @@ export function fineSimilarity(a: FinePrint, b: FinePrint): number {
 
 /** Mean letter similarity of two fonts over the letters both have, 0 to 1 (null if too few). */
 export function fineFontScore(q: Record<string, FinePrint | null>, c: Record<string, FinePrint | null>): number | null {
-  let s = 0, n = 0;
+  let s = 0, sq = 0, n = 0;
   for (const ch of FINE_CHARS) {
     const a = q[ch], b = c[ch];
     if (!a || !b) continue;
-    s += fineSimilarity(a, b);
+    const v = fineSimilarity(a, b);
+    s += v;
+    sq += (1 - v) ** 2;
     n++;
   }
-  return n >= 15 ? s / n : null;
+  if (n < 15) return null;
+  // Rounded stem ends against sharp ones (Rubik for Söhne) is a difference people see at once.
+  const ca = q.H?.corner, cb = c.H?.corner;
+  const cornerPenalty = ca != null && cb != null ? Math.min(0.1, Math.max(0, Math.abs(ca - cb) - 0.06) * TUNE.corner) : 0;
+  // People notice the one letter that is drawn differently, so big misses weigh more than an average shows.
+  const mean = s / n;
+  const rms = 1 - Math.sqrt(sq / n);
+  return mean * (1 - TUNE.worst) + rms * TUNE.worst - cornerPenalty;
 }
 
 /** Shown score from the sharper look: about 0.85 (unrelated) to 1 (the same drawings). */

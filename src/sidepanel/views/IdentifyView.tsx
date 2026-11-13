@@ -5,7 +5,7 @@ import { db, saveFont } from '../../shared/db';
 import { SaveFontButton } from '../components/SaveFontButton';
 import { ensureRecord, pageFontFiles } from '../lib/imagefonts';
 import { knownFont } from '../../shared/licences';
-import { findFontNames } from '../lib/fontnames';
+import { findFontNames, namesFromContext } from '../lib/fontnames';
 import { AllFonts, VERDICT_LABEL, blocksFor } from './identify/AllFonts';
 import { imageVerdict } from '../../shared/imagerank';
 import { Alert02Icon, ArrowUpRight01Icon, Delete02Icon, ImageCropIcon, ImageUploadIcon, PerspectiveIcon, RotateClockwiseIcon, ScanImageIcon, Target02Icon } from '../../shared/icons';
@@ -29,6 +29,8 @@ export interface IdentifyRequest {
   rect?: { x: number; y: number; w: number; h: number; dpr: number };
   tabId: number;
   pageUrl: string;
+  /** Alt text and the post around the picture (from the hover card). */
+  context?: string[];
 }
 
 interface Props {
@@ -46,7 +48,7 @@ interface Exact {
   pictures: number;
 }
 
-type Source = { canvas: HTMLCanvasElement; kind: NonNullable<ImageJob['source']>; pageUrl?: string };
+type Source = { canvas: HTMLCanvasElement; kind: NonNullable<ImageJob['source']>; pageUrl?: string; /** Alt text and the post around the picture, on a page. */ context?: string[] };
 
 const MAX_SIDE = 2400;
 
@@ -94,6 +96,8 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
   // Every text style in the image, or one chosen line.
   const [mode, setMode] = useState<'all' | 'line'>('all');
   const fileRef = useRef<HTMLInputElement>(null);
+  // Font names in the post around the picture ("… — Lil Grotesk").
+  const postNames = useMemo(() => namesFromContext(source?.context), [source]);
 
   const reset = () => {
     setSource(null);
@@ -109,9 +113,9 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
     setShowEditor(true);
   };
 
-  const load = useCallback(async (canvas: HTMLCanvasElement, kind: Source['kind'], pageUrl?: string) => {
+  const load = useCallback(async (canvas: HTMLCanvasElement, kind: Source['kind'], pageUrl?: string, context?: string[]) => {
     reset();
-    setSource({ canvas, kind, pageUrl });
+    setSource({ canvas, kind, pageUrl, context });
     // Light text on a dark background reads better inverted.
     if (looksInverted(finish(canvas, NO_EDIT))) {
       setEdit({ ...NO_EDIT, invert: true });
@@ -175,7 +179,9 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
           canvas = await captureRect(pending.tabId, r.rect);
         }
         if (!canvas) throw new Error('The picture could not be read. Try Select an area instead.');
-        await load(canvas, pending.rect ? 'page' : 'image', pending.pageUrl);
+        let context = pending.context;
+        if (!context?.length && pending.srcUrl) context = (await sendToTab<{ context?: string[] }>(pending.tabId, { type: 'ffp:picture-context', src: pending.srcUrl }))?.context;
+        await load(canvas, pending.rect ? 'page' : 'image', pending.pageUrl, context ?? []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'The image could not be read.');
       } finally {
@@ -225,11 +231,11 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
       const found = await recognize(prepared, setProgress);
       setLines(found);
       setCorrections({});
-      setMode(blocksFor(found).length >= 2 || findFontNames(found).length ? 'all' : 'line');
+      setMode(blocksFor(found).length >= 2 || findFontNames(found).length || postNames.length || !found.length ? 'all' : 'line');
       // Start with the clearest, longest line.
       const best = found.map((l, i) => [i, l.confidence * Math.min(1, l.text.length / 12)] as const).sort((a, b) => b[1] - a[1])[0];
       setChosen(best ? [best[0]] : []);
-      if (!found.length) setError('No text was found. Crop closer to the text, or try Invert if the text is light on dark.');
+      if (!found.length) setError(postNames.length ? 'No readable text was found in the picture itself. The post around it names a font, shown below.' : 'No text was found in this picture. If it has text, crop closer to it, or try Invert if the text is light on dark.');
     } catch (err) {
       setError(`Text recognition failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -325,10 +331,11 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
         </div>
       )}
 
-      {lines && lines.length > 0 && showEditor && mode === 'all' && prepared && (
+      {lines && (lines.length > 0 || postNames.length > 0) && showEditor && mode === 'all' && prepared && (
         <AllFonts
           image={prepared}
           lines={lines}
+          postNames={postNames}
           scan={scan}
           tabId={tab.tabId}
           samePage={!!(source && (source.kind === 'page' || source.kind === 'image') && scan && (!source.pageUrl || source.pageUrl === scan.url))}

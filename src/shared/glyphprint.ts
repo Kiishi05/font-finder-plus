@@ -3,7 +3,7 @@
 // proportions. The same code makes the index of Google Fonts (build time) and
 // the prints of letters cut from an image (in the browser).
 
-import { FINE_CHARS, fineFromInk, type FinePrint } from './finematch';
+import { CORNER_SIZE, FINE_CHARS, cornerOfInk, fineFromInk, type FinePrint } from './finematch';
 
 export const GLYPH_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 export const CELL = 16;
@@ -191,5 +191,26 @@ export function finePrintsFromCanvas(familyCss: string, weight = '400', style = 
     const ink = cropInk({ w: W, h: H, px });
     out[ch] = ink && ink.h >= 4 ? fineFromInk(ink) : null;
   }
+  if (out.H) out.H.corner = canvasCorner(familyCss, weight, style);
   return out;
+}
+
+/** Corner roundness of the H, drawn large (see cornerOfInk). */
+function canvasCorner(familyCss: string, weight: string, style: string): number | null {
+  const S = CORNER_SIZE;
+  const c = document.createElement('canvas');
+  c.width = Math.round(S * 1.4);
+  c.height = Math.round(S * 1.3);
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.font = `${style} ${weight} 16px ${familyCss}`;
+  const k = S / 16;
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  ctx.fillStyle = '#000';
+  ctx.fillText('H', (S * 0.1) / k, S / k);
+  const d = ctx.getImageData(0, 0, c.width, c.height).data;
+  const px = new Uint8Array(c.width * c.height);
+  for (let i = 0; i < px.length; i++) px[i] = d[i * 4 + 3] > 127 ? 1 : 0;
+  const ink = cropInk({ w: c.width, h: c.height, px });
+  return ink ? cornerOfInk(ink) : null;
 }

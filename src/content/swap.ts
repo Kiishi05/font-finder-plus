@@ -3,7 +3,7 @@
 // and set on the elements that use the original font, as inline styles that
 // are removed again on undo.
 import { base64ToArrayBuffer } from '../shared/messages';
-import { elementsForKey } from './scan';
+import { elementsForKey, familyOf } from './scan';
 
 export interface SwapFace {
   base64: string;
@@ -51,7 +51,7 @@ function remember(key: string, label: string, el: HTMLElement) {
     for (const p of PROPS) props[p] = [el.style.getPropertyValue(p), el.style.getPropertyPriority(p)];
     saved = { el, props };
     entry.els.push(saved);
-    if (!el.hasAttribute('data-ffp-orig')) el.setAttribute('data-ffp-orig', getComputedStyle(el).fontFamily);
+    if (!el.hasAttribute('data-ffp-orig')) el.setAttribute('data-ffp-orig', familyOf(el, getComputedStyle(el)));
   }
   return entry;
 }

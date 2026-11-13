@@ -78,6 +78,7 @@ function fakeFigma(available) {
       Object.defineProperty(t, 'fontName', { get: () => fontName, set: (f) => { requireLoaded(f); fontName = f; } });
       Object.defineProperty(t, 'characters', { get: () => chars, set: (c) => { requireLoaded(fontName); chars = c; } });
       t.setRangeHyperlink = (a, b, v) => { if (!v?.value) throw new Error('bad link'); log.links++; };
+      t.setRangeFills = (a, b, v) => { if (!Array.isArray(v)) throw new Error('bad fills'); t.rangeFills = v; };
       t.setTextStyleIdAsync = async (sid) => { const st = textStyles.find((s) => s.id === sid); if (!st) throw new Error('no style'); requireLoaded(st.fontName); t.textStyleId = sid; };
       return t;
     },
@@ -168,14 +169,28 @@ const allText = [];
 const walk = (n) => { if (n.type === 'TEXT') allText.push(n.characters); n.children?.forEach(walk); };
 env.log.pages.forEach(walk);
 check('text styles are grouped into style guide folders', env.log.styles.every((st) => /\/(Headings|Body|Buttons & labels|Code)\//.test(st.name)) && env.log.styles.length <= 16, env.log.styles.map((st) => st.name).slice(0, 6).join(' | '));
-check('specimen is laid out as a style guide', allText.includes('Style Guide · Typography') && allText.includes('Letter spacing') && allText.includes('Line height') && allText.includes('HEADINGS') && allText.some((t) => /^ABCDEFGHIJKLMNOPQRSTUVWXYZ/.test(t)) && allText.includes('Aa'), allText.slice(0, 8).join(' | '));
+check('specimen is laid out as the style guide (header, labels, alphabet, Aa)', allText.includes('Style Guide ~ Typography') && ['Font', 'Letter Spacing', 'Size', 'Paragraph Spacing', 'Line Height', 'Weight'].every((k) => allText.includes(k)) && allText.some((t) => /^Font ~ /.test(t)) && allText.some((t) => /^ABCDEFGHIJKLMNOPQRSTUVWXYZ abc/.test(t)) && allText.includes('Aa') && !allText.includes('HEADINGS'), allText.slice(0, 8).join(' | '));
+const frames = [];
+const walkF = (n) => { if (n.type === 'FRAME') frames.push(n); n.children?.forEach(walkF); };
+env.log.pages.forEach(walkF);
+const rootFrame = env.log.pages[0].children[0];
+const hex = (c) => '#' + [c.r, c.g, c.b].map((v) => Math.round(v * 255).toString(16).padStart(2, '0')).join('').toUpperCase();
+const card = frames.find((f) => f.name === 'Aa');
+const info = frames.find((f) => f.name === 'Font info');
+const valuesCol = frames.find((f) => f.name === 'Values');
+const sampleCol = frames.find((f) => f.name === 'Sample');
+check('style guide sizes match the design (1000 wide, Aa card 217 by 166 radius 32, columns 263 and 604)', rootFrame.width === 1000 && card?.width === 217 && card?.height === 166 && card?.cornerRadius === 32 && hex(card.fills[0].color) === '#F3F3F3' && valuesCol?.width === 263 && sampleCol?.width === 604, `${rootFrame.width} ${card?.width}x${card?.height} r${card?.cornerRadius} ${valuesCol?.width} ${sampleCol?.width}`);
+check('font info sits in a light grey box', !!info && info.fills[0] && hex(info.fills[0].color) === '#F7F7F8' && info.children.some((c) => /^Licence /.test(c.characters ?? '')), info ? hex(info.fills[0].color) : 'none');
+check('header is black and text colours follow the design', hex(rootFrame.children[0].fills[0].color) === '#000000' && frames.some((f) => f.name === 'Size' && hex(f.children[0].fills[0].color) === '#667185' && hex(f.children[1].fills[0].color) === '#344054'));
+check('button styles are labelled BUTTON/TAG', payload.styles.filter((s) => s.group === 'Buttons & labels' && !/link/i.test(s.token)).every((s) => /^BUTTON\/TAG \(button/.test(s.label)), payload.styles.map((s) => s.label).join(' | '));
+check('paragraph spacing is read from the page', payload.styles.some((s) => (s.paragraphSpacing ?? 0) > 0), payload.styles.map((s) => s.paragraphSpacing).join(','));
 // Save the built page for tests/figma-preview.mjs (draws it as HTML to look at).
-const ser = (n) => ({ type: n.type, name: n.name, layoutMode: n.layoutMode, itemSpacing: n.itemSpacing, padding: [n.paddingTop, n.paddingRight, n.paddingBottom, n.paddingLeft], width: n.width, height: n.height, fills: n.fills, strokeBottomWeight: n.strokeBottomWeight, cornerRadius: n.cornerRadius, counterAxisAlignItems: n.counterAxisAlignItems, primaryAxisAlignItems: n.primaryAxisAlignItems, layoutSizingHorizontal: n.layoutSizingHorizontal, counterAxisSizingMode: n.counterAxisSizingMode, characters: n.characters, fontSize: n.fontSize, fontName: n.fontName, textStyle: n.textStyleId ? (() => { const st = env.log.styles.find((x) => x.id === n.textStyleId); return st && { size: st.fontSize, family: st.fontName.family, style: st.fontName.style, lineHeight: st.lineHeight, textCase: st.textCase }; })() : null, children: (n.children ?? []).map(ser) });
+const ser = (n) => ({ type: n.type, name: n.name, layoutMode: n.layoutMode, layoutWrap: n.layoutWrap, counterAxisSpacing: n.counterAxisSpacing, clipsContent: n.clipsContent, x: n.x, y: n.y, lineHeight: n.lineHeight, letterSpacing: n.letterSpacing, strokes: n.strokes, strokeWeight: n.strokeWeight, rangeFills: n.rangeFills, primaryAxisSizingMode: n.primaryAxisSizingMode, itemSpacing: n.itemSpacing, padding: [n.paddingTop, n.paddingRight, n.paddingBottom, n.paddingLeft], width: n.width, height: n.height, fills: n.fills, strokeBottomWeight: n.strokeBottomWeight, cornerRadius: n.cornerRadius, counterAxisAlignItems: n.counterAxisAlignItems, primaryAxisAlignItems: n.primaryAxisAlignItems, layoutSizingHorizontal: n.layoutSizingHorizontal, counterAxisSizingMode: n.counterAxisSizingMode, characters: n.characters, fontSize: n.fontSize, fontName: n.fontName, textStyle: n.textStyleId ? (() => { const st = env.log.styles.find((x) => x.id === n.textStyleId); return st && { size: st.fontSize, family: st.fontName.family, style: st.fontName.style, lineHeight: st.lineHeight, textCase: st.textCase }; })() : null, children: (n.children ?? []).map(ser) });
 fs.writeFileSync(path.join(root, 'tests/output/figma-specimen.json'), JSON.stringify(ser(env.log.pages[0]).children[0]));
 check('specimen shows licences with the legal note', allText.some((t) => /This is a summary, not legal advice\./.test(t)));
 check('specimen says which fonts are not installed', allText.some((t) => /Not installed in Figma\. Shown with Arimo/.test(t)));
 check('Google fonts also carry look-alikes, for when Figma lacks them', payload.fonts.filter((f) => f.catalogFamily).every((f) => f.standIn && f.standIn.family !== f.catalogFamily));
-check('a code font Figma lacks falls back to a code font, not Inter', allText.some((t) => /Google Fonts, but this Figma does not have it yet\. Shown with Geist Mono/.test(t)), allText.filter((t) => /Shown with/.test(t)).join(' | ').slice(0, 300));
+check('a code font Figma lacks falls back to a code font, not Inter', allText.some((t) => /Free on Google Fonts, not installed in this Figma yet\. Shown with Geist Mono/.test(t)), allText.filter((t) => /Shown with/.test(t)).join(' | ').slice(0, 300));
 check('specimen links to where to get each font', env.log.links >= 1);
 check('no em dashes in plugin copy', !/—/.test(allText.join(' ')) && !/—/.test(html));
 
@@ -188,35 +203,6 @@ check('Check again swaps the real font in once installed', re?.result?.swapped >
 const before = env.textStyles.length;
 await run(env, { type: 'build', payload, choices: [], opts: { styles: true, variables: true, specimen: false } });
 check('building again reuses the same styles and variables', env.textStyles.length === before);
-
-// ------------------------------------------------------------- fix a captured page
-const cap = fakeFigma([...base]);
-const capCtx = vm.createContext({ figma: cap.figma, __html__: '<html></html>', console, setTimeout, clearTimeout, Promise, JSON, Math, Map, Set, Array, Object, String, Number, Error, RegExp, Uint8Array });
-const h1 = cap.textLayer([['Fonts that ship', 'Helvetica Neue LT Pro', 'Bold']]);
-const p1 = cap.textLayer([['Body copy set in ', 'Montserrat', 'Regular'], ['and code', 'Geist Mono', 'Regular']]);
-const p2 = cap.textLayer([['A display line', 'Clash Display', 'Medium']]);
-const ok1 = cap.textLayer([['Already fine', 'Inter', 'Regular']]);
-vm.runInContext(code, capCtx);
-await new Promise((r) => setTimeout(r, 20));
-// The site's scan was pasted earlier in this session: its measured look-alikes are used.
-await run(cap, { type: 'check', payload });
-const [found] = await run(cap, { type: 'find-missing' });
-const fams = found?.missing?.map((m) => m.family) ?? [];
-check('fix mode finds the missing fonts on the page', found?.type === 'missing' && ['Helvetica Neue LT Pro', 'Montserrat', 'Clash Display'].every((f) => fams.includes(f)) && !fams.includes('Inter') && !fams.includes('Geist Mono'), fams.join(', '));
-const mHn = found.missing.find((m) => m.family === 'Helvetica Neue LT Pro');
-const mMont = found.missing.find((m) => m.family === 'Montserrat');
-const mClash = found.missing.find((m) => m.family === 'Clash Display');
-check('fix mode says where each one comes from', mHn.source === 'paid' && /Monotype/.test(mHn.getIt?.label ?? '') && mMont.source === 'google' && mClash.source === 'free-elsewhere', `${mHn.source} ${mMont.source} ${mClash.source}`);
-check('the paid font gets the measured look-alike Figma has (Arimo)', mHn.options[0]?.family === 'Arimo', JSON.stringify(mHn.options.slice(0, 3)));
-check('every replacement offered is one Figma has', found.missing.every((m) => m.options.every((o) => base.some((b) => b.family === o.family))));
-const [fixed] = await run(cap, { type: 'fix-missing', choices: Object.fromEntries(found.missing.map((m) => [m.family, m.options[0]?.family]).filter(([, v]) => v)) });
-check('Replace swaps the fonts in every layer', fixed?.changed === 3 && !h1.hasMissingFont && !p1.hasMissingFont && !p2.hasMissingFont, JSON.stringify(fixed));
-check('the replacement keeps bold as bold', h1.getStyledTextSegments()[0].fontName.style === 'Bold' && h1.getStyledTextSegments()[0].fontName.family === 'Arimo', JSON.stringify(h1.getStyledTextSegments()[0].fontName));
-check('untouched runs keep their font', p1.getStyledTextSegments()[1].fontName.family === 'Geist Mono' && ok1.getStyledTextSegments()[0].fontName.family === 'Inter');
-check('the original font is remembered on the layer', JSON.parse(h1.getPluginData('ffp-original'))[0].family === 'Helvetica Neue LT Pro');
-cap.available.push(...styles('Helvetica Neue LT Pro', ['Roman', 'Bold']));
-const [back] = await run(cap, { type: 'recheck' });
-check('Check again puts the real font back once installed', h1.getStyledTextSegments()[0].fontName.family === 'Helvetica Neue LT Pro' && back?.result?.still?.includes('Montserrat'), JSON.stringify(back?.result));
 
 // ------------------------------------------------------------- the window
 const { chromium } = require('playwright');

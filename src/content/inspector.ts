@@ -2,6 +2,7 @@ import { CLASS_LABEL, SOURCE_LABEL, googleFamily, licenseBadge } from '../shared
 import { declarationCss, lineHeightLabel, rgbToHex, round, weightLabel } from '../shared/css';
 import { Bookmark02Icon, Cancel01Icon, Copy01Icon, PinIcon, ScanImageIcon, StopCircleIcon, Tick02Icon, iconSvg } from '../shared/icons';
 import type { ElementFontInfo } from '../shared/types';
+import { pictureContext } from './context';
 import { OWN_FONT_PREFIX, elementLabel, facesFor, familyCss, fontFacts, loadFaceMap, measureMetrics, resolveRendered, roleOf, type Rendered } from './detect';
 import { elementsForKey, familyOf, isClipped, isOurNode } from './scan';
 import { css } from './inspector-css';
@@ -168,7 +169,7 @@ function ensureUi() {
     const r = pic.el.getBoundingClientRect();
     const rect = { x: Math.max(0, r.left), y: Math.max(0, r.top), w: Math.min(innerWidth, r.right) - Math.max(0, r.left), h: Math.min(innerHeight, r.bottom) - Math.max(0, r.top), dpr: devicePixelRatio };
     hideCard();
-    chrome.runtime.sendMessage({ type: 'ffp:identify-rect', rect, pageUrl: location.href }, () => void chrome.runtime.lastError);
+    chrome.runtime.sendMessage({ type: 'ffp:identify-rect', rect, pageUrl: location.href, context: pictureContext(pic.el) }, () => void chrome.runtime.lastError);
   });
   $('.close').addEventListener('click', (e) => {
     e.stopPropagation();
@@ -225,7 +226,7 @@ const hasOwnText = (el: Element) => [...el.childNodes].some((n) => n.nodeType ==
 /** Whether a picture has text in it, found by a quick check of the screen (cached per picture). */
 const pictureText = new WeakMap<Element, 'yes' | 'no' | 'unknown'>();
 
-function checkPictureText(pic: NonNullable<Current['picture']>) {
+function checkPictureText(pic: NonNullable<Current['picture']>, attempt = 0) {
   const known = pictureText.get(pic.el);
   if (known) {
     pic.text = known;
@@ -247,6 +248,11 @@ function checkPictureText(pic: NonNullable<Current['picture']>) {
         void chrome.runtime.lastError;
         hideUi(false);
         const v = reply?.ok ? (reply.hasText ? 'yes' : 'no') : 'unknown';
+        // Chrome allows only a couple of screenshots a second: try once more before giving up.
+        if (v === 'unknown' && attempt < 2 && current?.picture?.el === pic.el) {
+          window.setTimeout(() => current?.picture?.el === pic.el && checkPictureText(current.picture, attempt + 1), 700);
+          return;
+        }
         if (v !== 'unknown') pictureText.set(pic.el, v);
         if (current?.picture?.el === pic.el) {
           current.picture.text = v;
@@ -342,8 +348,8 @@ function renderCard() {
       t === 'checking' ? 'Checking this picture for text…'
         : t === 'no' ? 'No text found in this picture, so there is no font here.'
           : t === 'yes' ? 'The text here is part of a picture, so its font cannot be read from the page. Identify it to find the font.'
-            : 'If this picture has text, identify it to find the font.';
-    $<HTMLElement>('.identify').hidden = t === 'no' || t === 'checking';
+            : 'This picture could not be checked for text. If it has text, right-click it and choose Identify the font in this image.';
+    $<HTMLElement>('.identify').hidden = t !== 'yes';
     name.textContent = t === 'yes' ? 'Picture with text' : t === 'no' ? 'Picture, no text' : 'Picture';
     name.style.fontFamily = '"FFP Geist", system-ui';
     name.style.fontWeight = '600';

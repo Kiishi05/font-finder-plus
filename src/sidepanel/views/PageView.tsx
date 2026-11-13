@@ -122,6 +122,16 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
     );
   }
 
+  if (tab.ping?.pdf) {
+    return (
+      <div className="empty">
+        <h2>This is a PDF</h2>
+        <p>Chrome shows PDFs in its own viewer, which extensions cannot read. Fonts inside a PDF are not web fonts, so they cannot be listed here.</p>
+        <p className="muted">To identify a font in it, open the Image tab and use Select an area on the text, or take a screenshot and paste it there.</p>
+      </div>
+    );
+  }
+
   const toggle = async () => {
     if (tab.tabId == null) return;
     await sendToTab(tab.tabId, { type: 'ffp:inspect', on: !tab.inspecting });

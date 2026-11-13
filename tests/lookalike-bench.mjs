@@ -144,7 +144,7 @@ async function canvasMeasure(buf) {
     const fine = G.finePrintsFromCanvas(`"${name}"`);
     const shape = S.shapeFromCanvas(`"${name}"`);
     document.fonts.delete(ff);
-    return { prints, shape, fine: Object.fromEntries(Object.entries(fine).map(([k, v]) => [k, v ? { px: Array.from(v.px), aspect: v.aspect } : null])) };
+    return { prints, shape, fine: Object.fromEntries(Object.entries(fine).map(([k, v]) => [k, v ? { px: Array.from(v.px), aspect: v.aspect, corner: v.corner } : null])) };
   }, Buffer.from(buf).toString('base64'));
 }
 
@@ -166,6 +166,7 @@ const finePrintsOf = (font) => {
     const ink = m.cropInk(m.raster(font.glyphForCodePoint(cp), font.unitsPerEm, 120));
     out[ch] = ink ? m.fineFromInk(ink) : null;
   }
+  if (out.H) { const ink = m.cropInk(m.raster(font.glyphForCodePoint(72), font.unitsPerEm, m.CORNER_SIZE)); out.H.corner = ink ? m.cornerOfInk(ink) : null; }
   return out;
 };
 
@@ -187,7 +188,7 @@ export async function runBench({ quiet = false, share, canvas = false, fine = tr
       const c = await canvasMeasure(buf);
       shape = c.shape;
       queryPrints = c.prints.map((p) => ({ ...p, bits: Uint8Array.from(p.bits) }));
-      queryFine = Object.fromEntries(Object.entries(c.fine).map(([k, v]) => [k, v ? { px: Uint8Array.from(v.px), aspect: v.aspect } : null]));
+      queryFine = Object.fromEntries(Object.entries(c.fine).map(([k, v]) => [k, v ? { px: Uint8Array.from(v.px), aspect: v.aspect, corner: v.corner } : null]));
     }
     if (!shape) continue;
     const self = src.startsWith('gf:') ? src.slice(3) : m.shapeOf(name.replace(/ \(.*$/, '')) ? name.replace(/ \(.*$/, '') : undefined;
@@ -225,6 +226,15 @@ export async function runBench({ quiet = false, share, canvas = false, fine = tr
   return { rows, top1, top3, n: rows.length };
 }
 
+if (process.argv[2] === 'worstsweep') {
+  for (const [worst, corner] of (process.env.GRID ? JSON.parse(process.env.GRID) : [[0, 0.6], [0.5, 0.6], [1, 0.6]])) {
+    m.TUNE.worst = worst; m.TUNE.corner = corner;
+    const a = await runBench({ quiet: true });
+    const b = await runBench({ quiet: true, canvas: true });
+    console.log(`worst ${worst} corner ${corner}: files ${a.top1}/${a.n} (${a.top3}), page ${b.top1}/${b.n} (${b.top3})`);
+  }
+  process.exit(0);
+}
 if (process.argv[2] === 'finesweep') {
   for (const strict of [0.2, 0.35, 0.5]) for (const share of [0.3, 0.45, 0.6]) {
     m.TUNE.strict = strict; m.TUNE.share = share;
@@ -241,7 +251,7 @@ if (process.argv[2] === 'sweep') {
   }
   process.exit(0);
 }
-if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv[2] !== 'sweep' && process.argv[2] !== 'finesweep') {
+if (process.argv[1] === fileURLToPath(import.meta.url) && !['sweep', 'finesweep', 'worstsweep'].includes(process.argv[2])) {
   const { top1, top3, n } = await runBench({ canvas: process.argv[2] === 'canvas' });
   fs.mkdirSync(path.join(root, 'tests/output'), { recursive: true });
   process.exit(top1 / n >= 0.85 && top3 / n >= 0.95 ? 0 : 1);

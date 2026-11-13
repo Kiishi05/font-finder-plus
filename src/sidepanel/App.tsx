@@ -38,10 +38,13 @@ export function App() {
 
   // Right-click "Identify the font in this image" opens the Image tab with that image.
   const [pending, setPending] = useState<IdentifyRequest | null>(null);
+  const lastHost = useRef<string | null | undefined>(undefined);
+  const pendingAt = useRef(0);
   useEffect(() => {
     const take = (v: unknown) => {
       const p = v as (IdentifyRequest & { at: number }) | undefined;
       if (p && Date.now() - p.at < 60000) {
+        pendingAt.current = Date.now();
         setPending(p);
         setView({ name: 'image' });
       }
@@ -59,6 +62,17 @@ export function App() {
     if (settings.theme === 'system') el.removeAttribute('data-theme');
     else el.setAttribute('data-theme', settings.theme);
   }, [settings.theme]);
+
+  // Moving to another website (in this tab or by switching tabs) shows that site's Page view, from any view.
+  const lastTab = useRef<number | null | undefined>(undefined);
+  useEffect(() => {
+    const host = tab.ping?.host ?? null;
+    const moved = lastTab.current !== undefined && (tab.tabId !== lastTab.current || host !== lastHost.current);
+    // Right-click "Identify the font in this image" on another tab opens Image, not Page.
+    if (moved && Date.now() - pendingAt.current > 3000) setView({ name: 'page' });
+    lastTab.current = tab.tabId;
+    lastHost.current = host;
+  }, [tab.tabId, tab.ping?.host]);
 
   // A font's details from a page belong to that page: on another tab or site, show that page instead.
   useEffect(() => {

@@ -55,7 +55,15 @@ export function isIconText(text: string): boolean {
 
 /** The page's own font stack, even while the extension is showing a trial font on this element. */
 export function familyOf(el: Element, cs: CSSStyleDeclaration): string {
-  return el.getAttribute('data-ffp-orig') ?? cs.fontFamily;
+  const own = el.getAttribute('data-ffp-orig');
+  if (own) return own;
+  // Text inside a swapped element inherits our stand-in font: report the page's own font instead.
+  if (cs.fontFamily.includes('FFP ')) {
+    const orig = el.closest('[data-ffp-orig]')?.getAttribute('data-ffp-orig');
+    if (orig) return orig;
+    return parseFamilyList(cs.fontFamily).filter((f) => !f.startsWith('FFP ')).map((f) => (/^[a-z-]+$/.test(f) ? f : `"${f}"`)).join(', ') || 'sans-serif';
+  }
+  return cs.fontFamily;
 }
 
 export function isOurNode(node: Node | null): boolean {

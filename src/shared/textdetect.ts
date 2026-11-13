@@ -118,9 +118,27 @@ function longestRow(cs: Comp[], w: number, h: number): number {
     // Letters are strokes, so they fill less of their box than solid shapes (dots, circles) do.
     const fill = g.reduce((a, c) => a + c.n / ((c.x1 - c.x0 + 1) * (c.y1 - c.y0 + 1)), 0) / g.length;
     if (fill > 0.66) continue;
+    // Words mix letter shapes (wide and narrow, open and closed); a row of the same shape
+    // repeated (road markings, fence posts, bars of a chart) is not text.
+    if (!variedShapes(g)) continue;
     best = Math.max(best, g.length);
   }
   return best;
+}
+
+/** True when the shapes in a row are not all the same shape. */
+function variedShapes(g: Comp[]): boolean {
+  const kinds = new Set<string>();
+  const aspects: number[] = [];
+  for (const c of g) {
+    const cw = c.x1 - c.x0 + 1, ch = c.y1 - c.y0 + 1;
+    const aspect = cw / ch;
+    aspects.push(aspect);
+    kinds.add(`${Math.round(aspect / 0.18)}|${Math.round(c.n / (cw * ch) / 0.12)}`);
+  }
+  const mean = aspects.reduce((a, b) => a + b, 0) / aspects.length;
+  const sd = Math.sqrt(aspects.reduce((a, b) => a + (b - mean) ** 2, 0) / aspects.length);
+  return kinds.size >= Math.min(3, g.length - 1) && sd / mean > 0.12;
 }
 
 /** True when the picture very likely contains a line of text (4 or more letters in a row). */

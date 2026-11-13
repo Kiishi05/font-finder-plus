@@ -270,6 +270,7 @@ try {
   check('hover card shows the swapped-in font', swapCard.startsWith(swapped.attr) && /SHOWING INSTEAD OF FRAUNCES/.test(swapCard), swapCard);
   await panel.bringToFront();
   check('a re-scan still reports the original font while swapped', rescan.scan.fonts.some((f) => f.family === 'Fraunces'));
+  check('our stand-in font never shows up as a page font (also on text inside a swapped heading)', !rescan.scan.fonts.some((f) => /^FFP /i.test(f.family) || /FFP Swap/i.test(f.displayName)), rescan.scan.fonts.map((f) => f.family).join(', '));
   await panel.locator('.match button', { hasText: 'Showing on page' }).first().click();
   await page.waitForTimeout(300);
   check('Undo puts the original font back', await page.evaluate(() => !document.querySelector('h1').hasAttribute('data-ffp-swap') && !/FFP Swap/.test(getComputedStyle(document.querySelector('h1')).fontFamily)));
@@ -716,6 +717,20 @@ try {
   await page.goto(`http://127.0.0.1:${PORT}/page2.html`, { waitUntil: 'networkidle' });
   await panel.waitForFunction(() => !document.querySelector('button[aria-label="Back"]'), null, { timeout: 15000 }).catch(() => {});
   check("moving to another page closes the old page's font details", (await panel.locator('button[aria-label="Back"]').count()) === 0);
+  // Moving to another website shows its Page view, from any view (here: Library).
+  await panel.locator('.tabs button', { hasText: 'Library' }).click();
+  await panel.waitForTimeout(500);
+  await page.goto(`http://localhost:${PORT}/page2.html`, { waitUntil: 'networkidle' });
+  const tabL = await sw.evaluate(async () => (await chrome.tabs.query({})).find((t) => t.url?.includes('localhost'))?.id);
+  if (tabL != null) await sw.evaluate(async (id) => chrome.scripting.executeScript({ target: { tabId: id }, files: ['content.js'] }).catch(() => {}), tabL);
+  await panel.waitForFunction(() => document.querySelector('.tabs button[aria-current="page"]')?.textContent === 'Page', null, { timeout: 15000 }).catch(() => {});
+  check('moving to another website switches the panel to Page, from Library', (await panel.locator('.tabs button[aria-current="page"]').innerText().catch(() => '')) === 'Page');
+  // A PDF says so, instead of listing 0 fonts.
+  await page.goto(`http://127.0.0.1:${PORT}/pdf.html`, { waitUntil: 'load' });
+  const tabP = await sw.evaluate(async () => (await chrome.tabs.query({})).find((t) => t.url?.includes('pdf.html'))?.id);
+  if (tabP != null) await sw.evaluate(async (id) => chrome.scripting.executeScript({ target: { tabId: id }, files: ['content.js'] }).catch(() => {}), tabP);
+  await panel.waitForFunction(() => /This is a PDF/.test(document.body.innerText), null, { timeout: 15000 }).catch(() => {});
+  check('a PDF shows a clear message, not 0 fonts', /This is a PDF/.test(await panel.locator('body').innerText()));
   await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'networkidle' });
   await panel.waitForSelector('.fcard', { timeout: 20000 }).catch(() => {});
 
@@ -795,6 +810,19 @@ try {
   check('a local file explains how to allow file access', /Allow access to file URLs/.test(acc.explainInjectError('Cannot access contents of url "file:///Users/me/site.html"', undefined, false)));
   check("Chrome's own pages, the Web Store and PDFs get clear reasons", /Chrome's own pages/.test(acc.explainInjectError('Cannot access a chrome:// URL', 'chrome://newtab/', false)) && /Web Store/.test(acc.explainInjectError('The extensions gallery cannot be scripted.', 'https://chromewebstore.google.com/detail/x', false)) && /PDF/.test(acc.explainInjectError('Cannot access contents of url "https://a.com/doc.pdf"', undefined, false)));
   check('Google Docs and Figma are recognised as drawing text as pictures', !!acc.drawsTextAsPictures('https://docs.google.com/document/d/abc/edit') && !!acc.drawsTextAsPictures('https://www.figma.com/design/abc/x') && !acc.drawsTextAsPictures('https://stripe.com'));
+  // Junk lines from text recognition, crosswalk stripes, and names in the post around a picture.
+  const tmp5 = path.join(root, 'node_modules/.cache/ffp-ocrclean.mjs');
+  await build({ stdin: { contents: "export * from './src/sidepanel/lib/ocrclean.ts'; export * from './src/shared/textdetect.ts'; export { namesFromContext } from './src/sidepanel/lib/fontnames.ts';", resolveDir: root, loader: 'ts' }, outfile: tmp5, format: 'esm', bundle: true, platform: 'node', logLevel: 'silent', loader: { '.json': 'json' } });
+  const oc = await import(tmp5);
+  const OL = (text, confidence) => ({ text, confidence, bbox: { x0: 0, y0: 0, x1: 1, y1: 1 }, baseline: null, symbols: [] });
+  const kept = oc.realLines([OL('CEgl es — — Es', 52), OL('®) © a', 61), OL('Lil Grotesk', 74), OL('Payments infrastructure for the internet', 91), OL('ee EE', 40), OL('Lauch Type', 66)]).map((l) => l.text);
+  check('text recognition junk is dropped, real lines are kept', kept.join('|') === 'Lil Grotesk|Payments infrastructure for the internet|Lauch Type', kept.join('|'));
+  const draw = (w, h, paint) => { const data = new Uint8ClampedArray(w * h * 4).fill(255); const set = (x, y, v) => { const i = (y * w + x) * 4; data[i] = data[i + 1] = data[i + 2] = v; }; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) set(x, y, paint(x, y)); return { width: w, height: h, data }; };
+  const stripes = draw(320, 140, (x, y) => { if (y < 40 || y > 110) return 90; const shift = (110 - y) * 0.2; for (let i = 0; i < 7; i++) { const x0 = 30 + i * 38 + shift; if (x >= x0 && x < x0 + 18) return 238; } return 90; });
+  check('a row of identical stripes (a crosswalk) is not taken for text', oc.hasText(stripes) === false);
+  const postN = oc.namesFromContext(['Two fresh grotesks this week', 'noirblancrouge.com/fonts/lil-grot… — Lil Grotesk', 'usemodify.com/fonts/lunchtyp… — Lunchtype', '12 replies']);
+  check('font names in the post around a picture are found (Lil Grotesk not confirmed, Lunchtype confirmed)', postN.some((n) => n.name === 'Lil Grotesk' && n.kind === 'unknown') && postN.some((n) => n.name === 'Lunchtype' && n.kind !== 'unknown'), JSON.stringify(postN.map((n) => [n.name, n.kind])));
+  check('an ordinary post names no fonts', oc.namesFromContext(['Just landed in Lisbon', 'Great coffee and a long walk by the river today']).length === 0);
   const tmp4 = path.join(root, 'node_modules/.cache/ffp-names.mjs');
   await build({ stdin: { contents: "export * from './src/sidepanel/lib/fontnames.ts'; export * from './src/shared/freecatalog.ts'; export * from './src/shared/licences.ts';", resolveDir: root, loader: 'ts' }, outfile: tmp4, format: 'esm', bundle: true, platform: 'node', logLevel: 'silent', loader: { '.json': 'json' } });
   const nm = await import(tmp4);

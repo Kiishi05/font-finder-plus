@@ -13,21 +13,21 @@ A sentence is drawn as a picture in 50 popular Google Fonts families at three qu
 | Blurry, compressed photo-like (40px, blur, JPEG 50%) | 34 of 50 (68%) | 40 of 50 (80%) |
 | **All** | **124 of 150 (83%)** | **134 of 150 (89%)** |
 
-Results labelled **"Likely this font"** (score 80 or more, or 60 or more with a 5-point lead): 74 of 150 pictures, right in 74 of 74 (100%).
+Results labelled **"Likely this font"** (score 80 or more, or 60 or more with a 5-point lead): 76 of 150 pictures, right in 76 of 76 (100%).
 
 Not found in the top 5:
 
-- Montserrat (rough): read "Quick brown foxes jump over lazy dogs", closest Alexandria 62, Gantari 58, Readex Pro 58
-- Lora (rough): read "Quick brown foxes jump over lazy dogs", closest Averia Libre 59, Charis SIL 59, Headland One 59
-- PT Serif (rough): read "Quick brown foxes jump over lazy dogs", closest Asap Sharp 79, Asap 77, Carlito 76
-- Pacifico (clean): read "", closest none
+- Montserrat (rough): read "Quick brown foxes jump over lazy dogs", closest Alexandria 62, Readex Pro 58, Gantari 58
+- Lora (rough): read "Quick brown foxes jump over lazy dogs", closest Merriweather Sans 58, Averia Libre 59, Charis SIL 59
+- PT Serif (rough): read "Quick brown foxes jump over lazy dogs", closest Asap Sharp 79, Asap 77, Lato 75
+- Pacifico (clean): read "Quick Brown foxes jump over lazy dogs", closest Oleo Script 0, Oleo Script Swash Caps 0, Kavoon 0
 - Pacifico (small): read "", closest none
 - Pacifico (rough): read "Quick Brown foxes jump over lazy dogs", closest Edu TAS Beginner 0, Kavoon 0, Edu SA Beginner 0
-- Lobster (clean): read "Quick brown foxes jump over lazy dogs", closest Fruktur 0, Agbalumo 0, Kavoon 0
-- Lobster (small): read "‘Quick brown foxes jump over lazy dogs", closest Kavoon 0, Fruktur 0, Amaranth 0
+- Lobster (clean): read "Quick brown foxes jump over lazy dogs", closest Fruktur 0, Amaranth 0, Agbalumo 0
+- Lobster (small): read "‘Quick brown foxes jump over lazy dogs", closest Spicy Rice 0, Kavoon 0, Fruktur 0
 - Lobster (rough): read "Quick brown foxes jump over lazy dogs", closest Chela One 0, Spicy Rice 0, Kavoon 0
-- Dancing Script (small): read "Quich brown foxes jump ser lagy dogs", closest Belanosima 0, Martian Mono 0, Sono 0
-- Dancing Script (rough): read "Quick brown fsxes jump sver lazy dsgs", closest Rubik Glitch 0, Fascinate 0, Oleo Script 0
+- Dancing Script (small): read "Quich brown foxes jump ser lagy dogs", closest Passion One 0, Belanosima 0, Martian Mono 0
+- Dancing Script (rough): read "Quick brown fsxes jump sver lazy dsgs", closest Rubik Glitch 0, Fascinate 0, Alfa Slab One 0
 - Crimson Text (rough): read "Quick brown foxes jump over lazy dogs", closest Averia Serif Libre 63, Averia Libre 61, Charis SIL 61
 - EB Garamond (rough): read "Quick brown foxes jump over lazy dogs", closest Ysabeau Office 43, Ysabeau Infant 42, GFS Neohellenic 42
 - Cormorant Garamond (small): read "Quick brown foxes jump over lazy dogs", closest Spectral 16, Bellefair 16, Ysabeau Office 16
@@ -40,41 +40,41 @@ Fonts whose right free answer is known: copies of famous fonts that ship with Li
 
 | Measured from | Right family first | In the top 3 |
 |---|---|---|
-| Font files | 25 of 30 (83%) | 28 of 30 (93%) |
-| How the page draws it | 25 of 30 (83%) | 28 of 30 (93%) |
+| Font files | 24 of 30 (80%) | 29 of 30 (97%) |
+| How the page draws it | 25 of 30 (83%) | 29 of 30 (97%) |
 
 | Font | Should find | Rank (files) | Top 3 found |
 |---|---|---|---|
-| Liberation Sans | Arimo | 1 | Arimo 100, Archivo 79, Strichpunkt Sans 78 |
-| Liberation Serif | Tinos | 1 | Tinos 100, Charis SIL 78, STIX Two Text 75 |
-| Liberation Mono | Cousine | 1 | Cousine 100, Fragment Mono 80, Roboto Mono 77 |
-| FreeSans (Helvetica copy) | Arimo | 1 | Arimo 84, Almarai 83, Strichpunkt Sans 78 |
-| FreeSerif (Times copy) | Tinos or STIX Two Text | 1 | STIX Two Text 82, Charis SIL 77, Libertinus Serif 73 |
-| FreeMono (Courier copy) | Courier Prime | 1 | Courier Prime 75, Cutive Mono 54, Libertinus Mono 45 |
-| Carlito (Calibri metrics) | Lato | 1 | Lato 84, Source Sans 3 77, Commissioner 76 |
-| Noto Sans | Open Sans | 1 | Open Sans 95, Lunasima 93, AR One Sans 87 |
-| Open Sans | Noto Sans | 1 | Noto Sans 95, Noto Sans Display 89, Lunasima 82 |
-| Public Sans | Libre Franklin | 1 | Libre Franklin 88, Special Gothic 81, Hanken Grotesk 77 |
-| Libre Franklin | Public Sans | 1 | Public Sans 88, Special Gothic 82, Zalando Sans 77 |
-| Heebo (Roboto Latin) | Roboto | 1 | Roboto 100, Roboto Flex 95, Vazirmatn 95 |
-| Yantramanav (Roboto Latin) | Roboto or Heebo | 1 | Roboto 85, Heebo 85, Roboto Flex 82 |
-| Assistant (Source Sans Latin) | Source Sans 3 | 2 | Varta 100, Source Sans 3 97, Alegreya Sans 77 |
-| Cairo (Titillium Latin) | Titillium Web | 1 | Titillium Web 100, Exo 81, Open Sans 75 |
-| Readex Pro (Lexend) | Lexend | 1 | Lexend 92, Funnel Sans 83, Figtree 81 |
-| Crimson Pro | Crimson Text | 11 | Yrsa 79, Ancizar Serif 78, Gentium Book Plus 76 |
-| Crimson Text | Crimson Pro | 10 | Amiri 89, Libertinus Serif 80, Average 79 |
-| Fira Code | Fira Mono | 1 | Fira Mono 100, Noto Sans Mono 83, Oxygen Mono 80 |
-| PT Sans Caption | PT Sans | 3 | Golos Text 83, AR One Sans 79, PT Sans 78 |
-| PT Serif Caption | PT Serif | 1 | PT Serif 82, Tienne 79, Source Serif 4 76 |
-| Ubuntu Sans | Ubuntu | 1 | Ubuntu 93, Encode Sans 75, Encode Sans Semi Expanded 74 |
-| Roboto Flex | Roboto | 1 | Roboto 95, Heebo 95, Vazirmatn 90 |
-| Atkinson Hyperlegible Next | Atkinson Hyperlegible | 1 | Atkinson Hyperlegible 97, SN Pro 79, TikTok Sans 77 |
-| Lato | Carlito | 2 | Commissioner 87, Carlito 84, Open Sans 76 |
-| Titillium Web | Cairo | 1 | Cairo 95, Exo 82, Open Sans 75 |
-| Source Sans 3 | Assistant or Varta | 1 | Varta 99, Assistant 92, Basic 82 |
-| Lexend | Readex Pro | 1 | Readex Pro 87, Be Vietnam Pro 80, Inclusive Sans 77 |
-| Fira Mono | Fira Code | 1 | Fira Code 100, Noto Sans Mono 83, Oxygen Mono 80 |
-| Inter Tight | Inter | 1 | Inter 98, TikTok Sans 90, Roboto 88 |
+| Liberation Sans | Arimo | 1 | Arimo 100, Switzer 77, Archivo 75 |
+| Liberation Serif | Tinos | 1 | Tinos 100, STIX Two Text 69, Charis SIL 69 |
+| Liberation Mono | Cousine | 1 | Cousine 94, Roboto Mono 68, Fragment Mono 64 |
+| FreeSans (Helvetica copy) | Arimo | 2 | Almarai 85, Arimo 76, Switzer 72 |
+| FreeSerif (Times copy) | Tinos or STIX Two Text | 1 | STIX Two Text 78, Charis SIL 70, Libertinus Serif 64 |
+| FreeMono (Courier copy) | Courier Prime | 1 | Courier Prime 57, Cutive Mono 38, Libertinus Mono 31 |
+| Carlito (Calibri metrics) | Lato | 1 | Lato 84, Hind Siliguri 69, Commissioner 69 |
+| Noto Sans | Open Sans | 1 | Open Sans 90, Lunasima 83, Telex 75 |
+| Open Sans | Noto Sans | 1 | Noto Sans 90, Noto Sans Display 83, Plein 76 |
+| Public Sans | Libre Franklin | 1 | Libre Franklin 77, Geist 71, Special Gothic 69 |
+| Libre Franklin | Public Sans | 1 | Public Sans 77, Special Gothic 76, Pontano Sans 67 |
+| Heebo (Roboto Latin) | Roboto | 1 | Roboto 100, Vazirmatn 97, Roboto Flex 94 |
+| Yantramanav (Roboto Latin) | Roboto or Heebo | 1 | Heebo 85, Roboto 84, Roboto Flex 81 |
+| Assistant (Source Sans Latin) | Source Sans 3 | 2 | Varta 99, Source Sans 3 95, IBM Plex Sans 69 |
+| Cairo (Titillium Latin) | Titillium Web | 1 | Titillium Web 100, Open Sans 67, Mako 67 |
+| Readex Pro (Lexend) | Lexend | 1 | Lexend 86, Funnel Sans 73, Figtree 72 |
+| Crimson Pro | Crimson Text | 1 | Crimson Text 70, Yrsa 70, Spectral 69 |
+| Crimson Text | Crimson Pro | 5 | Amiri 83, Average 72, Spectral 71 |
+| Fira Code | Fira Mono | 1 | Fira Mono 100, Noto Sans Mono 69, Spline Sans Mono 67 |
+| PT Sans Caption | PT Sans | 2 | Golos Text 73, PT Sans 66, Excon 66 |
+| PT Serif Caption | PT Serif | 2 | Sentient 74, PT Serif 69, Recia 68 |
+| Ubuntu Sans | Ubuntu | 1 | Ubuntu 90, Excon 61, Commissioner 58 |
+| Roboto Flex | Roboto | 2 | Heebo 94, Roboto 93, Vazirmatn 90 |
+| Atkinson Hyperlegible Next | Atkinson Hyperlegible | 1 | Atkinson Hyperlegible 95, Nunito Sans 64, Zalando Sans 64 |
+| Lato | Carlito | 1 | Carlito 84, Commissioner 81, Open Sans 71 |
+| Titillium Web | Cairo | 1 | Cairo 97, Open Sans 67, Plein 66 |
+| Source Sans 3 | Assistant or Varta | 1 | Varta 98, Assistant 92, IBM Plex Sans 73 |
+| Lexend | Readex Pro | 1 | Readex Pro 82, Be Vietnam Pro 70, Sen 69 |
+| Fira Mono | Fira Code | 1 | Fira Code 100, Noto Sans Mono 70, Spline Sans Mono 66 |
+| Inter Tight | Inter | 1 | Inter 96, TikTok Sans 84, Liter 83 |
 
 ## What this does not measure
 

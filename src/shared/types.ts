@@ -255,6 +255,8 @@ export interface TextStyle {
   roles: Partial<Record<Role, number>>;
   count: number;
   sample: string;
+  /** Space after a paragraph of this style (its most common bottom margin, px). */
+  paragraphSpacing?: number;
 }
 
 export interface ReadabilityIssue {

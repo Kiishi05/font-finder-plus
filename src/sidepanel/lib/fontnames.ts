@@ -93,3 +93,47 @@ export function possibleName(lines: OcrLine[], headingLine: number | null, known
   if (known.some((n) => squash(n.name) === squash(text))) return null;
   return { name: text.replace(/[.:!]+$/, ''), kind: 'unknown', known: null, line: headingLine };
 }
+
+// ------------------------------------------------------------- names in the post around a picture
+
+// "site.com/fonts/lil-grot… — Lil Grotesk": a link to a font page, then its name (or the other way round).
+const NAME = "([A-Z0-9][\\p{L}0-9'’&.]*(?:[ -][A-Z0-9][\\p{L}0-9'’&.]*){0,3})";
+const FONT_LINK = "(?:https?://)?[\\w.-]+\\.[a-z]{2,}/\\S*(?:font|type|typeface|fonts|family|families)\\S*";
+const LINK_THEN_NAME = new RegExp(`${FONT_LINK}\\s*[—–:-]+\\s*${NAME}`, 'gu');
+const NAME_THEN_LINK = new RegExp(`${NAME}\\s*[—–:-]+\\s*${FONT_LINK}`, 'gu');
+// "Font: Lil Grotesk", "Typeface — Amiamie", "set in Söhne".
+const LABELLED = new RegExp(`\\b(?:font|typeface|type|set in|fonts? used|typefaces? used)\\s*[:—–-]+\\s*${NAME}`, 'giu');
+
+/**
+ * Font names in the text around a picture (alt text, the post it is in). Names
+ * in a catalogue are confirmed; others are only taken when the post clearly
+ * names them (next to a link to a font page, or after "Font:"), and are shown
+ * as not confirmed.
+ */
+export function namesFromContext(context: string[] | undefined): NamedFont[] {
+  if (!context?.length) return [];
+  const ix = getIndex();
+  const found = new Map<string, NamedFont>();
+  const add = (raw: string, sure: boolean) => {
+    const name = raw.trim().replace(/[.,:;!?…]+$/, '');
+    const words = name.split(/\s+/);
+    if (name.length < 3 || name.length > 40 || words.length > 4 || words.some((w) => COMMON_HEADINGS.test(w))) return;
+    const hit = ix.get(squash(name.replace(STYLE, ' ')));
+    if (hit) {
+      if (!found.has(hit.name)) found.set(hit.name, { name: hit.name, kind: hit.kind, known: hit.known, line: -1 });
+    } else if (sure && ![...found.keys()].some((k) => squash(k) === squash(name))) {
+      found.set(name, { name, kind: 'unknown', known: null, line: -1 });
+    }
+  };
+  const text = context.join('\n');
+  for (const re of [LINK_THEN_NAME, NAME_THEN_LINK, LABELLED]) {
+    re.lastIndex = 0;
+    for (const m of text.matchAll(re)) add(m[1], true);
+  }
+  // Catalogue names anywhere in a post that is about type ("Lunchtype", "Satoshi").
+  if (ABOUT_TYPE.test(text) || found.size) {
+    const lines: OcrLine[] = context.map((t) => ({ text: t, confidence: 100, bbox: { x0: 0, y0: 0, x1: 0, y1: 0 }, baseline: null, symbols: [] }));
+    for (const n of findFontNames(lines)) if (!found.has(n.name)) found.set(n.name, { ...n, line: -1 });
+  }
+  return [...found.values()].slice(0, 8);
+}

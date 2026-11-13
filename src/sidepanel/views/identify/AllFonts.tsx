@@ -37,9 +37,11 @@ export function blocksFor(lines: OcrLine[]): TextBlock[] {
     .slice(0, 8);
 }
 
-export function AllFonts({ image, lines, scan, tabId, samePage, onOpenFontId, toast }: {
+export function AllFonts({ image, lines, postNames = [], scan, tabId, samePage, onOpenFontId, toast }: {
   image: HTMLCanvasElement;
   lines: OcrLine[];
+  /** Font names in the post around the picture. */
+  postNames?: NamedFont[];
   scan: PageScan | null;
   tabId: number | null;
   /** The picture comes from the page in this tab, so its own fonts are compared too. */
@@ -53,8 +55,12 @@ export function AllFonts({ image, lines, scan, tabId, samePage, onOpenFontId, to
     // The biggest text, if the post is about a typeface, may be the font's own name.
     const biggest = [...blocks].sort((a, b) => b.size - a.size)[0];
     const guess = possibleName(lines, biggest && biggest.lines.length === 1 ? biggest.lines[0].index : null, found);
-    return guess ? [guess, ...found] : found;
-  }, [lines, blocks]);
+    const inImage = guess ? [guess, ...found] : found;
+    const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // The post's names come first: they are spelled out, while lettering in a picture can be misread.
+    const fromPost = postNames.filter((n) => !inImage.some((m) => squash(m.name) === squash(n.name)));
+    return [...fromPost, ...inImage.filter((n) => !(n.kind === 'unknown' && fromPost.length))];
+  }, [lines, blocks, postNames]);
   const [results, setResults] = useState<(BlockResult | null)[]>([]);
   const [pick, setPick] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
@@ -79,7 +85,8 @@ export function AllFonts({ image, lines, scan, tabId, samePage, onOpenFontId, to
 
   // A name written inside a block names that block's font ("Clash Display" set in Clash Display).
   const nameOf = (b: TextBlock) => names.find((n) => b.lines.some((l) => l.index === n.line)) ?? null;
-  const loose = names.filter((n) => !blocks.some((b) => b.lines.some((l) => l.index === n.line)));
+  const loose = names.filter((n) => n.line >= 0 && !blocks.some((b) => b.lines.some((l) => l.index === n.line)));
+  const inPost = names.filter((n) => n.line < 0);
   const chosen = (i: number) => pick[i] ?? results[i]?.matches[0]?.family ?? null;
 
   const saveAll = async () => {
@@ -119,6 +126,13 @@ export function AllFonts({ image, lines, scan, tabId, samePage, onOpenFontId, to
       <button className="btn primary" onClick={saveAll} disabled={saving || pending}>
         <Icon icon={FolderAddIcon} size={15} />{saving ? 'Saving…' : pending ? 'Matching…' : 'Save all to a new collection'}
       </button>
+
+      {inPost.length > 0 && (
+        <div className="stack" style={{ gap: 6 }}>
+          <span className="label">[Named in the post]</span>
+          {inPost.map((n) => <NamedRow key={n.name} n={n} onOpen={() => open(n.name)} image={image} toast={toast} />)}
+        </div>
+      )}
 
       {loose.length > 0 && (
         <div className="stack" style={{ gap: 6 }}>
@@ -176,7 +190,7 @@ function NamedRow({ n, onOpen, image, toast }: { n: NamedFont; onOpen: () => voi
         <span className={`lic ${badge.tone}`}><i />{free ? `Free · ${freeLicenceLabel(free)}` : lic && lic in LICENSE_LABEL ? LICENSE_LABEL[lic as keyof typeof LICENSE_LABEL] : badge.text}</span>
       </div>
       {n.kind !== 'unknown' && <span className="muted" style={{ fontSize: 11.5 }}>Confirmed: listed on {free ? SOURCE_NAME[free.s] : n.kind === 'google' ? 'Google Fonts' : n.known?.by ?? 'a foundry we know'}.</span>}
-      {n.kind === 'unknown' && <span className="muted" style={{ fontSize: 11.5 }}>Possibly the font's name (the biggest text in a post about a typeface), but not confirmed: it is not in {CATALOGUES_CHECKED.join(', ')}. Who made it and its licence are unknown.</span>}
+      {n.kind === 'unknown' && <span className="muted" style={{ fontSize: 11.5 }}>{n.line < 0 ? 'Named in the post next to a link to its font page' : "Possibly the font's name (the biggest text in a post about a typeface)"}, but not confirmed: it is not in {CATALOGUES_CHECKED.join(', ')}. Who made it and its licence are unknown.</span>}
       {rec.foundry && <span className="muted" style={{ fontSize: 11.5 }}>By {rec.foundry}</span>}
       <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
         <button className="btn sm" onClick={onOpen}>Details</button>

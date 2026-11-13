@@ -53,9 +53,11 @@ export function organizeStyles(styles: FigmaStyle[], max = 16): GuideStyle[] {
     list.forEach((s, i) => {
       const [short, long] = SIZE_WORDS[Math.min(SIZE_WORDS.length - 1, start + i)];
       const base = g === 'Body' ? 'body' : g === 'Code' ? 'code' : /^link/.test(s.name) ? 'link' : 'button';
-      const title = g === 'Body' ? 'Body' : g === 'Code' ? 'Code' : base === 'link' ? 'Link' : 'Button/Tag';
+      const title = g === 'Body' ? 'Body' : g === 'Code' ? 'Code' : base === 'link' ? 'Link' : 'BUTTON/TAG';
       const token = list.length === 1 && g !== 'Body' ? base : `${base}-${short}`;
-      out.push({ ...s, group: g, label: list.length === 1 && g !== 'Body' ? title : `${title} ${long} (${token})`, token });
+      // Buttons are written as designers label them: "BUTTON/TAG (button - lg)".
+      const label = title === 'BUTTON/TAG' ? `BUTTON/TAG (${list.length === 1 ? 'button' : `button - ${short}`})` : list.length === 1 && g !== 'Body' ? title : `${title} ${long} (${token})`;
+      out.push({ ...s, group: g, label, token });
     });
   }
   return out;

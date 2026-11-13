@@ -15,8 +15,8 @@
      "letters": 1,
      "top": [
       "Arimo 100",
-      "Archivo 79",
-      "Strichpunkt Sans 78"
+      "Switzer 77",
+      "Archivo 75"
      ]
     },
     {
@@ -30,8 +30,8 @@
      "letters": 1,
      "top": [
       "Tinos 100",
-      "Charis SIL 78",
-      "STIX Two Text 75"
+      "STIX Two Text 69",
+      "Charis SIL 69"
      ]
     },
     {
@@ -44,9 +44,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Cousine 100",
-      "Fragment Mono 80",
-      "Roboto Mono 77"
+      "Cousine 94",
+      "Roboto Mono 68",
+      "Fragment Mono 64"
      ]
     },
     {
@@ -55,13 +55,13 @@
       "Arimo"
      ],
      "why": "Arial/Arimo is the free Helvetica stand-in",
-     "final": 1,
-     "metric": 1,
+     "final": 2,
+     "metric": 2,
      "letters": 2,
      "top": [
-      "Arimo 84",
-      "Almarai 83",
-      "Strichpunkt Sans 78"
+      "Almarai 85",
+      "Arimo 76",
+      "Switzer 72"
      ]
     },
     {
@@ -75,9 +75,9 @@
      "metric": 3,
      "letters": 4,
      "top": [
-      "STIX Two Text 82",
-      "Charis SIL 77",
-      "Libertinus Serif 73"
+      "STIX Two Text 78",
+      "Charis SIL 70",
+      "Libertinus Serif 64"
      ]
     },
     {
@@ -90,9 +90,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Courier Prime 75",
-      "Cutive Mono 54",
-      "Libertinus Mono 45"
+      "Courier Prime 57",
+      "Cutive Mono 38",
+      "Libertinus Mono 31"
      ]
     },
     {
@@ -102,12 +102,12 @@
      ],
      "why": "Carlito is built from Lato",
      "final": 1,
-     "metric": 7,
+     "metric": 8,
      "letters": 1,
      "top": [
       "Lato 84",
-      "Source Sans 3 77",
-      "Commissioner 76"
+      "Hind Siliguri 69",
+      "Commissioner 69"
      ]
     },
     {
@@ -117,12 +117,12 @@
      ],
      "why": "Noto Sans Latin is built from Open Sans",
      "final": 1,
-     "metric": 13,
+     "metric": 14,
      "letters": 1,
      "top": [
-      "Open Sans 95",
-      "Lunasima 93",
-      "AR One Sans 87"
+      "Open Sans 90",
+      "Lunasima 83",
+      "Telex 75"
      ]
     },
     {
@@ -132,12 +132,12 @@
      ],
      "why": "same design",
      "final": 1,
-     "metric": 4,
+     "metric": 7,
      "letters": 2,
      "top": [
-      "Noto Sans 95",
-      "Noto Sans Display 89",
-      "Lunasima 82"
+      "Noto Sans 90",
+      "Noto Sans Display 83",
+      "Plein 76"
      ]
     },
     {
@@ -147,12 +147,12 @@
      ],
      "why": "Public Sans is built from Libre Franklin",
      "final": 1,
-     "metric": 1,
+     "metric": 2,
      "letters": 1,
      "top": [
-      "Libre Franklin 88",
-      "Special Gothic 81",
-      "Hanken Grotesk 77"
+      "Libre Franklin 77",
+      "Geist 71",
+      "Special Gothic 69"
      ]
     },
     {
@@ -165,9 +165,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Public Sans 88",
-      "Special Gothic 82",
-      "Zalando Sans 77"
+      "Public Sans 77",
+      "Special Gothic 76",
+      "Pontano Sans 67"
      ]
     },
     {
@@ -181,8 +181,8 @@
      "letters": 2,
      "top": [
       "Roboto 100",
-      "Roboto Flex 95",
-      "Vazirmatn 95"
+      "Vazirmatn 97",
+      "Roboto Flex 94"
      ]
     },
     {
@@ -193,12 +193,12 @@
      ],
      "why": "Latin is Roboto",
      "final": 1,
-     "metric": 28,
+     "metric": 30,
      "letters": 1,
      "top": [
-      "Roboto 85",
       "Heebo 85",
-      "Roboto Flex 82"
+      "Roboto 84",
+      "Roboto Flex 81"
      ]
     },
     {
@@ -211,9 +211,9 @@
      "metric": 2,
      "letters": 4,
      "top": [
-      "Varta 100",
-      "Source Sans 3 97",
-      "Alegreya Sans 77"
+      "Varta 99",
+      "Source Sans 3 95",
+      "IBM Plex Sans 69"
      ]
     },
     {
@@ -227,8 +227,8 @@
      "letters": 1,
      "top": [
       "Titillium Web 100",
-      "Exo 81",
-      "Open Sans 75"
+      "Open Sans 67",
+      "Mako 67"
      ]
     },
     {
@@ -238,12 +238,12 @@
      ],
      "why": "Readex Pro extends Lexend",
      "final": 1,
-     "metric": 41,
+     "metric": 42,
      "letters": 1,
      "top": [
-      "Lexend 92",
-      "Funnel Sans 83",
-      "Figtree 81"
+      "Lexend 86",
+      "Funnel Sans 73",
+      "Figtree 72"
      ]
     },
     {
@@ -252,13 +252,13 @@
       "Crimson Text"
      ],
      "why": "redraw of Crimson Text",
-     "final": 11,
-     "metric": 12,
-     "letters": 24,
+     "final": 1,
+     "metric": 13,
+     "letters": 26,
      "top": [
-      "Yrsa 79",
-      "Ancizar Serif 78",
-      "Gentium Book Plus 76"
+      "Crimson Text 70",
+      "Yrsa 70",
+      "Spectral 69"
      ]
     },
     {
@@ -267,13 +267,13 @@
       "Crimson Pro"
      ],
      "why": "same design",
-     "final": 10,
-     "metric": 23,
-     "letters": 26,
+     "final": 5,
+     "metric": 26,
+     "letters": 27,
      "top": [
-      "Amiri 89",
-      "Libertinus Serif 80",
-      "Average 79"
+      "Amiri 83",
+      "Average 72",
+      "Spectral 71"
      ]
     },
     {
@@ -287,8 +287,8 @@
      "letters": 1,
      "top": [
       "Fira Mono 100",
-      "Noto Sans Mono 83",
-      "Oxygen Mono 80"
+      "Noto Sans Mono 69",
+      "Spline Sans Mono 67"
      ]
     },
     {
@@ -297,13 +297,13 @@
       "PT Sans"
      ],
      "why": "caption cut of PT Sans",
-     "final": 3,
+     "final": 2,
      "metric": 4,
      "letters": 9,
      "top": [
-      "Golos Text 83",
-      "AR One Sans 79",
-      "PT Sans 78"
+      "Golos Text 73",
+      "PT Sans 66",
+      "Excon 66"
      ]
     },
     {
@@ -312,13 +312,13 @@
       "PT Serif"
      ],
      "why": "caption cut of PT Serif",
-     "final": 1,
-     "metric": 2,
+     "final": 2,
+     "metric": 4,
      "letters": 1,
      "top": [
-      "PT Serif 82",
-      "Tienne 79",
-      "Source Serif 4 76"
+      "Sentient 74",
+      "PT Serif 69",
+      "Recia 68"
      ]
     },
     {
@@ -331,9 +331,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Ubuntu 93",
-      "Encode Sans 75",
-      "Encode Sans Semi Expanded 74"
+      "Ubuntu 90",
+      "Excon 61",
+      "Commissioner 58"
      ]
     },
     {
@@ -342,12 +342,12 @@
       "Roboto"
      ],
      "why": "variable Roboto",
-     "final": 1,
+     "final": 2,
      "metric": 1,
      "letters": 2,
      "top": [
-      "Roboto 95",
-      "Heebo 95",
+      "Heebo 94",
+      "Roboto 93",
       "Vazirmatn 90"
      ]
     },
@@ -361,9 +361,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Atkinson Hyperlegible 97",
-      "SN Pro 79",
-      "TikTok Sans 77"
+      "Atkinson Hyperlegible 95",
+      "Nunito Sans 64",
+      "Zalando Sans 64"
      ]
     },
     {
@@ -372,13 +372,13 @@
       "Carlito"
      ],
      "why": "Carlito is built from Lato",
-     "final": 2,
-     "metric": 17,
+     "final": 1,
+     "metric": 22,
      "letters": 2,
      "top": [
-      "Commissioner 87",
       "Carlito 84",
-      "Open Sans 76"
+      "Commissioner 81",
+      "Open Sans 71"
      ]
     },
     {
@@ -391,9 +391,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Cairo 95",
-      "Exo 82",
-      "Open Sans 75"
+      "Cairo 97",
+      "Open Sans 67",
+      "Plein 66"
      ]
     },
     {
@@ -407,9 +407,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Varta 99",
+      "Varta 98",
       "Assistant 92",
-      "Basic 82"
+      "IBM Plex Sans 73"
      ]
     },
     {
@@ -419,12 +419,12 @@
      ],
      "why": "Readex Pro extends Lexend",
      "final": 1,
-     "metric": 15,
+     "metric": 13,
      "letters": 1,
      "top": [
-      "Readex Pro 87",
-      "Be Vietnam Pro 80",
-      "Inclusive Sans 77"
+      "Readex Pro 82",
+      "Be Vietnam Pro 70",
+      "Sen 69"
      ]
     },
     {
@@ -438,8 +438,8 @@
      "letters": 1,
      "top": [
       "Fira Code 100",
-      "Noto Sans Mono 83",
-      "Oxygen Mono 80"
+      "Noto Sans Mono 70",
+      "Spline Sans Mono 66"
      ]
     },
     {
@@ -452,14 +452,14 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Inter 98",
-      "TikTok Sans 90",
-      "Roboto 88"
+      "Inter 96",
+      "TikTok Sans 84",
+      "Liter 83"
      ]
     }
    ],
-   "top1": 25,
-   "top3": 28,
+   "top1": 24,
+   "top3": 29,
    "n": 30
   },
   "page": {
@@ -475,8 +475,8 @@
      "letters": 1,
      "top": [
       "Arimo 100",
-      "Strichpunkt Sans 79",
-      "Zalando Sans 78"
+      "Switzer 74",
+      "Archivo 72"
      ]
     },
     {
@@ -489,9 +489,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Tinos 100",
-      "Charis SIL 78",
-      "STIX Two Text 75"
+      "Tinos 99",
+      "STIX Two Text 70",
+      "Charis SIL 69"
      ]
     },
     {
@@ -504,9 +504,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Cousine 100",
-      "Fragment Mono 79",
-      "Roboto Mono 75"
+      "Cousine 94",
+      "Roboto Mono 66",
+      "Fragment Mono 63"
      ]
     },
     {
@@ -515,13 +515,13 @@
       "Arimo"
      ],
      "why": "Arial/Arimo is the free Helvetica stand-in",
-     "final": 1,
-     "metric": 1,
+     "final": 2,
+     "metric": 2,
      "letters": 2,
      "top": [
-      "Arimo 85",
-      "Almarai 83",
-      "Strichpunkt Sans 79"
+      "Almarai 84",
+      "Arimo 76",
+      "Switzer 72"
      ]
     },
     {
@@ -535,9 +535,9 @@
      "metric": 4,
      "letters": 4,
      "top": [
-      "STIX Two Text 79",
-      "Charis SIL 76",
-      "Castoro 72"
+      "STIX Two Text 76",
+      "Charis SIL 70",
+      "Castoro 64"
      ]
     },
     {
@@ -550,9 +550,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Courier Prime 75",
-      "Cutive Mono 55",
-      "Libertinus Mono 46"
+      "Courier Prime 56",
+      "Cutive Mono 39",
+      "Libertinus Mono 32"
      ]
     },
     {
@@ -565,9 +565,9 @@
      "metric": 7,
      "letters": 1,
      "top": [
-      "Lato 82",
-      "Source Sans 3 76",
-      "Commissioner 75"
+      "Lato 81",
+      "Commissioner 69",
+      "Open Sans 68"
      ]
     },
     {
@@ -577,12 +577,12 @@
      ],
      "why": "Noto Sans Latin is built from Open Sans",
      "final": 1,
-     "metric": 9,
+     "metric": 10,
      "letters": 1,
      "top": [
-      "Open Sans 94",
-      "Lunasima 89",
-      "AR One Sans 86"
+      "Open Sans 89",
+      "Lunasima 81",
+      "Telex 75"
      ]
     },
     {
@@ -592,12 +592,12 @@
      ],
      "why": "same design",
      "final": 1,
-     "metric": 4,
+     "metric": 7,
      "letters": 3,
      "top": [
-      "Noto Sans 93",
-      "Noto Sans Display 87",
-      "Lunasima 81"
+      "Noto Sans 89",
+      "Noto Sans Display 81",
+      "Plein 77"
      ]
     },
     {
@@ -610,9 +610,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Libre Franklin 89",
-      "Special Gothic 79",
-      "Hanken Grotesk 76"
+      "Libre Franklin 77",
+      "Geist 69",
+      "Special Gothic 67"
      ]
     },
     {
@@ -625,9 +625,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Public Sans 88",
-      "Special Gothic 81",
-      "Zalando Sans 78"
+      "Public Sans 77",
+      "Special Gothic 75",
+      "TASA Orbiter 67"
      ]
     },
     {
@@ -640,9 +640,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Roboto 100",
+      "Roboto 99",
       "Vazirmatn 95",
-      "Roboto Flex 92"
+      "Roboto Flex 91"
      ]
     },
     {
@@ -653,11 +653,11 @@
      ],
      "why": "Latin is Roboto",
      "final": 1,
-     "metric": 31,
+     "metric": 34,
      "letters": 2,
      "top": [
-      "Roboto 84",
-      "Heebo 83",
+      "Roboto 85",
+      "Heebo 84",
       "Roboto Flex 81"
      ]
     },
@@ -671,9 +671,9 @@
      "metric": 2,
      "letters": 4,
      "top": [
-      "Varta 100",
-      "Source Sans 3 95",
-      "Open Sans 77"
+      "Varta 99",
+      "Source Sans 3 93",
+      "IBM Plex Sans 71"
      ]
     },
     {
@@ -686,9 +686,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Titillium Web 100",
-      "Exo 81",
-      "Open Sans 75"
+      "Titillium Web 99",
+      "Mako 67",
+      "Open Sans 66"
      ]
     },
     {
@@ -698,12 +698,12 @@
      ],
      "why": "Readex Pro extends Lexend",
      "final": 1,
-     "metric": 42,
+     "metric": 44,
      "letters": 1,
      "top": [
-      "Lexend 92",
-      "Funnel Sans 83",
-      "Alan Sans 83"
+      "Lexend 86",
+      "Funnel Sans 73",
+      "Figtree 72"
      ]
     },
     {
@@ -712,13 +712,13 @@
       "Crimson Text"
      ],
      "why": "redraw of Crimson Text",
-     "final": 8,
-     "metric": 9,
-     "letters": 28,
+     "final": 1,
+     "metric": 12,
+     "letters": 29,
      "top": [
-      "Yrsa 79",
-      "Ancizar Serif 78",
-      "Spectral 75"
+      "Crimson Text 71",
+      "Spectral 69",
+      "Yrsa 69"
      ]
     },
     {
@@ -727,13 +727,13 @@
       "Crimson Pro"
      ],
      "why": "same design",
-     "final": 11,
-     "metric": 16,
-     "letters": 29,
+     "final": 4,
+     "metric": 19,
+     "letters": 30,
      "top": [
-      "Amiri 86",
-      "Libertinus Serif 80",
-      "Average 77"
+      "Amiri 80",
+      "Average 71",
+      "Vollkorn 70"
      ]
     },
     {
@@ -746,9 +746,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Fira Mono 100",
-      "Noto Sans Mono 83",
-      "Oxygen Mono 79"
+      "Fira Mono 99",
+      "Noto Sans Mono 70",
+      "Spline Sans Mono 67"
      ]
     },
     {
@@ -757,13 +757,13 @@
       "PT Sans"
      ],
      "why": "caption cut of PT Sans",
-     "final": 3,
-     "metric": 4,
+     "final": 2,
+     "metric": 3,
      "letters": 13,
      "top": [
-      "Golos Text 83",
-      "AR One Sans 80",
-      "PT Sans 77"
+      "Golos Text 73",
+      "PT Sans 67",
+      "Excon 67"
      ]
     },
     {
@@ -772,13 +772,13 @@
       "PT Serif"
      ],
      "why": "caption cut of PT Serif",
-     "final": 1,
-     "metric": 1,
+     "final": 2,
+     "metric": 3,
      "letters": 1,
      "top": [
-      "PT Serif 83",
-      "Tienne 78",
-      "Noto Serif 75"
+      "Sentient 74",
+      "PT Serif 70",
+      "Bespoke Serif 67"
      ]
     },
     {
@@ -791,9 +791,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Ubuntu 92",
-      "Encode Sans 77",
-      "Comme 76"
+      "Ubuntu 89",
+      "Excon 61",
+      "Nunito 59"
      ]
     },
     {
@@ -806,8 +806,8 @@
      "metric": 1,
      "letters": 2,
      "top": [
-      "Roboto 93",
-      "Heebo 93",
+      "Roboto 92",
+      "Heebo 92",
       "Vazirmatn 88"
      ]
     },
@@ -821,9 +821,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Atkinson Hyperlegible 94",
-      "SN Pro 79",
-      "TikTok Sans 75"
+      "Atkinson Hyperlegible 92",
+      "Zalando Sans 63",
+      "Supreme 63"
      ]
     },
     {
@@ -832,13 +832,13 @@
       "Carlito"
      ],
      "why": "Carlito is built from Lato",
-     "final": 2,
-     "metric": 16,
+     "final": 1,
+     "metric": 20,
      "letters": 2,
      "top": [
-      "Commissioner 85",
       "Carlito 81",
-      "Open Sans 73"
+      "Commissioner 80",
+      "Open Sans 69"
      ]
     },
     {
@@ -851,9 +851,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Cairo 95",
-      "Exo 82",
-      "Open Sans 74"
+      "Cairo 96",
+      "Open Sans 65",
+      "Plein 65"
      ]
     },
     {
@@ -867,9 +867,9 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Varta 99",
-      "Assistant 92",
-      "Basic 81"
+      "Varta 98",
+      "Assistant 91",
+      "IBM Plex Sans 73"
      ]
     },
     {
@@ -879,12 +879,12 @@
      ],
      "why": "Readex Pro extends Lexend",
      "final": 1,
-     "metric": 14,
+     "metric": 15,
      "letters": 1,
      "top": [
-      "Readex Pro 87",
-      "Be Vietnam Pro 80",
-      "Inclusive Sans 77"
+      "Readex Pro 82",
+      "Be Vietnam Pro 71",
+      "Sen 69"
      ]
     },
     {
@@ -898,8 +898,8 @@
      "letters": 1,
      "top": [
       "Fira Code 100",
-      "Noto Sans Mono 82",
-      "Oxygen Mono 79"
+      "Noto Sans Mono 70",
+      "Spline Sans Mono 67"
      ]
     },
     {
@@ -912,14 +912,14 @@
      "metric": 1,
      "letters": 1,
      "top": [
-      "Inter 97",
-      "TikTok Sans 90",
-      "Roboto 88"
+      "Inter 95",
+      "TikTok Sans 85",
+      "Liter 82"
      ]
     }
    ],
    "top1": 25,
-   "top3": 28,
+   "top3": 29,
    "n": 30
   }
  },
@@ -1091,15 +1091,15 @@
       62
      ],
      [
-      "Plus Jakarta Sans",
-      61
-     ],
-     [
       "Alexandria",
       62
+     ],
+     [
+      "Gantari",
+      61
      ]
     ],
-    "lead": 1
+    "lead": 0
    },
    {
     "font": "Montserrat",
@@ -1113,11 +1113,11 @@
       62
      ],
      [
-      "Gantari",
+      "Readex Pro",
       58
      ],
      [
-      "Readex Pro",
+      "Gantari",
       58
      ]
     ],
@@ -1271,8 +1271,8 @@
       87
      ],
      [
-      "Liter",
-      83
+      "Radio Canada Big",
+      82
      ]
     ],
     "lead": 0
@@ -1289,15 +1289,15 @@
       52
      ],
      [
-      "Atkinson Hyperlegible",
-      51
+      "Onest",
+      50
      ],
      [
-      "Radio Canada Big",
+      "Atkinson Hyperlegible",
       51
      ]
     ],
-    "lead": 1
+    "lead": 2
    },
    {
     "font": "Inter",
@@ -1403,7 +1403,7 @@
       79
      ],
      [
-      "Plus Jakarta Sans",
+      "Instrument Sans",
       78
      ]
     ],
@@ -1513,7 +1513,7 @@
       82
      ],
      [
-      "Oxygen",
+      "Quicksand",
       80
      ]
     ],
@@ -1645,8 +1645,8 @@
       71
      ],
      [
-      "Roboto Slab",
-      69
+      "Asap Sharp",
+      70
      ]
     ],
     "lead": 3
@@ -1821,8 +1821,8 @@
       48
      ],
      [
-      "Cantata One",
-      48
+      "Rufina",
+      47
      ]
     ],
     "lead": 2
@@ -1835,19 +1835,19 @@
     "letters": 31,
     "top": [
      [
+      "Merriweather Sans",
+      58
+     ],
+     [
       "Averia Libre",
       59
      ],
      [
       "Charis SIL",
       59
-     ],
-     [
-      "Headland One",
-      59
      ]
     ],
-    "lead": 0
+    "lead": -1
    },
    {
     "font": "PT Serif",
@@ -1874,10 +1874,14 @@
    {
     "font": "PT Serif",
     "quality": "small",
-    "rank": 2,
+    "rank": 3,
     "read": "Quick brown foxes jump over lazy dogs",
     "letters": 31,
     "top": [
+     [
+      "Charis SIL",
+      50
+     ],
      [
       "Cherry Swash",
       50
@@ -1885,18 +1889,14 @@
      [
       "PT Serif",
       49
-     ],
-     [
-      "Gelasio",
-      49
      ]
     ],
-    "lead": 1
+    "lead": 0
    },
    {
     "font": "PT Serif",
     "quality": "rough",
-    "rank": 999,
+    "rank": 10,
     "read": "Quick brown foxes jump over lazy dogs",
     "letters": 31,
     "top": [
@@ -1909,8 +1909,8 @@
       77
      ],
      [
-      "Carlito",
-      76
+      "Lato",
+      75
      ]
     ],
     "lead": 2
@@ -2041,8 +2041,8 @@
       79
      ],
      [
-      "Manrope",
-      77
+      "Gabarito",
+      78
      ]
     ],
     "lead": 2
@@ -2103,15 +2103,15 @@
       81
      ],
      [
-      "Darker Grotesque",
-      75
+      "Red Hat Display",
+      74
      ],
      [
-      "Miranda Sans",
+      "Darker Grotesque",
       75
      ]
     ],
-    "lead": 6
+    "lead": 7
    },
    {
     "font": "Bebas Neue",
@@ -2249,9 +2249,22 @@
     "font": "Pacifico",
     "quality": "clean",
     "rank": 999,
-    "read": "",
-    "letters": 0,
-    "top": [],
+    "read": "Quick Brown foxes jump over lazy dogs",
+    "letters": 31,
+    "top": [
+     [
+      "Oleo Script",
+      0
+     ],
+     [
+      "Oleo Script Swash Caps",
+      0
+     ],
+     [
+      "Kavoon",
+      0
+     ]
+    ],
     "lead": 0
    },
    {
@@ -2297,11 +2310,11 @@
       0
      ],
      [
-      "Agbalumo",
+      "Amaranth",
       0
      ],
      [
-      "Kavoon",
+      "Agbalumo",
       0
      ]
     ],
@@ -2315,15 +2328,15 @@
     "letters": 31,
     "top": [
      [
+      "Spicy Rice",
+      0
+     ],
+     [
       "Kavoon",
       0
      ],
      [
       "Fruktur",
-      0
-     ],
-     [
-      "Amaranth",
       0
      ]
     ],
@@ -2381,15 +2394,15 @@
     "letters": 30,
     "top": [
      [
+      "Passion One",
+      0
+     ],
+     [
       "Belanosima",
       0
      ],
      [
       "Martian Mono",
-      0
-     ],
-     [
-      "Sono",
       0
      ]
     ],
@@ -2411,7 +2424,7 @@
       0
      ],
      [
-      "Oleo Script",
+      "Alfa Slab One",
       0
      ]
     ],
@@ -2605,15 +2618,15 @@
       78
      ],
      [
-      "Overpass",
-      77
-     ],
-     [
       "Changa",
       78
+     ],
+     [
+      "Overpass",
+      77
      ]
     ],
-    "lead": 1
+    "lead": 0
    },
    {
     "font": "IBM Plex Serif",
@@ -2649,15 +2662,15 @@
       74
      ],
      [
-      "Caladea",
-      70
-     ],
-     [
       "Frank Ruhl Libre",
       69
+     ],
+     [
+      "Caladea",
+      70
      ]
     ],
-    "lead": 4
+    "lead": 5
    },
    {
     "font": "IBM Plex Serif",
@@ -2671,15 +2684,15 @@
       69
      ],
      [
-      "Averia Libre",
-      68
-     ],
-     [
       "Slabo 13px",
       67
+     ],
+     [
+      "Averia Libre",
+      68
      ]
     ],
-    "lead": 1
+    "lead": 2
    },
    {
     "font": "Crimson Text",
@@ -2719,7 +2732,7 @@
       50
      ],
      [
-      "Vollkorn",
+      "Amiri",
       48
      ]
     ],
@@ -2794,7 +2807,7 @@
    {
     "font": "EB Garamond",
     "quality": "rough",
-    "rank": 9,
+    "rank": 6,
     "read": "Quick brown foxes jump over lazy dogs",
     "letters": 31,
     "top": [
@@ -2851,8 +2864,8 @@
       63
      ],
      [
-      "Balsamiq Sans",
-      63
+      "Radio Canada Big",
+      62
      ]
     ],
     "lead": 9
@@ -2895,7 +2908,7 @@
       84
      ],
      [
-      "Noto Sans Display",
+      "Overpass",
       81
      ]
     ],
@@ -2904,7 +2917,7 @@
    {
     "font": "Barlow",
     "quality": "small",
-    "rank": 5,
+    "rank": 3,
     "read": "Quick brown foxes jump over lazy dogs",
     "letters": 31,
     "top": [
@@ -2917,7 +2930,7 @@
       67
      ],
      [
-      "Quantico",
+      "Barlow",
       65
      ]
     ],
@@ -2979,15 +2992,15 @@
       72
      ],
      [
-      "Varela",
-      68
+      "Varela Round",
+      67
      ],
      [
-      "Scoutie Sans",
+      "Varela",
       68
      ]
     ],
-    "lead": 4
+    "lead": 5
    },
    {
     "font": "Karla",
@@ -3203,7 +3216,7 @@
       81
      ],
      [
-      "Quicksand",
+      "Finlandica Text",
       80
      ]
     ],
@@ -3225,8 +3238,8 @@
       64
      ],
      [
-      "Alata",
-      61
+      "League Spartan",
+      60
      ]
     ],
     "lead": 28
@@ -3520,10 +3533,14 @@
    {
     "font": "Bitter",
     "quality": "rough",
-    "rank": 1,
+    "rank": 2,
     "read": "Quick brown foxes jump over lazy dogs",
     "letters": 31,
     "top": [
+     [
+      "Merriweather",
+      41
+     ],
      [
       "Bitter",
       42
@@ -3531,13 +3548,9 @@
      [
       "Averia Libre",
       41
-     ],
-     [
-      "Quando",
-      41
      ]
     ],
-    "lead": 1
+    "lead": -1
    },
    {
     "font": "Arvo",
@@ -3555,7 +3568,7 @@
       82
      ],
      [
-      "Bitter",
+      "Solway",
       81
      ]
     ],
@@ -3577,8 +3590,8 @@
       54
      ],
      [
-      "Crete Round",
-      54
+      "PT Serif",
+      53
      ]
     ],
     "lead": 7
@@ -3595,15 +3608,15 @@
       82
      ],
      [
-      "Bitter",
-      74
+      "Merriweather",
+      73
      ],
      [
-      "Averia Libre",
+      "Bitter",
       74
      ]
     ],
-    "lead": 8
+    "lead": 9
    },
    {
     "font": "Zilla Slab",
@@ -3705,15 +3718,15 @@
       86
      ],
      [
-      "Alumni Sans",
-      75
-     ],
-     [
       "Khand",
       74
+     ],
+     [
+      "Alumni Sans",
+      75
      ]
     ],
-    "lead": 11
+    "lead": 12
    },
    {
     "font": "Anton",
@@ -3859,15 +3872,15 @@
       71
      ],
      [
-      "SN Pro",
-      68
+      "Lexend",
+      67
      ],
      [
-      "Lexend",
+      "Gabarito",
       67
      ]
     ],
-    "lead": 3
+    "lead": 4
    },
    {
     "font": "Caveat",
@@ -4180,24 +4193,24 @@
    {
     "font": "Noto Serif",
     "quality": "rough",
-    "rank": 2,
+    "rank": 1,
     "read": "Quick brown foxes jump over lazy dogs",
     "letters": 31,
     "top": [
      [
-      "Epunda Slab",
-      59
-     ],
-     [
       "Noto Serif",
       58
+     ],
+     [
+      "Epunda Slab",
+      59
      ],
      [
       "Merriweather",
       55
      ]
     ],
-    "lead": 1
+    "lead": -1
    }
   ],
   "all": {

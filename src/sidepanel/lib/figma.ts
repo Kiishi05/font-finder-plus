@@ -116,6 +116,7 @@ export async function buildFigmaPayload(scan: PageScan, tabId: number, system?: 
       size: s.size,
       lineHeight: s.lineHeight,
       letterSpacing: s.letterSpacing,
+      paragraphSpacing: s.paragraphSpacing ?? 0,
       transform: s.transform,
       sample: s.sample,
       count: s.count,

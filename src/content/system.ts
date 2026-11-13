@@ -74,6 +74,7 @@ export function scanSystem(): SystemScan {
     return f;
   };
   const blocksChecked = new Set<Element>();
+  const gaps = new Map<TextStyle, Map<number, number>>();
 
   for (const el of els) {
     const text = ownText(el);
@@ -108,6 +109,14 @@ export function scanSystem(): SystemScan {
       styles.set(key, st);
     }
     st.count++;
+    // Space after the paragraph: the bottom margin of the block that holds the text.
+    const para = cs.display === 'inline' ? el.closest('p,h1,h2,h3,h4,h5,h6,li,blockquote,figcaption,dd,dt') : el;
+    if (para) {
+      const mb = Math.round(parseFloat(getComputedStyle(para).marginBottom) || 0);
+      const t = (gaps.get(st) ?? new Map<number, number>());
+      t.set(mb, (t.get(mb) ?? 0) + 1);
+      gaps.set(st, t);
+    }
     const tag = (el.closest('h1,h2,h3,h4,h5,h6')?.tagName ?? el.tagName).toLowerCase();
     st.tags[tag] = (st.tags[tag] ?? 0) + 1;
     const role = roleOf(el);
@@ -177,7 +186,10 @@ export function scanSystem(): SystemScan {
   issues.sort((a, b) => order[a.level] - order[b.level] || b.count - a.count);
 
   return {
-    styles: [...styles.values()].sort((a, b) => b.size - a.size || b.count - a.count),
+    styles: [...styles.values()].map((st) => {
+      const t = gaps.get(st);
+      return t ? { ...st, paragraphSpacing: [...t].sort((x, y) => y[1] - x[1])[0][0] } : st;
+    }).sort((a, b) => b.size - a.size || b.count - a.count),
     issues,
     dev: devInfo(),
   };

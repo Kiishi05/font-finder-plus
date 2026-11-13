@@ -52,6 +52,8 @@ export interface FigmaStyle {
   lineHeight: number | null;
   /** Letter spacing in px. */
   letterSpacing: number;
+  /** Space after a paragraph in px (older pastes lack it). */
+  paragraphSpacing?: number;
   transform: string;
   sample: string;
   count: number;

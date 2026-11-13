@@ -51,19 +51,10 @@ function renderStart() {
       <li>Come back here and paste.</li>
     </ol>
     <textarea id="manual" aria-label="Or paste here" placeholder="Or paste into this box"></textarea>
-    <div class="card">
-      <b>Fix a captured page</b>
-      <span class="muted">Imported a web page with Figma's capture or HTML to Figma? Select its frames (or nothing, for the whole page) to find text in fonts you do not have and swap in look-alikes Figma has.</span>
-      <button class="btn" id="findmissing">Find missing fonts</button>
-    </div>
-    ${saved ? `<div class="card"><span>${saved} text styles or layers in this file use stand-ins from Font Finder Plus.</span><button class="btn" id="recheck">Check again for installed fonts</button></div>` : ''}
+    ${saved ? `<div class="card"><span>${saved} text styles in this file use stand-ins from Font Finder Plus.</span><button class="btn" id="recheck">Check again for installed fonts</button></div>` : ''}
     <p class="muted small">Nothing leaves your computer. This plugin makes no network requests.</p>`;
   $('paste').focus();
   $('manual').addEventListener('input', (e) => handleText((e.target as HTMLTextAreaElement).value));
-  $('findmissing').addEventListener('click', () => {
-    $('findmissing').textContent = 'Looking…';
-    post({ type: 'find-missing' });
-  });
   $('recheck')?.addEventListener('click', () => {
     $('recheck').textContent = 'Checking…';
     post({ type: 'recheck' });
@@ -122,48 +113,6 @@ function renderFonts() {
   });
 }
 
-interface Missing { family: string; styles: string[]; layers: number; source: 'google' | 'paid' | 'free-elsewhere' | 'unknown'; getIt: { label: string; url: string } | null; options: { family: string; score: number | null }[] }
-const SOURCE_TEXT: Record<Missing['source'], string> = {
-  google: 'Free on Google Fonts. Figma may not have it yet: install it from Google Fonts.',
-  paid: 'A paid font.',
-  'free-elsewhere': 'Free, from outside Google Fonts.',
-  unknown: 'Not in the font lists we know.',
-};
-const fixChoice = new Map<string, string>();
-
-function renderMissing(list: Missing[], checked: number, scope: string, site: string | null) {
-  fixChoice.clear();
-  $('main').innerHTML = `
-    <header class="site">
-      <div><b>${list.length ? `${list.length} missing ${list.length === 1 ? 'font' : 'fonts'}` : 'No missing fonts'}</b><span class="muted">${checked} text layers checked in the ${scope === 'selection' ? 'selection' : 'whole page'}${site ? ` · look-alikes from your scan of ${esc(site)}` : ''}</span></div>
-      <button class="link" id="back">Back</button>
-    </header>
-    ${list.length ? '' : '<div class="summary ok">Every font in these layers is available in Figma.</div>'}
-    <ul class="fonts">${list
-      .map((m) => {
-        if (m.options[0]) fixChoice.set(m.family, m.options[0].family);
-        return `<li class="font">
-          <div class="row"><b class="name">${esc(m.family)}</b><span class="chip warn">${m.layers} ${m.layers === 1 ? 'layer' : 'layers'}</span></div>
-          <span class="muted small">${esc(m.styles.join(', '))}. ${SOURCE_TEXT[m.source]}</span>
-          ${m.getIt ? `<button class="link" data-open="${esc(m.getIt.url)}">Get it: ${esc(m.getIt.label)} ${icon(ArrowUpRight01Icon, 12)}</button>` : ''}
-          ${m.options.length
-            ? `<label class="pick"><span>Replace with</span><select data-fix="${esc(m.family)}">${m.options.map((o) => `<option value="${esc(o.family)}">${esc(o.family)}${o.score != null ? ` · ${o.score}%` : ''}</option>`).join('')}</select></label>`
-            : '<span class="muted small">No replacement found in this Figma.</span>'}
-        </li>`;
-      })
-      .join('')}</ul>
-    ${list.length ? `<button class="btn primary" id="fix">Replace in ${list.reduce((n, m) => n + m.layers, 0)} layers</button><p class="muted small">The original font is kept with each layer. After you install it, run this plugin and click Check again to switch back.</p>` : ''}
-    <p class="muted small" id="progress" role="status"></p>`;
-  $('back').addEventListener('click', () => renderStart());
-  document.querySelectorAll<HTMLSelectElement>('select[data-fix]').forEach((s) => s.addEventListener('change', () => fixChoice.set(s.dataset.fix!, s.value)));
-  document.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((b) => b.addEventListener('click', () => post({ type: 'open', url: b.dataset.open })));
-  document.getElementById('fix')?.addEventListener('click', () => {
-    ($('fix') as HTMLButtonElement).disabled = true;
-    $('fix').textContent = 'Replacing…';
-    post({ type: 'fix-missing', choices: Object.fromEntries(fixChoice) });
-  });
-}
-
 function handleText(t: string) {
   const p = parsePayload(t);
   if (!p) {
@@ -211,13 +160,6 @@ window.onmessage = (e: MessageEvent) => {
     if (el) el.textContent = `Done. ${r.styles} text styles, ${r.variables} variables${r.page ? `, and the page "${r.page}"` : ''}.${r.missing.length ? ` Install ${r.missing.join(', ')}, then reopen this plugin and click Check again to swap the real fonts in.` : ''}`;
     $('build').textContent = 'Create again';
     ($('build') as HTMLButtonElement).disabled = false;
-  } else if (msg.type === 'missing') {
-    renderMissing(msg.missing, msg.checked, msg.scope, msg.site);
-  } else if (msg.type === 'fixed') {
-    const el = document.getElementById('progress');
-    if (el) el.textContent = `Done. Replaced fonts in ${msg.changed} layers${msg.failed ? `; ${msg.failed} could not be changed` : ''}.`;
-    const b = document.getElementById('fix');
-    if (b) b.textContent = 'Replaced';
   } else if (msg.type === 'rechecked') {
     const r = msg.result as { swapped: number; still: string[]; total: number };
     toast(r.swapped ? `Swapped the real font into ${r.swapped} text styles.` : r.still.length ? `Still not installed: ${r.still.join(', ')}.` : 'All styles already use the real fonts.');
