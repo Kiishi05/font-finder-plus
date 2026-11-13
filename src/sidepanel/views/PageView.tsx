@@ -10,9 +10,10 @@ import { hasAllSitesAccess, requestAllSitesAccess } from '../../shared/settings'
 import type { PageFontUsage, Role } from '../../shared/types';
 import { CollectionPicker } from '../components/CollectionPicker';
 import { MissingNote } from '../components/MissingNote';
-import { similarTo, type Match } from '../../shared/similar';
+import type { Match } from '../../shared/similar';
 import { trySwap, undoSwap, useSwaps } from '../lib/google';
 import { measureOnPage } from '../lib/shapes';
+import { blendMatches, letterScores } from '../lib/lookalike';
 import type { Shape } from '../../shared/shape';
 import { Icon } from '../components/Icon';
 import { Tester, sampleText, type TesterState } from '../components/Tester';
@@ -359,6 +360,8 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
   const [all, setAll] = useState(false);
   // Fonts whose file could not be read are measured as the page draws them.
   const [measured, setMeasured] = useState<Record<string, Shape | null | 'pending'>>({});
+  // How alike each free font's letters are, from the page's own drawing of the font.
+  const [letters, setLetters] = useState<Record<string, Map<string, number> | null>>({});
   const rows = candidates
     .map((f, i) => {
       const r = records[i];
@@ -369,12 +372,21 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
       const shape = r?.parsed?.shape ?? (pageShape && pageShape !== 'pending' ? pageShape : null);
       const sampleW = Number(f.sample.fontWeight) || 400;
       const wc = r?.parsed?.shape ? r?.parsed?.weightClass ?? 400 : sampleW;
-      const match: Match | null = shape ? similarTo(shape, { classification: r?.classification ?? f.classification, limit: 1, ignoreWeight: wc < 350 || wc > 450 })[0] ?? null : null;
-      const state: 'ok' | 'measuring' | 'failed' = match ? 'ok' : pageShape === 'pending' || pageShape === undefined ? 'measuring' : 'failed';
+      const lettersReady = f.key in letters;
+      const match: Match | null = shape && lettersReady ? blendMatches(shape, letters[f.key], { classification: r?.classification ?? f.classification, limit: 1, ignoreWeight: wc < 350 || wc > 450 })[0] ?? null : null;
+      const state: 'ok' | 'measuring' | 'failed' = match ? 'ok' : !lettersReady || pageShape === 'pending' || (pageShape === undefined && !r?.parsed?.shape) ? 'measuring' : 'failed';
       return { f, name: r?.displayName ?? f.displayName ?? f.family, lic, match, aspect: shape?.x ?? null, state, needsPage: !r?.parsed?.shape };
     })
     .filter((x): x is NonNullable<typeof x> => !!x);
   const toMeasure = rows.filter((r) => r.needsPage && measured[r.f.key] === undefined).map((r) => r.f);
+  const toPrint = rows.filter((r) => !(r.f.key in letters)).map((r) => r.f);
+  useEffect(() => {
+    if (tabId == null || !toPrint.length) return;
+    for (const f of toPrint) {
+      letterScores({ tabId, family: f.family, weight: f.sample.fontWeight, style: f.sample.fontStyle, onPage: true }).then((m) => setLetters((l) => ({ ...l, [f.key]: m })));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabId, toPrint.map((f) => f.key).join('|')]);
   useEffect(() => {
     if (tabId == null || !toMeasure.length) return;
     setMeasured((m) => ({ ...m, ...Object.fromEntries(toMeasure.map((f) => [f.key, 'pending' as const])) }));

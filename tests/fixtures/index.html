@@ -23,6 +23,7 @@
     font-weight: 400 700;
   }
   /* One family loaded as separate fonts per weight, the way Klim does it */
+  @font-face { font-family: 'HelveticaNeueLTPro'; src: url('fonts/LiberationSans.ttf') format('truetype'); }
   @font-face { font-family: 'k-demo-regular'; src: url('fonts/HouseMono.woff2') format('woff2'); }
   @font-face { font-family: 'k-demo-bold'; src: url('fonts/HouseMono.woff2') format('woff2'); }
   @font-face {
@@ -65,6 +66,7 @@
   <p style="font-family: 'k-demo-regular', sans-serif">Demo regular weight text.</p>
   <p style="font-family: 'k-demo-bold', sans-serif">Demo bold weight text.</p>
   <canvas id="pic" width="560" height="90" style="display:block"></canvas>
+  <p class="hn" style="font-family: HelveticaNeueLTPro, sans-serif">A paragraph in a Helvetica-shaped font with a joined-up name.</p>
   <p class="acme">Set in a font added by a script, with no file to download.</p>
   <section id="late"></section>
 </main>

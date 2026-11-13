@@ -28,6 +28,8 @@ export interface Shape {
   tl?: number | null;
   /** Dot of "i": filled share of its box, about 0.78 round, 1 square. */
   dot?: number | null;
+  /** How open "c" and "e" are on the right: share of rows open past the middle (Helvetica is closed, about 0.25; humanist fonts are open). */
+  ap?: number | null;
 }
 
 /** The letters a shape needs. Ask Google Fonts for only these. */
@@ -235,7 +237,20 @@ function pixelFeatures(get: (ch: string) => Bitmap | null, emPx: number) {
     // Only a separate dot counts (some fonts have no gap, e.g. dotless designs).
     if (rows > 1 && y < ib.h - 2 && right >= left) dot = r3(area / (rows * (right - left + 1)));
   }
-  return { stem, contrast, round, sq, g2, a2, tl, dot };
+  // Aperture: rows where a ray from the right reaches past the middle of "c" or "e" without touching ink.
+  const openness = (b: Bitmap | null) => {
+    if (!b || b.h < 6) return null;
+    let open = 0;
+    for (let y = 1; y < b.h - 1; y++) {
+      let x = b.w - 1;
+      while (x >= b.w / 2 && !b.px[y * b.w + x]) x--;
+      if (x < b.w / 2) open++;
+    }
+    return open / (b.h - 2);
+  };
+  const aps = [openness(get('c')), openness(get('e'))].filter((v): v is number => v != null);
+  const ap = aps.length ? r3(aps.reduce((t, v) => t + v, 0) / aps.length) : null;
+  return { stem, contrast, round, sq, g2, a2, tl, dot, ap };
 }
 
 /**
@@ -333,7 +348,7 @@ export function shapeFromFont(font: FontLike): Shape | null {
   const letters = 'abcdefghijklmnopqrstuvwxyz'.split('').filter(has);
   const w = letters.reduce((s, ch) => s + g(ch).advanceWidth, 0) / Math.max(1, letters.length) / upm;
 
-  const { stem, contrast, round, sq, g2, a2, tl, dot } = pixelFeatures((ch) => (has(ch) ? raster(g(ch), upm) : null), 160);
+  const { stem, contrast, round, sq, g2, a2, tl, dot, ap } = pixelFeatures((ch) => (has(ch) ? raster(g(ch), upm) : null), 160);
   const adv = (ch: string) => (has(ch) ? g(ch).advanceWidth : NaN);
   const oW = adv('o');
   const hW = adv('H');
@@ -355,15 +370,16 @@ export function shapeFromFont(font: FontLike): Shape | null {
     prof,
     tl,
     dot,
+    ap,
   };
 }
 
 /** Shape as a compact array for the built data file. */
 export function packShape(s: Shape): (number | null)[] {
   const prof = s.prof ?? [];
-  return [s.x, s.cap, s.asc, s.desc, s.w, s.stem, s.contrast, s.round, s.g2 ?? null, s.a2 ?? null, s.sq ?? null, ...Array.from({ length: 9 }, (_, i) => prof[i] ?? null), s.tl ?? null, s.dot ?? null];
+  return [s.x, s.cap, s.asc, s.desc, s.w, s.stem, s.contrast, s.round, s.g2 ?? null, s.a2 ?? null, s.sq ?? null, ...Array.from({ length: 9 }, (_, i) => prof[i] ?? null), s.tl ?? null, s.dot ?? null, s.ap ?? null];
 }
 
 export function unpackShape(a: (number | null)[]): Shape {
-  return { x: a[0]!, cap: a[1]!, asc: a[2]!, desc: a[3]!, w: a[4]!, stem: a[5], contrast: a[6], round: a[7], g2: a[8] ?? null, a2: a[9] ?? null, sq: a[10] ?? null, prof: a.slice(11, 20), tl: a[20] ?? null, dot: a[21] ?? null };
+  return { x: a[0]!, cap: a[1]!, asc: a[2]!, desc: a[3]!, w: a[4]!, stem: a[5], contrast: a[6], round: a[7], g2: a[8] ?? null, a2: a[9] ?? null, sq: a[10] ?? null, prof: a.slice(11, 20), tl: a[20] ?? null, dot: a[21] ?? null, ap: a[22] ?? null };
 }

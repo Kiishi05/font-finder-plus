@@ -479,6 +479,9 @@ try {
   await panel.waitForFunction(() => { const r = [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Acme Mono')); return r && !/Measuring/.test(r.textContent); }, null, { timeout: 20000 }).catch(() => {});
   const acme = await panel.evaluate(() => [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Acme Mono'))?.textContent ?? 'missing');
   check('Make it free measures fonts it cannot download', /%/.test(acme) && !/Could not|Not measured/.test(acme), acme);
+  await panel.waitForFunction(() => { const r = [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Helvetica Neue LT Pro')); return r && !/Measuring/.test(r.textContent); }, null, { timeout: 20000 }).catch(() => {});
+  const hn = await panel.evaluate(() => [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Helvetica Neue LT Pro'))?.textContent ?? 'missing');
+  check('Make it free swaps a Helvetica-shaped font for Arimo, by letter shapes', /Arimo/.test(hn), hn);
   check('Make it free shows the free licence of a close match', /Free · SIL Open Font License/.test(acme), acme);
   await panel.waitForFunction(() => [...document.querySelectorAll('.fcard')].some((c) => /Courier New|Liberation Mono/.test(c.textContent)), null, { timeout: 15000 }).catch(() => {});
   check('text added later in a new style is picked up', (await panel.locator('.fcard', { hasText: /Courier New|Liberation Mono/ }).count()) >= 1);
@@ -699,6 +702,7 @@ try {
   const cat = await import(tmp2);
   check('ALL_CAPS CSS names are shown in normal case', cat.cleanFamilyName('MARTINA_PLANTIJN') === 'Martina Plantijn' && cat.cleanFamilyName('SOEHNE') === 'Soehne');
   check('Google Fonts preview names are cleaned (gf_Poppins variant0)', cat.cleanFamilyName('gf_Poppins variant0') === 'Poppins' && cat.cleanFamilyName('gf_Great_Vibes variant0') === 'Great Vibes', cat.cleanFamilyName('gf_Great_Vibes variant0'));
+  check('joined-up names are split (HelveticaNeueLTPro)', cat.cleanFamilyName('HelveticaNeueLTPro') === 'Helvetica Neue LT Pro' && cat.cleanFamilyName('JetBrainsMono') === 'JetBrains Mono' && cat.cleanFamilyName('McLaren') === 'McLaren' && cat.cleanFamilyName('SFProText') === 'SF Pro Text', [cat.cleanFamilyName('HelveticaNeueLTPro'), cat.cleanFamilyName('SFProText')].join(', '));
   check('names ending in VF are grouped under the family', cat.familyGroupName(cat.cleanFamilyName('die-grotesk-vf')) === 'Die Grotesk', cat.familyGroupName(cat.cleanFamilyName('die-grotesk-vf')));
   check('Soehne spelling is recognised as a Klim font', cat.licenseFromCatalog('SOEHNE', 'self-hosted') === 'commercial');
   check('Copy CSS keeps fallbacks up to the font that renders', JSON.stringify(tidyStack(['Söhne', 'Helvetica', 'Arial', 'sans-serif'], 'Arial')) === JSON.stringify(['Söhne', 'Helvetica', 'Arial', 'sans-serif']));

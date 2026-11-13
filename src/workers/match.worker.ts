@@ -2,7 +2,7 @@
 // Compares letters cut from an image with the glyph index (Regular and Bold of
 // each Latin Google Fonts family). Runs in a Web Worker.
 import * as fontkit from 'fontkit';
-import { GLYPH_CHARS, RECORD, cropInk, makeRecord } from '../shared/glyphprint';
+import { GLYPH_CHARS, LOOKALIKE_CHARS, RECORD, cropInk, makeRecord, recordToQuery } from '../shared/glyphprint';
 import { rankFonts, type Query } from '../shared/matchcore';
 import { raster } from '../shared/shape';
 
@@ -33,7 +33,7 @@ function fingerprintFile(buf: ArrayBuffer): Uint8Array | null {
   }
 }
 
-interface Req { id: number; type: 'match'; indexUrl: string; families: string[]; weights: number[]; glyphs: Query[]; limit: number; extra?: Extra[] }
+interface Req { id: number; type: 'match'; indexUrl: string; families: string[]; weights: number[]; glyphs: Query[]; limit: number; extra?: Extra[]; file?: ArrayBuffer }
 
 let index: Uint8Array | null = null;
 let loading: Promise<Uint8Array> | null = null;
@@ -51,8 +51,22 @@ async function loadIndex(url: string): Promise<Uint8Array> {
 }
 
 self.onmessage = async (e: MessageEvent<Req>) => {
-  const { id, indexUrl, families, weights, glyphs, limit, extra } = e.data;
+  const { id, indexUrl, families, weights, limit, extra, file } = e.data;
   try {
+    let glyphs: Query[] = (e.data.glyphs ?? []).map((g) => ({ ...g, bits: g.bits instanceof Uint8Array ? g.bits : Uint8Array.from(g.bits as ArrayLike<number>) }));
+    // Look-alikes of a font file: its own letters are the query.
+    if (file) {
+      const prints = fingerprintFile(file);
+      if (!prints) throw new Error('Could not read the font file.');
+      glyphs = [];
+      for (const ch of LOOKALIKE_CHARS) {
+        const ci = GLYPH_CHARS.indexOf(ch);
+        const rec = prints.subarray(ci * RECORD, (ci + 1) * RECORD);
+        if (rec[RECORD - 3] === 0) continue;
+        const q = recordToQuery(rec, ci);
+        glyphs.push({ ...q, bits: Uint8Array.from(q.bits) });
+      }
+    }
     let ix = await loadIndex(indexUrl);
     let fams = families;
     let wts = weights;

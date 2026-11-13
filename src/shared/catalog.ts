@@ -45,6 +45,11 @@ export function cleanFamilyName(raw: string): string {
   if (/^[a-z0-9-]+$/.test(s) && s.includes('-')) {
     s = s.replace(/^[a-z]-(?=[a-z]{3})/, '').replace(/-+/g, ' ').replace(/\b[a-z]/g, (c) => c.toUpperCase());
   }
+  // Joined-up names ("HelveticaNeueLTPro", "GeistSans"): use the Google Fonts spelling when
+  // there is one ("JetBrainsMono"), otherwise split at the capitals.
+  if (!/[\s_-]/.test(s) && /[a-z][A-Z]/.test(s)) {
+    s = bySquash.get(squash(s)) ?? s.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+  }
   return s.trim() || raw.trim();
 }
 

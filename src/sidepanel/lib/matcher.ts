@@ -1,5 +1,6 @@
 import indexJson from '../../shared/data/glyph-index.json';
 import type { QueryGlyph } from './imageprep';
+import type { PrintQuery } from '../../shared/glyphprint';
 
 const meta = indexJson as unknown as { generated: string; families: string[]; weights: number[] };
 export const INDEX_COUNT = meta.families.length;
@@ -67,6 +68,31 @@ export function matchGlyphs(glyphs: QueryGlyph[], limit = 10, extra: PageFontFil
       glyphs: glyphs.map((g) => ({ ci: g.ci, bits: g.bits, aspect: g.aspect, h: g.h, bottom: g.bottom })),
       limit,
       extra,
+    });
+  });
+}
+
+/**
+ * How much each Google Fonts family looks like a font, from its letters'
+ * shapes (0 to 100). The font is given as its file, or as prints of its
+ * letters drawn by the browser.
+ */
+export function lookalikeScores(src: { file?: ArrayBuffer; prints?: PrintQuery[] }): Promise<Map<string, number>> {
+  const id = ++seq;
+  return new Promise((resolve, reject) => {
+    pending.set(id, (r) => {
+      if (!r.ok || !r.results) return reject(new Error(r.error ?? 'Matching failed.'));
+      resolve(new Map(r.results.map((x) => [x.family, Math.round(Math.max(0, Math.min(1, (x.total - 0.75) / 0.23)) * 100)])));
+    });
+    getWorker().postMessage({
+      id,
+      type: 'match',
+      indexUrl: chrome.runtime.getURL('data/glyph-index.bin.gz'),
+      families: meta.families,
+      weights: meta.weights,
+      glyphs: src.prints ?? [],
+      file: src.file,
+      limit: meta.families.length,
     });
   });
 }

@@ -1,3 +1,4 @@
+import { LOOKALIKE_CHARS, printsFromCanvas } from '../shared/glyphprint';
 import type { FetchFontReply, PingReply, ScanReply, ToContent } from '../shared/messages';
 import { arrayBufferToBase64 } from '../shared/messages';
 import { clearRenderCache } from './detect';
@@ -70,6 +71,16 @@ if (!window.__ffpLoaded) {
           .load(`${msg.style} ${msg.weight} 40px ${fam}`, SHAPE_TEXT)
           .catch(() => undefined)
           .then(() => reply({ ok: true, shape: shapeFromCanvas(fam, msg.weight, msg.style) }))
+          .catch(() => reply({ ok: false }));
+        return true;
+      }
+      case 'ffp:prints': {
+        // Letter prints of a font as this page draws it, for finding look-alikes.
+        const fam = `"${msg.family.replace(/"/g, '')}"`;
+        document.fonts
+          .load(`${msg.style} ${msg.weight} 40px ${fam}`, LOOKALIKE_CHARS)
+          .catch(() => undefined)
+          .then(() => reply({ ok: true, prints: printsFromCanvas(fam, msg.weight, msg.style) }))
           .catch(() => reply({ ok: false }));
         return true;
       }

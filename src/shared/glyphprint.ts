@@ -113,3 +113,48 @@ export function shapeSimilarity(a: Uint8Array, ao: number, b: Uint8Array, bo: nu
   const strict = (2 * both) / (na + nb);
   return loose * 0.6 + strict * 0.4;
 }
+
+/** Letters compared when looking for fonts that look like a given font. */
+export const LOOKALIKE_CHARS = 'abcdefghijklmnopqrstuvwxyzAEGHMORS';
+
+/** A letter as the matcher takes it (same layout as a record, unpacked). */
+export interface PrintQuery { ci: number; bits: number[]; aspect: number; h: number; bottom: number }
+
+/** Unpack a record into a query for the matcher. */
+export function recordToQuery(r: Uint8Array, ci: number): PrintQuery {
+  return { ci, bits: Array.from(r.subarray(0, BITS)), aspect: aspectOf(r), h: heightOf(r), bottom: bottomOf(r) };
+}
+
+/**
+ * Prints of each letter of a font as the browser draws it. Used when the font
+ * file cannot be read but the font is loaded (on the page or in the panel).
+ */
+export function printsFromCanvas(familyCss: string, weight = '400', style = 'normal'): PrintQuery[] {
+  const E = 96;
+  const W = 220;
+  const H = 200;
+  const base = 150;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return [];
+  ctx.font = `${style} ${weight} ${E}px ${familyCss}`;
+  ctx.textBaseline = 'alphabetic';
+  const out: PrintQuery[] = [];
+  for (const ch of LOOKALIKE_CHARS) {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#000';
+    ctx.fillText(ch, 30, base);
+    const d = ctx.getImageData(0, 0, W, H).data;
+    const px = new Uint8Array(W * H);
+    for (let i = 0; i < px.length; i++) px[i] = d[i * 4 + 3] > 127 ? 1 : 0;
+    const ink = cropInk({ w: W, h: H, px });
+    if (!ink || ink.h < 4) continue;
+    let last = -1;
+    for (let y = H - 1; y >= 0 && last < 0; y--) for (let x = 0; x < W; x++) if (px[y * W + x]) { last = y; break; }
+    const rec = makeRecord(ink, ink.h / E, (base - (last + 1)) / E);
+    out.push(recordToQuery(rec, GLYPH_CHARS.indexOf(ch)));
+  }
+  return out;
+}
