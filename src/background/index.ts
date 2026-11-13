@@ -1,3 +1,4 @@
+import { hasText } from '../shared/textdetect';
 import { explainInjectError } from '../shared/pageaccess';
 import { googleFamily } from '../shared/catalog';
 import { saveFont } from '../shared/db';
@@ -95,8 +96,29 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   toggleInspector(tab.id, true);
 });
 
-chrome.runtime.onMessage.addListener((msg: ToExtension | { type: 'ffp:fetch-bg'; url: string; as: 'text' | 'base64' }, sender, reply) => {
+/** Does this area of the visible tab contain text? Screenshot, crop, quick check. */
+async function pictureHasText(windowId: number, r: { x: number; y: number; w: number; h: number; dpr: number }): Promise<boolean> {
+  const url = await chrome.tabs.captureVisibleTab(windowId, { format: 'png' });
+  const bmp = await createImageBitmap(await (await fetch(url)).blob());
+  const k = 1; // the screenshot is in device pixels
+  const sx = Math.round(r.x * r.dpr * k), sy = Math.round(r.y * r.dpr * k);
+  const sw = Math.max(1, Math.round(r.w * r.dpr * k)), sh = Math.max(1, Math.round(r.h * r.dpr * k));
+  const c = new OffscreenCanvas(sw, sh);
+  const ctx = c.getContext('2d')!;
+  ctx.drawImage(bmp, sx, sy, sw, sh, 0, 0, sw, sh);
+  return hasText(ctx.getImageData(0, 0, sw, sh));
+}
+
+chrome.runtime.onMessage.addListener((msg: ToExtension | { type: 'ffp:fetch-bg'; url: string; as: 'text' | 'base64' } | { type: 'ffp:picture-text'; rect: { x: number; y: number; w: number; h: number; dpr: number } }, sender, reply) => {
   switch (msg.type) {
+    case 'ffp:picture-text': {
+      const windowId = sender.tab?.windowId;
+      if (windowId == null) return void reply({ ok: false });
+      pictureHasText(windowId, msg.rect)
+        .then((has) => reply({ ok: true, hasText: has }))
+        .catch(() => reply({ ok: false }));
+      return true;
+    }
     case 'ffp:save-from-page': {
       const site = safeHost(msg.pageUrl);
       const rec = recordFromInfo(msg.info, msg.fileUrl, msg.files ?? []);

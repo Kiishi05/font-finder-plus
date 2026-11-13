@@ -3,6 +3,8 @@
 // proportions. The same code makes the index of Google Fonts (build time) and
 // the prints of letters cut from an image (in the browser).
 
+import { FINE_CHARS, fineFromInk, type FinePrint } from './finematch';
+
 export const GLYPH_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 export const CELL = 16;
 const BITS = (CELL * CELL) / 8;
@@ -139,13 +141,17 @@ export function printsFromCanvas(familyCss: string, weight = '400', style = 'nor
   c.height = H;
   const ctx = c.getContext('2d', { willReadFrequently: true });
   if (!ctx) return [];
-  ctx.font = `${style} ${weight} ${E}px ${familyCss}`;
+  // Draw at a text size (16px) scaled up, so fonts with optical sizes use their text design.
+  ctx.font = `${style} ${weight} 16px ${familyCss}`;
   ctx.textBaseline = 'alphabetic';
+  const k = E / 16;
   const out: PrintQuery[] = [];
   for (const ch of LOOKALIKE_CHARS) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = '#000';
-    ctx.fillText(ch, 30, base);
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    ctx.fillText(ch, 30 / k, base / k);
     const d = ctx.getImageData(0, 0, W, H).data;
     const px = new Uint8Array(W * H);
     for (let i = 0; i < px.length; i++) px[i] = d[i * 4 + 3] > 127 ? 1 : 0;
@@ -155,6 +161,35 @@ export function printsFromCanvas(familyCss: string, weight = '400', style = 'nor
     for (let y = H - 1; y >= 0 && last < 0; y--) for (let x = 0; x < W; x++) if (px[y * W + x]) { last = y; break; }
     const rec = makeRecord(ink, ink.h / E, (base - (last + 1)) / E);
     out.push(recordToQuery(rec, GLYPH_CHARS.indexOf(ch)));
+  }
+  return out;
+}
+
+/** Sharper prints (48 by 48) of a font as the browser draws it, for the second look at look-alikes. */
+export function finePrintsFromCanvas(familyCss: string, weight = '400', style = 'normal'): Record<string, FinePrint | null> {
+  const E = 120;
+  const W = 260;
+  const H = 240;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  const out: Record<string, FinePrint | null> = {};
+  if (!ctx) return out;
+  // Text size (16px) scaled up, so fonts with optical sizes use their text design.
+  ctx.font = `${style} ${weight} 16px ${familyCss}`;
+  const k = E / 16;
+  for (const ch of FINE_CHARS) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#000';
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    ctx.fillText(ch, 30 / k, 180 / k);
+    const d = ctx.getImageData(0, 0, W, H).data;
+    const px = new Uint8Array(W * H);
+    for (let i = 0; i < px.length; i++) px[i] = d[i * 4 + 3] > 127 ? 1 : 0;
+    const ink = cropInk({ w: W, h: H, px });
+    out[ch] = ink && ink.h >= 4 ? fineFromInk(ink) : null;
   }
   return out;
 }

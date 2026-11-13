@@ -38,6 +38,8 @@ export type Verdict = 'exact' | 'close' | 'unlikely';
 export function imageVerdict(scores: number[], letters: number): Verdict {
   const [a = 0, b = 0] = scores;
   if (letters < 4 || a < 45) return 'unlikely';
+  // Short text (a single word) can look like many fonts: never call it the exact font.
+  if (letters < 12) return 'close';
   if (a >= 80 || (a >= 60 && a - b >= 5)) return 'exact';
   return 'close';
 }

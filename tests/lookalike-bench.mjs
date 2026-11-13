@@ -17,7 +17,7 @@ const cacheDir = path.join(root, 'node_modules/.cache/bench');
 fs.mkdirSync(cacheDir, { recursive: true });
 const tmp = path.join(cacheDir, 'core.mjs');
 await build({
-  stdin: { contents: "export * from './src/shared/similar.ts'; export * from './src/shared/shape.ts'; export * from './src/shared/glyphprint.ts'; export * from './src/shared/matchcore.ts'; export * from './src/shared/lookalike-core.ts';", resolveDir: root, loader: 'ts' },
+  stdin: { contents: "export * from './src/shared/similar.ts'; export * from './src/shared/shape.ts'; export * from './src/shared/glyphprint.ts'; export * from './src/shared/matchcore.ts'; export * from './src/shared/lookalike-core.ts'; export * from './src/shared/finematch.ts';", resolveDir: root, loader: 'ts' },
   outfile: tmp, bundle: true, format: 'esm', platform: 'node', logLevel: 'silent', loader: { '.json': 'json' },
 });
 const m = await import(`${tmp}?t=${Date.now()}`);
@@ -138,13 +138,35 @@ async function canvasMeasure(buf) {
     await ff.load();
     document.fonts.add(ff);
     const prints = G.printsFromCanvas(`"${name}"`);
+    const fine = G.finePrintsFromCanvas(`"${name}"`);
     const shape = S.shapeFromCanvas(`"${name}"`);
     document.fonts.delete(ff);
-    return { prints, shape };
+    return { prints, shape, fine: Object.fromEntries(Object.entries(fine).map(([k, v]) => [k, v ? { px: Array.from(v.px), aspect: v.aspect } : null])) };
   }, Buffer.from(buf).toString('base64'));
 }
 
-export async function runBench({ quiet = false, share, canvas = false } = {}) {
+const gfFile = async (fam) => {
+  const file = path.join(cacheDir, `fine_${fam.replace(/\W+/g, '_')}.font`);
+  if (!fs.existsSync(file)) {
+    const css = await (await fetch(`https://fonts.googleapis.com/css2?family=${fam.replace(/ /g, '+')}&text=${encodeURIComponent(m.FINE_CHARS)}`)).text();
+    const url = /url\((https:[^)]+)\)/.exec(css)?.[1];
+    if (!url) return null;
+    fs.writeFileSync(file, Buffer.from(await (await fetch(url)).arrayBuffer()));
+  }
+  try { const f0 = fontkit.openSync(file); return f0.fonts ? f0.fonts[0] : f0; } catch { return null; }
+};
+const finePrintsOf = (font) => {
+  const out = {};
+  for (const ch of m.FINE_CHARS) {
+    const cp = ch.codePointAt(0);
+    if (!font.hasGlyphForCodePoint(cp)) { out[ch] = null; continue; }
+    const ink = m.cropInk(m.raster(font.glyphForCodePoint(cp), font.unitsPerEm, 120));
+    out[ch] = ink ? m.fineFromInk(ink) : null;
+  }
+  return out;
+};
+
+export async function runBench({ quiet = false, share, canvas = false, fine = true } = {}) {
   const rows = [];
   for (const [name, src, expect, why] of ACTIVE) {
     const pool = new Set(m.similarTo(m.shapeOf('Roboto'), { limit: 5000 }).map((x) => x.family));
@@ -157,10 +179,12 @@ export async function runBench({ quiet = false, share, canvas = false } = {}) {
     const font = f0.fonts ? f0.fonts[0] : f0;
     let shape = m.shapeFromFont(font);
     let queryPrints = null;
+    let queryFine = null;
     if (canvas) {
       const c = await canvasMeasure(buf);
       shape = c.shape;
       queryPrints = c.prints.map((p) => ({ ...p, bits: Uint8Array.from(p.bits) }));
+      queryFine = Object.fromEntries(Object.entries(c.fine).map(([k, v]) => [k, v ? { px: Uint8Array.from(v.px), aspect: v.aspect } : null]));
     }
     if (!shape) continue;
     const self = src.startsWith('gf:') ? src.slice(3) : m.shapeOf(name.replace(/ \(.*$/, '')) ? name.replace(/ \(.*$/, '') : undefined;
@@ -168,7 +192,17 @@ export async function runBench({ quiet = false, share, canvas = false } = {}) {
     const metric = m.similarTo(shape, { exclude: self, limit: 5000 });
     const ranked = m.rankFonts(ix, meta.families, meta.weights, queryPrints ?? prints(font), meta.families.length, false);
     const letters = new Map(ranked.map((x) => [x.family, Math.round(Math.max(0, Math.min(1, (x.total - 0.75) / 0.23)) * 100)]));
-    const blended = m.blend(metric.filter((x) => x.family !== self), letters, 50, share);
+    let blended = m.blend(metric.filter((x) => x.family !== self), letters, 50, share);
+    if (fine) {
+      const q = queryFine ?? finePrintsOf(m.regularInstance(font));
+      const scores = new Map();
+      for (const c of blended.slice(0, m.FINE_SHORTLIST)) {
+        const g = await gfFile(c.family).catch(() => null);
+        const v = g ? m.fineFontScore(q, finePrintsOf(g)) : null;
+        if (v != null) scores.set(c.family, v);
+      }
+      blended = m.rerankFine(blended, scores);
+    }
     const lettersOnly = ranked.map((x) => x.family).filter((f) => f !== self && !(self && f.startsWith(self + ' ')));
     const r = {
       name, expect: exists, why,
@@ -188,6 +222,15 @@ export async function runBench({ quiet = false, share, canvas = false } = {}) {
   return { rows, top1, top3, n: rows.length };
 }
 
+if (process.argv[2] === 'finesweep') {
+  for (const strict of [0.2, 0.35, 0.5]) for (const share of [0.3, 0.45, 0.6]) {
+    m.TUNE.strict = strict; m.TUNE.share = share;
+    const a = await runBench({ quiet: true });
+    const b = await runBench({ quiet: true, canvas: true });
+    console.log(`strict ${strict} share ${share}: files ${a.top1}/${a.n} (${a.top3}), page ${b.top1}/${b.n} (${b.top3})`);
+  }
+  process.exit(0);
+}
 if (process.argv[2] === 'sweep') {
   for (const share of [0.4, 0.5, 0.6, 0.7, 0.8, 0.9]) {
     const r = await runBench({ quiet: true, share });
@@ -195,7 +238,7 @@ if (process.argv[2] === 'sweep') {
   }
   process.exit(0);
 }
-if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv[2] !== 'sweep') {
+if (process.argv[1] === fileURLToPath(import.meta.url) && process.argv[2] !== 'sweep' && process.argv[2] !== 'finesweep') {
   const { top1, top3, n } = await runBench({ canvas: process.argv[2] === 'canvas' });
   fs.mkdirSync(path.join(root, 'tests/output'), { recursive: true });
   process.exit(top1 / n >= 0.85 && top3 / n >= 0.95 ? 0 : 1);

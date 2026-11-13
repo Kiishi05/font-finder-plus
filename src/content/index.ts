@@ -1,4 +1,5 @@
-import { LOOKALIKE_CHARS, printsFromCanvas } from '../shared/glyphprint';
+import { LOOKALIKE_CHARS, finePrintsFromCanvas, printsFromCanvas } from '../shared/glyphprint';
+import { FINE_CHARS } from '../shared/finematch';
 import type { FetchFontReply, PingReply, ScanReply, ToContent } from '../shared/messages';
 import { arrayBufferToBase64 } from '../shared/messages';
 import { clearRenderCache } from './detect';
@@ -81,6 +82,19 @@ if (!window.__ffpLoaded) {
           .load(`${msg.style} ${msg.weight} 40px ${fam}`, LOOKALIKE_CHARS)
           .catch(() => undefined)
           .then(() => reply({ ok: true, prints: printsFromCanvas(fam, msg.weight, msg.style) }))
+          .catch(() => reply({ ok: false }));
+        return true;
+      }
+      case 'ffp:fine-prints': {
+        // Sharper letter prints of a font as this page draws it (second look at look-alikes).
+        const fam = `"${msg.family.replace(/"/g, '')}"`;
+        document.fonts
+          .load(`${msg.style} ${msg.weight} 40px ${fam}`, FINE_CHARS)
+          .catch(() => undefined)
+          .then(() => {
+            const prints = finePrintsFromCanvas(fam, msg.weight, msg.style);
+            reply({ ok: true, prints: Object.fromEntries(Object.entries(prints).map(([k, v]) => [k, v ? { px: Array.from(v.px), aspect: v.aspect } : null])) });
+          })
           .catch(() => reply({ ok: false }));
         return true;
       }

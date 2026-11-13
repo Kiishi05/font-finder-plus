@@ -12,11 +12,9 @@ import { CollectionPicker } from '../components/CollectionPicker';
 import { MissingNote } from '../components/MissingNote';
 import type { Match } from '../../shared/similar';
 import { trySwap, undoSwap, useSwaps } from '../lib/google';
-import { measureOnPage } from '../lib/shapes';
 import { SendToFigma } from '../components/SendToFigma';
 import { FILE_ACCESS_HINT, drawsTextAsPictures } from '../../shared/pageaccess';
-import { blendMatches, letterScores } from '../lib/lookalike';
-import type { Shape } from '../../shared/shape';
+import { CLOSE_MATCH, freeLookalikes, type LookalikeResult } from '../lib/lookalike';
 import { Icon } from '../components/Icon';
 import { Tester, sampleText, type TesterState } from '../components/Tester';
 import { copyToClipboard, usePageScan, useSettings, type TabState } from '../lib/hooks';
@@ -371,60 +369,44 @@ function Guide({ force = false }: { force?: boolean }) {
  * match, live on the page, to preview the site with free fonts.
  */
 /** Matches below this are not offered as swaps in Make it free. */
-const CLOSE_MATCH = 70;
-
 function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; tabId: number | null; swaps: Record<string, string>; toast: (m: string) => void }) {
   const candidates = fonts.filter((f) => f.kind === 'web' && !f.catalogFamily);
   const ids = candidates.map((f) => fontId(f.family, f.source));
   const records = useLiveQuery(() => db.fonts.bulkGet(ids), [ids.join('|')]) ?? [];
   const [busy, setBusy] = useState(false);
   const [all, setAll] = useState(false);
-  // Fonts whose file could not be read are measured as the page draws them.
-  const [measured, setMeasured] = useState<Record<string, Shape | null | 'pending'>>({});
-  // How alike each free font's letters are, from the page's own drawing of the font.
-  const [letters, setLetters] = useState<Record<string, Map<string, number> | null>>({});
+  // Closest free fonts, from the same calculation as Similar fonts and Send to Figma.
+  const [found, setFound] = useState<Record<string, LookalikeResult | null | 'pending'>>({});
   const rows = candidates
     .map((f, i) => {
       const r = records[i];
       const lic = r?.licenseType ?? f.licenseType;
       if (lic !== 'commercial' && lic !== 'unknown') return null;
       if (r?.catalogFamily) return null;
-      const pageShape = measured[f.key];
-      const shape = r?.parsed?.shape ?? (pageShape && pageShape !== 'pending' ? pageShape : null);
-      const sampleW = Number(f.sample.fontWeight) || 400;
-      const wc = r?.parsed?.shape ? r?.parsed?.weightClass ?? 400 : sampleW;
-      const lettersReady = f.key in letters;
-      const match: Match | null = shape && lettersReady ? blendMatches(shape, letters[f.key], { classification: r?.classification ?? f.classification, limit: 1, ignoreWeight: wc < 350 || wc > 450 })[0] ?? null : null;
-      const state: 'ok' | 'measuring' | 'failed' = match ? 'ok' : !lettersReady || pageShape === 'pending' || (pageShape === undefined && !r?.parsed?.shape) ? 'measuring' : 'failed';
-      return { f, name: r?.displayName ?? f.displayName ?? f.family, lic, match, aspect: shape?.x ?? null, state, needsPage: !r?.parsed?.shape };
+      const res = found[f.key];
+      const match: Match | null = res && res !== 'pending' ? res.matches[0] ?? null : null;
+      const state: 'ok' | 'measuring' | 'failed' = match ? 'ok' : res === undefined || res === 'pending' ? 'measuring' : 'failed';
+      return { f, id: ids[i], name: r?.displayName ?? f.displayName ?? f.family, lic, match, x: res && res !== 'pending' ? res.x : null, state };
     })
     .filter((x): x is NonNullable<typeof x> => !!x);
-  const toMeasure = rows.filter((r) => r.needsPage && measured[r.f.key] === undefined).map((r) => r.f);
-  const toPrint = rows.filter((r) => !(r.f.key in letters)).map((r) => r.f);
+  const toFind = rows.filter((r) => found[r.f.key] === undefined);
   useEffect(() => {
-    if (tabId == null || !toPrint.length) return;
-    for (const f of toPrint) {
-      letterScores({ tabId, family: f.family, weight: f.sample.fontWeight, style: f.sample.fontStyle, onPage: true }).then((m) => setLetters((l) => ({ ...l, [f.key]: m })));
+    if (tabId == null || !toFind.length) return;
+    setFound((m) => ({ ...m, ...Object.fromEntries(toFind.map((r) => [r.f.key, 'pending' as const])) }));
+    for (const { f, id } of toFind) {
+      freeLookalikes({ fontId: id, family: f.family, catalogFamily: null, files: f.files, kind: f.kind, classification: f.classification, weight: f.sample.fontWeight, style: f.sample.fontStyle, onPage: true }, tabId).then((res) => setFound((m) => ({ ...m, [f.key]: res })));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabId, toPrint.map((f) => f.key).join('|')]);
-  useEffect(() => {
-    if (tabId == null || !toMeasure.length) return;
-    setMeasured((m) => ({ ...m, ...Object.fromEntries(toMeasure.map((f) => [f.key, 'pending' as const])) }));
-    for (const f of toMeasure) {
-      measureOnPage(tabId, f.family, f.sample.fontWeight, f.sample.fontStyle).then((sh) => setMeasured((m) => ({ ...m, [f.key]: sh })));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabId, toMeasure.map((f) => f.key).join('|')]);
+  }, [tabId, toFind.map((r) => r.f.key).join('|')]);
   if (!rows.length || tabId == null) return null;
   const anySwapped = rows.some((r) => swaps[r.f.key]);
   const swapAll = async () => {
     setBusy(true);
     let n = 0;
     for (const r of rows) {
-      if (!r.match || r.match.score < CLOSE_MATCH) continue;
+      if (!r.match) continue;
       try {
-        await trySwap(tabId, r.f.key, r.match.family, r.aspect);
+        await trySwap(tabId, r.f.key, r.match.family, r.x);
         n++;
       } catch {
         /* keep going */
@@ -445,30 +427,32 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
         )}
       </div>
       <span style={{ fontSize: 12.5 }}>
-        {rows.length === 1 ? 'One font on this page is' : `${rows.length} fonts on this page are`} paid or have an unknown licence. Preview the page with the closest free Google Fonts instead.
+        {rows.length === 1 ? 'One font on this page is' : `${rows.length} fonts on this page are`} paid or have an unknown licence. Preview the page with the closest free fonts from Google Fonts instead.
       </span>
       <div className="freelist">
         {(all ? rows : rows.slice(0, 5)).map((r) => (
           <div key={r.f.key} className="freerow">
             <span className="grow">{r.name}</span>
             <span className="muted">to</span>
-            <span className="grow" style={{ textAlign: 'right' }}>{r.match && r.match.score >= CLOSE_MATCH ? (
+            <span className="grow" style={{ textAlign: 'right' }}>{r.match ? (
                 <>
                   <b>{r.match.family}</b> <span className="mono muted" style={{ fontSize: 11 }}>{r.match.score}%</span>
                   <br />
-                  <span className="lic free" style={{ fontSize: 11 }}><i />Free · {LICENSE_LABEL[googleFamily(r.match.family)?.l ?? 'OFL']}</span>
+                  {r.match.score >= CLOSE_MATCH ? (
+                    <span className="lic free" style={{ fontSize: 11 }}><i />Free on Google Fonts · {LICENSE_LABEL[googleFamily(r.match.family)?.l ?? 'OFL']}</span>
+                  ) : (
+                    <span className="lic warn" style={{ fontSize: 11 }} title="No free Google font is close to this one. This is the nearest, but it will look noticeably different."><i />Not a close match · free on Google Fonts</span>
+                  )}
                 </>
-              ) : r.match ? (
-                <span className="muted" title="Below the 70% bar, so it is not offered as a swap.">No close free match (closest: {r.match.family} {r.match.score}%)</span>
               ) : r.state === 'measuring' ? <span className="muted">Measuring…</span> : <span className="muted" title="The font file could not be read and the page could not draw its letters for measuring.">Could not be measured</span>}</span>
           </div>
         ))}
       </div>
       <div className="row" style={{ gap: 6 }}>
-        <button className="btn sm primary" onClick={swapAll} disabled={busy || !rows.some((r) => r.match && r.match.score >= CLOSE_MATCH)}>{busy ? 'Loading fonts…' : anySwapped ? 'Swap again' : 'Swap all on the page'}</button>
+        <button className="btn sm primary" onClick={swapAll} disabled={busy || !rows.some((r) => r.match)}>{busy ? 'Loading fonts…' : anySwapped ? 'Swap again' : 'Swap all on the page'}</button>
         {anySwapped && <button className="btn sm" onClick={() => undoSwap(tabId, null)}>Undo all</button>}
       </div>
-      <span className="muted" style={{ fontSize: 11.5 }}>Only matches of {CLOSE_MATCH}% or more are offered. All are free Google Fonts. Nothing changes on the real site; reloading the page also undoes it.</span>
+      <span className="muted" style={{ fontSize: 11.5 }}>The closest free fonts from Google Fonts, the same as in each font's Similar fonts. Matches under {CLOSE_MATCH}% are marked: they are the nearest free option but look noticeably different. Nothing changes on the real site; reloading the page also undoes it.</span>
     </section>
   );
 }

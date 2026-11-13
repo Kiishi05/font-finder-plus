@@ -4,7 +4,7 @@
 import * as fontkit from 'fontkit';
 import { GLYPH_CHARS, LOOKALIKE_CHARS, RECORD, cropInk, makeRecord, recordToQuery } from '../shared/glyphprint';
 import { rankFonts, type Query } from '../shared/matchcore';
-import { raster } from '../shared/shape';
+import { raster, regularInstance } from '../shared/shape';
 
 /** A font the page itself uses, given as its file(s). */
 interface Extra { family: string; regular: ArrayBuffer | null; bold: ArrayBuffer | null }
@@ -13,7 +13,7 @@ interface Extra { family: string; regular: ArrayBuffer | null; bold: ArrayBuffer
 function fingerprintFile(buf: ArrayBuffer): Uint8Array | null {
   try {
     const f0: any = fontkit.create(new Uint8Array(buf) as any); // eslint-disable-line @typescript-eslint/no-explicit-any
-    const font = f0.fonts ? f0.fonts[0] : f0;
+    const font = regularInstance(f0.fonts ? f0.fonts[0] : f0);
     const upm = font.unitsPerEm;
     const out = new Uint8Array(GLYPH_CHARS.length * RECORD);
     let any = 0;

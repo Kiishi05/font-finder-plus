@@ -46,8 +46,10 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "fonts/Inter.woff2",
-        "fonts/JetBrainsMono.woff2"
+        "fonts/Geist.woff2",
+        "fonts/Geist-ext.woff2",
+        "fonts/GeistMono.woff2",
+        "fonts/GeistMono-ext.woff2"
       ],
       "matches": [
         "<all_urls>"

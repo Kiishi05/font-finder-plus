@@ -276,7 +276,7 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, onShare, pa
         classification={classification}
         pageKey={usage?.key ?? null}
         tabId={tabId}
-        lettersFrom={usage ? { family, onPage: true, weight: usage.sample.fontWeight, style: usage.sample.fontStyle } : kind !== 'web' && kind !== 'generic' ? { family, onPage: false } : null}
+        input={kind === 'generic' ? null : { fontId, family, catalogFamily: gf?.family ?? null, files, kind, classification, weight: usage?.sample.fontWeight ?? '400', style: usage?.sample.fontStyle ?? 'normal', onPage: !!usage }}
         sampleText={sampleText(tester, '')}
         toast={toast}
       /></div>
@@ -417,7 +417,7 @@ function MetricsCard({ fontCss, weight, parsed }: { fontCss: string; weight: str
       line(base, ink, false);
       c.fillStyle = ink;
       c.fillText('Hxg', 14, base);
-      c.font = `10px 'FFP JetBrains Mono', monospace`;
+      c.font = `10px 'FFP Geist Mono', monospace`;
       c.textAlign = 'right';
       // Values from the font file (units and share of the em), or measured from how it draws.
       const em = (v: number) => `${Math.round(v * 100) / 100} em`;

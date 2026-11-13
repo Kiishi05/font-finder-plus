@@ -167,6 +167,11 @@ check('specimen page made with vector and picture previews', env.log.pages.lengt
 const allText = [];
 const walk = (n) => { if (n.type === 'TEXT') allText.push(n.characters); n.children?.forEach(walk); };
 env.log.pages.forEach(walk);
+check('text styles are grouped into style guide folders', env.log.styles.every((st) => /\/(Headings|Body|Buttons & labels|Code)\//.test(st.name)) && env.log.styles.length <= 16, env.log.styles.map((st) => st.name).slice(0, 6).join(' | '));
+check('specimen is laid out as a style guide', allText.includes('Style Guide · Typography') && allText.includes('Letter spacing') && allText.includes('Line height') && allText.includes('HEADINGS') && allText.some((t) => /^ABCDEFGHIJKLMNOPQRSTUVWXYZ/.test(t)) && allText.includes('Aa'), allText.slice(0, 8).join(' | '));
+// Save the built page for tests/figma-preview.mjs (draws it as HTML to look at).
+const ser = (n) => ({ type: n.type, name: n.name, layoutMode: n.layoutMode, itemSpacing: n.itemSpacing, padding: [n.paddingTop, n.paddingRight, n.paddingBottom, n.paddingLeft], width: n.width, height: n.height, fills: n.fills, strokeBottomWeight: n.strokeBottomWeight, cornerRadius: n.cornerRadius, counterAxisAlignItems: n.counterAxisAlignItems, primaryAxisAlignItems: n.primaryAxisAlignItems, layoutSizingHorizontal: n.layoutSizingHorizontal, counterAxisSizingMode: n.counterAxisSizingMode, characters: n.characters, fontSize: n.fontSize, fontName: n.fontName, textStyle: n.textStyleId ? (() => { const st = env.log.styles.find((x) => x.id === n.textStyleId); return st && { size: st.fontSize, family: st.fontName.family, style: st.fontName.style, lineHeight: st.lineHeight, textCase: st.textCase }; })() : null, children: (n.children ?? []).map(ser) });
+fs.writeFileSync(path.join(root, 'tests/output/figma-specimen.json'), JSON.stringify(ser(env.log.pages[0]).children[0]));
 check('specimen shows licences with the legal note', allText.some((t) => /This is a summary, not legal advice\./.test(t)));
 check('specimen says which fonts are not installed', allText.some((t) => /Not installed in Figma\. Shown with Arimo/.test(t)));
 check('Google fonts also carry look-alikes, for when Figma lacks them', payload.fonts.filter((f) => f.catalogFamily).every((f) => f.standIn && f.standIn.family !== f.catalogFamily));

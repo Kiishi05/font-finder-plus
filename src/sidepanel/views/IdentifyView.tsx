@@ -2,12 +2,13 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { googleFamily, googleFontsUrl, LICENSE_LABEL, licenseBadge } from '../../shared/catalog';
 import { db, saveFont } from '../../shared/db';
+import { SaveFontButton } from '../components/SaveFontButton';
 import { ensureRecord, pageFontFiles } from '../lib/imagefonts';
 import { knownFont } from '../../shared/licences';
 import { findFontNames } from '../lib/fontnames';
 import { AllFonts, VERDICT_LABEL, blocksFor } from './identify/AllFonts';
 import { imageVerdict } from '../../shared/imagerank';
-import { Alert02Icon, ArrowUpRight01Icon, Bookmark02Icon, Delete02Icon, ImageCropIcon, ImageUploadIcon, PerspectiveIcon, RotateClockwiseIcon, ScanImageIcon, Target02Icon } from '../../shared/icons';
+import { Alert02Icon, ArrowUpRight01Icon, Delete02Icon, ImageCropIcon, ImageUploadIcon, PerspectiveIcon, RotateClockwiseIcon, ScanImageIcon, Target02Icon } from '../../shared/icons';
 import { sendToTab } from '../../shared/messages';
 import type { ImageJob, LicenseType, PageFontUsage, PageScan } from '../../shared/types';
 import { bestFileUrl, fontId, recordFromUsage } from '../../shared/records';
@@ -629,7 +630,6 @@ function ImageMatchRow({ m, rank, label, text, imgUrl, image, usage, liveTarget:
     const sp = await db.specimens.where('fontId').equals(id).first();
     if (sp?.id) await db.specimens.update(sp.id, { screenshotIds: [...sp.screenshotIds, shot] });
     else await db.specimens.add({ fontId: id, screenshotIds: [shot], pairing: null, notes: '', createdAt: Date.now() });
-    toast(`Saved ${m.family} to your library, with the image`);
   };
   return (
     <div className="match">
@@ -653,7 +653,7 @@ function ImageMatchRow({ m, rank, label, text, imgUrl, image, usage, liveTarget:
       <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
         <button className={`btn sm${compare ? ' done' : ''}`} onClick={() => setCompare(!compare)}>{compare ? 'Hide your image' : 'Compare with your image'}</button>
         {!m.onPage && <button className="btn sm" onClick={async () => onOpenFontId(await ensureRecord(m.family))}>Details</button>}
-        <button className="btn sm" onClick={save}><Icon icon={Bookmark02Icon} size={13} />Save</button>
+        <SaveFontButton fontId={m.onPage && usage ? fontId(usage.family, usage.source) : `${m.family}::google`} name={m.family} onSave={save} toast={toast} />
         {target && tabId != null && (
           <button className={`btn sm${live ? ' done' : ''}`} onClick={tryLive} disabled={trying} title={`Shows ${m.family} on the page in place of ${target.displayName || target.family}`}>
             {trying ? 'Loading…' : live ? 'Showing on page · Undo' : 'Try it live on the page'}

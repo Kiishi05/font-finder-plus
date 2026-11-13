@@ -59,9 +59,10 @@ let uiFonts: { regular: FontName; medium: FontName; bold: FontName } | null = nu
 async function loadUiFonts() {
   if (uiFonts) return uiFonts;
   const ix = await getIndex();
-  const inter = findFamily(ix, [UI_FAMILY]);
-  const fam = inter ? inter.family : 'Inter';
-  const styles = inter?.styles ?? ['Regular', 'Medium', 'Bold'];
+  // Font Finder Plus's own font is Geist; Inter (always in Figma) when Geist is not available.
+  const uiFam = findFamily(ix, ['Geist', UI_FAMILY]);
+  const fam = uiFam ? uiFam.family : 'Inter';
+  const styles = uiFam?.styles ?? ['Regular', 'Medium', 'Bold'];
   const f = (w: number): FontName => ({ family: fam, style: pickStyle(styles, w, false) ?? 'Regular' });
   uiFonts = { regular: f(400), medium: f(500), bold: f(700) };
   await Promise.all([load(uiFonts.regular), load(uiFonts.medium), load(uiFonts.bold)]);
@@ -94,6 +95,20 @@ function text(chars: string, font: FontName, size: number, opts: { color?: RGB; 
   return t;
 }
 
+function row(name: string, gap: number, padX: number, padY: number): FrameNode {
+  const fr = figma.createFrame();
+  fr.name = name;
+  fr.layoutMode = 'HORIZONTAL';
+  fr.primaryAxisSizingMode = 'AUTO';
+  fr.counterAxisSizingMode = 'AUTO';
+  fr.counterAxisAlignItems = 'CENTER';
+  fr.itemSpacing = gap;
+  fr.paddingLeft = fr.paddingRight = padX;
+  fr.paddingTop = fr.paddingBottom = padY;
+  fr.fills = [];
+  return fr;
+}
+
 function column(name: string, gap: number, pad: number): FrameNode {
   const fr = figma.createFrame();
   fr.name = name;
@@ -109,6 +124,13 @@ const GREY = { r: 0.38, g: 0.4, b: 0.45 };
 const INK = { r: 0.07, g: 0.08, b: 0.1 };
 const OK = { r: 0.08, g: 0.48, b: 0.29 };
 const WARN = { r: 0.6, g: 0.38, b: 0 };
+
+const keyOf = (s: FigmaStyle) => slug(s.token ?? s.name);
+const GROUPS = ['Headings', 'Body', 'Buttons & labels', 'Code'] as const;
+const WEIGHT_NAME: Record<string, string> = { '100': 'Thin', '200': 'Extra Light', '300': 'Light', '400': 'Regular', '500': 'Medium', '600': 'Semi Bold', '700': 'Bold', '800': 'Extra Bold', '900': 'Black' };
+const weightName = (w: string) => WEIGHT_NAME[String(Math.round(Number(w) / 100) * 100)] ?? w;
+const spacingPct = (s: FigmaStyle) => { const v = Math.round((s.letterSpacing / s.size) * 1000) / 10; return v === 0 ? '0%' : `${v}%`; };
+const CASE: Record<string, string> = { uppercase: 'Uppercase', lowercase: 'Lowercase', capitalize: 'Title case' };
 
 const lhText = (s: FigmaStyle) => (s.lineHeight ? `${Math.round(s.size)}/${Math.round(s.lineHeight)}` : `${Math.round(s.size)}/auto`);
 
@@ -147,8 +169,8 @@ async function build(p: FigmaPayload, choices: Choice[], opts: Opts) {
         v.description = u.real ? `${f.name} (installed).` : `${f.name} is not installed. ${u.family} stands in for it.`;
       }
       for (const s of p.styles) {
-        getVar(`size/${slug(s.name)}`, 'FLOAT', ['FONT_SIZE']).setValueForMode(mode, Math.round(s.size * 100) / 100);
-        if (s.lineHeight) getVar(`line-height/${slug(s.name)}`, 'FLOAT', ['LINE_HEIGHT']).setValueForMode(mode, Math.round(s.lineHeight * 100) / 100);
+        getVar(`size/${keyOf(s)}`, 'FLOAT', ['FONT_SIZE']).setValueForMode(mode, Math.round(s.size * 100) / 100);
+        if (s.lineHeight) getVar(`line-height/${keyOf(s)}`, 'FLOAT', ['LINE_HEIGHT']).setValueForMode(mode, Math.round(s.lineHeight * 100) / 100);
       }
     } catch (err) {
       collection = null;
@@ -168,7 +190,7 @@ async function build(p: FigmaPayload, choices: Choice[], opts: Opts) {
       const italic = s.style !== 'normal';
       const font: FontName = { family: u.family, style: pickStyle(u.styles, s.weight, italic) ?? 'Regular' };
       if (!(await load(font))) continue;
-      const name = `${site}/${slug(s.name)}`;
+      const name = `${site}/${s.group ? `${s.group}/` : ''}${keyOf(s)}`;
       const st = local.find((x) => x.name === name) ?? figma.createTextStyle();
       st.name = name;
       st.fontName = font;
@@ -183,107 +205,175 @@ async function build(p: FigmaPayload, choices: Choice[], opts: Opts) {
       st.setPluginData('ffp', JSON.stringify(saved));
       if (collection) {
         try {
-          const size = vars.get(`size/${slug(s.name)}`);
+          const size = vars.get(`size/${keyOf(s)}`);
           if (size) st.setBoundVariable('fontSize', size);
-          const lh = vars.get(`line-height/${slug(s.name)}`);
+          const lh = vars.get(`line-height/${keyOf(s)}`);
           if (lh) st.setBoundVariable('lineHeight', lh);
         } catch {
           /* binding is optional */
         }
       }
-      styleIds.set(s.name, st.id);
+      styleIds.set(keyOf(s), st.id);
       made++;
     }
     progress(`Made ${made} text styles.`);
   }
 
-  // Specimen page.
+  // Specimen page: a style guide.
   let page: PageNode | null = null;
   if (opts.specimen) {
     page = figma.createPage();
-    page.name = `Fonts · ${site}`;
+    page.name = `Typography · ${site}`;
     await figma.setCurrentPageAsync(page);
-    const root = column(`Fonts used on ${site}`, 32, 48);
+    const W = 1200;
+    const LINE = { r: 0.9, g: 0.9, b: 0.91 };
+    const root = column(`Style guide · ${site}`, 0, 0);
     root.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+    root.counterAxisSizingMode = 'FIXED';
+    root.resize(W, root.height);
     page.appendChild(root);
-    root.appendChild(text(`Fonts used on ${site}`, ui.bold, 32, { color: INK }));
-    const missing = p.fonts.filter((f) => !used.get(f.key)!.real).length;
-    root.appendChild(
-      text(
-        `${p.fonts.length} fonts and ${p.styles.length} text styles, from ${p.site.url}, read by Font Finder Plus on ${p.scannedAt.slice(0, 10)}.` +
-          (missing ? ` ${missing} not installed here, so a free look-alike stands in for ${missing === 1 ? 'it' : 'each'}.` : ' Every font is installed.') +
-          (p.scale ? ` Type scale: ${p.scale.name} (${p.scale.ratio}).` : ''),
-        ui.regular,
-        14,
-        { color: GREY, width: 720 },
-      ),
-    );
+    const full = (n: FrameNode) => {
+      n.layoutSizingHorizontal = 'FILL';
+      return n;
+    };
+    const divider = (n: FrameNode) => {
+      n.strokes = [{ type: 'SOLID', color: LINE }];
+      n.strokeTopWeight = 0;
+      n.strokeLeftWeight = 0;
+      n.strokeRightWeight = 0;
+      n.strokeBottomWeight = 1;
+      return n;
+    };
 
+    // Header band.
+    const head = row('Header', 16, 40, 22);
+    head.fills = [{ type: 'SOLID', color: INK }];
+    root.appendChild(head);
+    full(head);
+    head.appendChild(text(`Style Guide · Typography`, ui.medium, 16, { color: { r: 1, g: 1, b: 1 } }));
+    head.appendChild(text(`${site} · read by Font Finder Plus on ${p.scannedAt.slice(0, 10)}${p.scale ? ` · ${p.scale.name} scale (${p.scale.ratio})` : ''}`, ui.regular, 12, { color: { r: 0.7, g: 0.72, b: 0.76 } }));
+
+    // One block per font: alphabet in the font used, a big "Aa", licence and where to get it.
     for (const f of p.fonts) {
       const u = used.get(f.key)!;
-      const card = column(f.name, 10, 24);
-      card.cornerRadius = 16;
-      card.fills = [{ type: 'SOLID', color: { r: 0.96, g: 0.965, b: 0.975 } }];
-      card.counterAxisSizingMode = 'FIXED';
-      card.resize(780, card.height);
-      root.appendChild(card);
-      card.appendChild(text(`${f.roles.length ? `Used for ${f.roles.join(', ')}` : 'Used on the page'} · ${f.elements} elements · weights ${f.weights.join(', ')}`, ui.medium, 11, { color: GREY }));
-      // The font itself, drawn from its file or as the page draws it.
-      if (f.preview?.kind === 'svg') {
+      const fontRow = divider(row(`Font · ${f.name}`, 40, 40, 36));
+      root.appendChild(fontRow);
+      full(fontRow);
+      const left = column('About', 10, 0);
+      left.fills = [];
+      fontRow.appendChild(left);
+      left.layoutSizingHorizontal = 'FILL';
+      left.appendChild(text(`Font · ${f.name}${u.real ? '' : `  →  ${u.family}`}`, ui.bold, 18, { color: INK }));
+      const regular: FontName = { family: u.family, style: pickStyle(u.styles, 400, false) ?? 'Regular' };
+      const sampleFont = (await load(regular)) ? regular : ui.regular;
+      left.appendChild(text('ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789 !@#$%^&*()', sampleFont, 16, { color: INK, width: 640 }));
+      const match = f.standIn && f.standIn.family === u.family ? ` (${f.standIn.score}% match, free)` : '';
+      left.appendChild(
+        text(
+          u.real ? 'Installed in Figma.' : f.catalogFamily ? `Free on Google Fonts, but this Figma does not have it yet. Shown with ${u.family}${match} until you install it.` : `Not installed in Figma. Shown with ${u.family}${match} until you install it.`,
+          ui.medium,
+          12,
+          { color: u.real ? OK : WARN, width: 640 },
+        ),
+      );
+      left.appendChild(text(`${f.licence.name}. ${f.licence.short} This is a summary, not legal advice.`, ui.regular, 12, { color: GREY, width: 640 }));
+      const facts = [f.foundry ? `Foundry: ${f.foundry}` : 'Foundry: unknown', f.designers.length ? `Design: ${f.designers.join(', ')}` : null, `Used for ${f.roles.join(', ') || 'text'} · weights ${f.weights.join(', ')}`].filter(Boolean).join(' · ');
+      left.appendChild(text(facts, ui.regular, 12, { color: GREY, width: 640 }));
+      if (f.getIt) left.appendChild(text(`Get it: ${f.getIt.label} ↗`, ui.medium, 12, { color: { r: 0.18, g: 0.27, b: 0.91 }, link: f.getIt.url }));
+      if (!u.real && f.preview) {
+        const label = text(`${f.name}, drawn in the real font:`, ui.regular, 11, { color: GREY });
+        left.appendChild(label);
         try {
-          const node = figma.createNodeFromSvg(f.preview.svg);
-          node.name = `${f.name} (preview)`;
-          const h = 56;
-          node.rescale(h / Math.max(1, f.preview.height));
-          card.appendChild(node);
+          if (f.preview.kind === 'svg') {
+            const node = figma.createNodeFromSvg(f.preview.svg);
+            node.name = `${f.name} (preview)`;
+            node.rescale(40 / Math.max(1, f.preview.height));
+            left.appendChild(node);
+          } else {
+            const img = figma.createImage(figma.base64Decode(f.preview.data.split(',')[1]));
+            const rect = figma.createRectangle();
+            rect.name = `${f.name} (preview)`;
+            rect.resize(Math.max(1, (f.preview.width / Math.max(1, f.preview.height)) * 40), 40);
+            rect.fills = [{ type: 'IMAGE', imageHash: img.hash, scaleMode: 'FIT' }];
+            left.appendChild(rect);
+          }
         } catch {
-          /* fall through to the name */
-        }
-      } else if (f.preview?.kind === 'png') {
-        try {
-          const img = figma.createImage(figma.base64Decode(f.preview.data.split(',')[1]));
-          const rect = figma.createRectangle();
-          rect.name = `${f.name} (preview)`;
-          const h = 56;
-          rect.resize(Math.max(1, (f.preview.width / Math.max(1, f.preview.height)) * h), h);
-          rect.fills = [{ type: 'IMAGE', imageHash: img.hash, scaleMode: 'FIT' }];
-          card.appendChild(rect);
-        } catch {
-          /* fall through */
+          /* the rest of the block still shows */
         }
       }
-      card.appendChild(text(f.name, ui.bold, 20, { color: INK }));
-      const match = f.standIn && f.standIn.family === u.family ? ` (${f.standIn.score}% match, free)` : '';
-      const status = u.real
-        ? 'Installed in Figma.'
-        : f.catalogFamily
-          ? `Free on Google Fonts, but this Figma does not have it yet. Shown with ${u.family}${match} until you install it from Google Fonts.`
-          : `Not installed in Figma. Shown with ${u.family}${match} until you install it.`;
-      card.appendChild(text(status, ui.medium, 13, { color: u.real ? OK : WARN, width: 732 }));
-      card.appendChild(text(`${f.licence.name}. ${f.licence.short} This is a summary, not legal advice.`, ui.regular, 13, { color: INK, width: 732 }));
-      const facts = [f.foundry ? `Foundry: ${f.foundry}` : 'Foundry: unknown', f.designers.length ? `Design: ${f.designers.join(', ')}` : null, `Served by ${f.source}${f.host ? ` (${f.host})` : ''}`].filter(Boolean).join(' · ');
-      card.appendChild(text(facts, ui.regular, 12, { color: GREY, width: 732 }));
-      if (f.getIt) card.appendChild(text(`Get it: ${f.getIt.label} ↗`, ui.medium, 13, { color: { r: 0.18, g: 0.27, b: 0.91 }, link: f.getIt.url }));
-      if (!u.real && f.alternatives.length) card.appendChild(text(`Other free look-alikes: ${[f.standIn, ...f.alternatives].filter((a): a is { family: string; score: number } => !!a && a.family !== u.family).map((a) => `${a.family} ${a.score}%`).join(', ')}`, ui.regular, 12, { color: GREY, width: 732 }));
+      // The big "Aa" card.
+      const card = figma.createFrame();
+      card.name = 'Aa';
+      card.resize(240, 200);
+      card.cornerRadius = 28;
+      card.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.95, b: 0.95 } }];
+      card.layoutMode = 'VERTICAL';
+      card.primaryAxisAlignItems = 'CENTER';
+      card.counterAxisAlignItems = 'CENTER';
+      const bold: FontName = { family: u.family, style: pickStyle(u.styles, 700, false) ?? regular.style };
+      card.appendChild(text('Aa', (await load(bold)) ? bold : sampleFont, 120, { color: INK }));
+      fontRow.appendChild(card);
     }
 
-    if (p.styles.length) {
-      const list = column('Text styles', 18, 0);
-      list.fills = [];
-      root.appendChild(list);
-      list.appendChild(text('Text styles', ui.bold, 24, { color: INK }));
-      for (const s of p.styles) {
-        const id = styleIds.get(s.name);
-        const row = column(s.name, 4, 0);
-        row.fills = [];
-        list.appendChild(row);
+    // Text styles, grouped like a style guide, each with its values beside a sample.
+    for (const g of GROUPS) {
+      const list = p.styles.filter((s) => (s.group ?? 'Body') === g);
+      if (!list.length) continue;
+      const sec = row(g, 0, 40, 0);
+      sec.paddingTop = 36;
+      sec.paddingBottom = 8;
+      root.appendChild(sec);
+      full(sec);
+      sec.appendChild(text(g.toUpperCase(), ui.medium, 12, { color: GREY }));
+      for (const s of list) {
         const f = byKey.get(s.fontKey);
-        const u = f ? used.get(f.key) : null;
-        row.appendChild(text(`${s.name.toUpperCase()} · ${lhText(s)} · ${s.fontName} ${s.weight}${u && !u.real ? ` → ${u.family}` : ''}`, ui.medium, 11, { color: GREY }));
-        const sample = (s.sample || 'The quick brown fox jumps over the lazy dog').slice(0, 90);
-        const t = text(sample, ui.regular, 14, { color: INK, width: 780 });
+        if (!f) continue;
+        const u = used.get(f.key)!;
+        const r = divider(row(s.label ?? s.name, 40, 40, 28));
+        r.counterAxisAlignItems = 'MIN';
+        root.appendChild(r);
+        full(r);
+        const spec = column('Values', 14, 0);
+        spec.fills = [];
+        spec.counterAxisSizingMode = 'FIXED';
+        spec.resize(380, spec.height);
+        r.appendChild(spec);
+        spec.appendChild(text(s.label ?? s.name, ui.bold, 14, { color: INK }));
+        const grid = row('Grid', 40, 0, 0);
+        grid.fills = [];
+        spec.appendChild(grid);
+        const pair = (col: FrameNode, k: string, v: string) => {
+          const cell = column(k, 2, 0);
+          cell.fills = [];
+          cell.appendChild(text(k, ui.regular, 11, { color: GREY }));
+          cell.appendChild(text(v, ui.regular, 12, { color: INK }));
+          col.appendChild(cell);
+        };
+        const c1 = column('A', 12, 0);
+        const c2 = column('B', 12, 0);
+        c1.fills = [];
+        c2.fills = [];
+        c1.counterAxisSizingMode = c2.counterAxisSizingMode = 'FIXED';
+        c1.resize(160, c1.height);
+        c2.resize(160, c2.height);
+        grid.appendChild(c1);
+        grid.appendChild(c2);
+        pair(c1, 'Font name', u.real ? f.name : `${f.name} (shown in ${u.family})`);
+        pair(c1, 'Size', `${Math.round(s.size * 10) / 10}px`);
+        pair(c1, 'Line height', s.lineHeight ? `${Math.round(s.lineHeight * 10) / 10}px` : 'Auto');
+        pair(c2, 'Letter spacing', spacingPct(s));
+        pair(c2, 'Weight', weightName(s.weight) + (s.style !== 'normal' ? ' Italic' : ''));
+        pair(c2, 'Case', CASE[s.transform] ?? 'As typed');
+        const sampleText =
+          g === 'Headings' ? `${(s.label ?? s.name).replace(/\s*\(.*\)$/, '')}\n${weightName(s.weight)}`
+            : g === 'Code' ? 'const total = price * 1.2;'
+              : g === 'Buttons & labels' ? `${/link/i.test(s.token ?? s.name) ? 'Link' : 'Button'}\n${weightName(s.weight)}`
+                : `${(s.sample || 'The quick brown fox jumps over the lazy dog.').slice(0, 140)}\n${weightName(s.weight)}`;
+        const t = text(sampleText, ui.regular, 14, { color: INK, width: 680 });
+        const id = styleIds.get(keyOf(s));
         if (id) await t.setTextStyleIdAsync(id);
-        row.appendChild(t);
+        t.name = s.label ?? s.name;
+        r.appendChild(t);
       }
     }
     figma.viewport.scrollAndZoomIntoView([root]);

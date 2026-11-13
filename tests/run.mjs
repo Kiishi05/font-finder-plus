@@ -482,7 +482,7 @@ try {
   await panel.waitForFunction(() => { const r = [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Helvetica Neue LT Pro')); return r && !/Measuring/.test(r.textContent); }, null, { timeout: 20000 }).catch(() => {});
   const hn = await panel.evaluate(() => [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Helvetica Neue LT Pro'))?.textContent ?? 'missing');
   check('Make it free swaps a Helvetica-shaped font for Arimo, by letter shapes', /Arimo/.test(hn), hn);
-  check('Make it free shows the free licence of a close match', /Free · SIL Open Font License/.test(acme), acme);
+  check('Make it free shows the free licence of a close match', /Free on Google Fonts · SIL Open Font License/.test(acme), acme);
 
   // Send to Figma: copies fonts, licences, stand-ins, previews and styles.
   await panel.evaluate(() => { window.__copied = null; navigator.clipboard.writeText = async (t) => { window.__copied = t; }; });
@@ -602,7 +602,22 @@ try {
   await page.mouse.click(pb.x + 200, pb.y + 40);
   await page.waitForTimeout(300);
   const picCard = await page.evaluate(() => { const sr = document.getElementById('ffp-root').shadowRoot; return { name: sr.querySelector('.name').textContent, note: !sr.querySelector('.picnote').hidden }; });
-  check('hovering a picture says it is a picture, not text', picCard.name === 'Picture, not text' && picCard.note, JSON.stringify(picCard));
+  await page.waitForFunction(() => document.getElementById('ffp-root').shadowRoot.querySelector('.name').textContent !== 'Picture', null, { timeout: 5000 }).catch(() => {});
+  const picCard2 = await page.evaluate(() => { const sr = document.getElementById('ffp-root').shadowRoot; return { name: sr.querySelector('.name').textContent, note: !sr.querySelector('.picnote').hidden, button: !sr.querySelector('.identify').hidden }; });
+  check('hovering a picture with text offers to identify it', picCard2.name === 'Picture with text' && picCard2.note && picCard2.button, JSON.stringify(picCard2));
+  void picCard;
+  // A picture with no text, under an empty layer (as on X): no Identify button.
+  await page.mouse.click(pb.x + 200, pb.y + 40);
+  await page.locator('#plainpic').scrollIntoViewIfNeeded();
+  const qb = await page.locator('#plainpic').boundingBox();
+  await page.mouse.move(qb.x + 80, qb.y + 70);
+  await page.waitForFunction(() => /no text|Picture with text/.test(document.getElementById('ffp-root').shadowRoot.querySelector('.name').textContent), null, { timeout: 5000 }).catch(() => {});
+  const plain = await page.evaluate(() => { const sr = document.getElementById('ffp-root').shadowRoot; return { name: sr.querySelector('.name').textContent, button: !sr.querySelector('.identify').hidden }; });
+  check('a picture with no text (under an empty layer) says so, with no Identify button', plain.name === 'Picture, no text' && !plain.button, JSON.stringify(plain));
+  await page.locator('#pic').scrollIntoViewIfNeeded();
+  const pb2 = await page.locator('#pic').boundingBox();
+  await page.mouse.click(pb2.x + 200, pb2.y + 40);
+  await page.waitForFunction(() => document.getElementById('ffp-root').shadowRoot.querySelector('.name').textContent === 'Picture with text', null, { timeout: 5000 }).catch(() => {});
   await page.evaluate(() => document.getElementById('ffp-root').shadowRoot.querySelector('.identify').click());
   await panel.waitForSelector('.editbox canvas', { timeout: 15000 }).catch(() => {});
   check('Identify this picture opens it in the Image tab', (await panel.locator('.editbox canvas').count()) === 1);
@@ -674,7 +689,7 @@ try {
   check('each text style is matched on its own', (await panel.locator('.blockcard').count()) >= 4, `${await panel.locator('.blockcard').count()} blocks`);
   check('font names written in the image are found', /Clash Display/.test(allText) && /Space Mono/.test(allText) && /Fraunces/.test(allText), allText.replace(/\s+/g, ' ').slice(0, 200));
   const monoCard = await panel.evaluate(() => [...document.querySelectorAll('.blockcard')].find((c) => /Named here:\s*Space Mono/.test(c.textContent))?.textContent ?? '');
-  check('the block set in Space Mono is matched to Space Mono', /Likely this font\s*Space Mono/.test(monoCard), monoCard.replace(/\s+/g, ' ').slice(0, 160));
+  check('the block set in Space Mono is matched to Space Mono (short text: never "Likely")', /Closest free fonts\s*Space Mono/.test(monoCard) && !/Likely this font/.test(monoCard), monoCard.replace(/\s+/g, ' ').slice(0, 160));
   check('paid or other-catalogue names say where to get them', /Get it from Indian Type Foundry/.test(allText));
   const clashCard = await panel.evaluate(() => [...document.querySelectorAll('.blockcard')].find((c) => /Named here:\s*Clash Display/.test(c.textContent))?.textContent ?? '');
   check('a block named as one font but looking like another is not called "Likely"', /The image names Clash Display/.test(clashCard) && !/Likely this font/.test(clashCard), clashCard.replace(/\s+/g, ' ').slice(0, 160));
@@ -692,6 +707,17 @@ try {
   await panel.waitForSelector('#allfonts', { timeout: 5000 }).catch(() => {});
   check('going back keeps the image results', (await panel.locator('#allfonts .blockcard').count()) >= 4);
   await panel.screenshot({ path: path.join(out, 'panel-image-allfonts.png'), fullPage: true });
+
+  // A font's details belong to the page they were opened from.
+  await panel.locator('.tabs button', { hasText: 'Page' }).click();
+  await panel.waitForSelector('.fcard', { timeout: 15000 }).catch(() => {});
+  await panel.locator('.fcard').first().locator('button', { hasText: 'Details' }).click();
+  await panel.waitForSelector('button[aria-label="Back"]', { timeout: 10000 }).catch(() => {});
+  await page.goto(`http://127.0.0.1:${PORT}/page2.html`, { waitUntil: 'networkidle' });
+  await panel.waitForFunction(() => !document.querySelector('button[aria-label="Back"]'), null, { timeout: 15000 }).catch(() => {});
+  check("moving to another page closes the old page's font details", (await panel.locator('button[aria-label="Back"]').count()) === 0);
+  await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'networkidle' });
+  await panel.waitForSelector('.fcard', { timeout: 20000 }).catch(() => {});
 
   // Accessibility audit with axe-core, light and dark, on each main view.
   const axeSrc = await fs.promises.readFile(require.resolve('axe-core/axe.min.js'), 'utf8');

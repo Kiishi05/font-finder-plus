@@ -383,3 +383,22 @@ export function packShape(s: Shape): (number | null)[] {
 export function unpackShape(a: (number | null)[]): Shape {
   return { x: a[0]!, cap: a[1]!, asc: a[2]!, desc: a[3]!, w: a[4]!, stem: a[5], contrast: a[6], round: a[7], g2: a[8] ?? null, a2: a[9] ?? null, sq: a[10] ?? null, prof: a.slice(11, 20), tl: a[20] ?? null, dot: a[21] ?? null, ap: a[22] ?? null };
 }
+
+/**
+ * The regular (400) instance of a variable font. Variable fonts store a default
+ * weight that is often not regular (Söhne's is 281, Light), which would make
+ * every measurement read as a light font.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function regularInstance(font: any): any {
+  try {
+    const w = font.variationAxes?.wght;
+    if (!w || Math.abs(w.default - 400) < 1) return font;
+    const v = font.getVariation({ wght: Math.max(w.min, Math.min(w.max, 400)) });
+    // Some files (often WOFF2) give an instance that fails later: check it works now.
+    if (!v.unitsPerEm || !v.glyphForCodePoint(0x6f)?.path) return font;
+    return v;
+  } catch {
+    return font;
+  }
+}

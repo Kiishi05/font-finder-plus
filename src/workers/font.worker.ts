@@ -3,7 +3,7 @@
 // from the file's own tables (name, OS/2, post, fvar). Nothing is guessed.
 import * as fontkit from 'fontkit';
 import { sniffFormat } from '../shared/sources';
-import { shapeFromFont } from '../shared/shape';
+import { regularInstance, shapeFromFont } from '../shared/shape';
 import type { Classification, ParsedFontFile } from '../shared/types';
 
 interface Req {
@@ -16,7 +16,7 @@ interface Req {
 /** SVG of a line of text drawn from the font's own outlines (y points down, baseline at the ascent). */
 function outlineSvg(bytes: ArrayBuffer, text: string, size: number): { svg: string; width: number; height: number } {
   const f0: any = fontkit.create(new Uint8Array(bytes) as any); // eslint-disable-line @typescript-eslint/no-explicit-any
-  const font = f0.fonts ? f0.fonts[0] : f0;
+  const font = regularInstance(f0.fonts ? f0.fonts[0] : f0);
   const s = size / font.unitsPerEm;
   const asc = font.ascent;
   const run = font.layout(text);
@@ -120,7 +120,7 @@ function parse(bytes: ArrayBuffer): ParsedFontFile {
     glyphCount: f.numGlyphs,
     characterCount,
     codepoints,
-    shape: (() => { try { return shapeFromFont(f); } catch { return null; } })(),
+    shape: (() => { try { return shapeFromFont(regularInstance(f)); } catch { return null; } })(),
     isFixedPitch,
     panose,
     familyClass,

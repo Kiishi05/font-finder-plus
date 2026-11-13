@@ -172,7 +172,7 @@ Rename the product in `src/shared/brand.ts` and `public/manifest.json`.
 
 ## Credits and licences
 
-- Interface fonts: [Inter](https://rsms.me/inter/) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/), both under the SIL Open Font License 1.1 (see `public/fonts/`).
+- Interface fonts: [Geist and Geist Mono](https://github.com/vercel/geist-font), under the SIL Open Font License 1.1 (see `public/fonts/`).
 - Character names: Unicode Character Database, Unicode License v3 (`public/data/LICENSE-unicode.txt`).
 - [Adobe NotDef](https://github.com/adobe-fonts/adobe-notdef), SIL Open Font License 1.1, draws boxes for missing characters in previews.
 - Icons: [Hugeicons](https://hugeicons.com) free set, MIT License.

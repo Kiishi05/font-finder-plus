@@ -7,8 +7,8 @@ import type { OcrLine } from './ocr';
 
 export interface NamedFont {
   name: string;
-  /** google: in the Google Fonts catalogue. known: in the known foundry list (paid, or free elsewhere). */
-  kind: 'google' | 'known';
+  /** google: in the Google Fonts catalogue. known: in the known foundry list. unknown: looks like the font's name, but is in no list we have. */
+  kind: 'google' | 'known' | 'unknown';
   known: KnownFont | null;
   /** Index of the line it was read from. */
   line: number;
@@ -68,4 +68,23 @@ export function findFontNames(lines: OcrLine[]): NamedFont[] {
     }
   });
   return [...found.values()];
+}
+
+// Words in a post that show it is about a typeface ("is an Helvetica-inspired typeface with 7 weights").
+const ABOUT_TYPE = /\b(fonts?|typefaces?|typography|type family|glyphs?|weights?|specimen|-inspired|inspired by|designed by|foundry|free for)\b/i;
+const COMMON_HEADINGS = /^(the|a|an|new|free|best|top|font|fonts|typeface|typography|design|hello|welcome)$/i;
+
+/**
+ * A name the picture seems to be about, even if it is in no list we have: in a
+ * post about a typeface, the biggest short heading is usually the font's name
+ * ("Amiamie"). Returned as "unknown", never guessed further.
+ */
+export function possibleName(lines: OcrLine[], headingLine: number | null, known: NamedFont[]): NamedFont | null {
+  if (headingLine == null || !lines.some((l) => ABOUT_TYPE.test(l.text))) return null;
+  const text = lines[headingLine]?.text.trim() ?? '';
+  const words = text.split(/\s+/).filter(Boolean);
+  if (!words.length || words.length > 3 || text.length < 3 || text.length > 30) return null;
+  if (!words.every((w) => /^[A-Z0-9][\p{L}0-9'’&.-]*$/u.test(w)) || words.some((w) => COMMON_HEADINGS.test(w))) return null;
+  if (known.some((n) => squash(n.name) === squash(text))) return null;
+  return { name: text.replace(/[.:!]+$/, ''), kind: 'unknown', known: null, line: headingLine };
 }

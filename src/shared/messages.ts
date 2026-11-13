@@ -17,6 +17,7 @@ export type ToContent =
   | { type: 'ffp:image-rect'; src: string }
   | { type: 'ffp:measure'; family: string; weight: string; style: string }
   | { type: 'ffp:prints'; family: string; weight: string; style: string }
+  | { type: 'ffp:fine-prints'; family: string; weight: string; style: string }
   | { type: 'ffp:specimen'; family: string; weight: string; style: string; text: string }
   | { type: 'ffp:highlight-issue'; id: string; label: string };
 

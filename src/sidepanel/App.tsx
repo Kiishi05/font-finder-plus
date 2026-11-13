@@ -25,7 +25,7 @@ export type View =
   | { name: 'share'; fontId: string; back: View }
   | { name: 'siteshare' }
   | { name: 'settings' }
-  | { name: 'detail'; fontId: string; usage?: PageFontUsage; from: 'page' | 'library' | 'image' };
+  | { name: 'detail'; fontId: string; usage?: PageFontUsage; from: 'page' | 'library' | 'image'; /** The page it was opened from: leaving it closes the details. */ pageUrl?: string; tabId?: number | null };
 
 export function App() {
   const [view, setView] = useState<View>({ name: 'page' });
@@ -60,6 +60,14 @@ export function App() {
     else el.setAttribute('data-theme', settings.theme);
   }, [settings.theme]);
 
+  // A font's details from a page belong to that page: on another tab or site, show that page instead.
+  useEffect(() => {
+    if (view.name !== 'detail' || !view.pageUrl) return;
+    const sameTab = view.tabId === tab.tabId;
+    const samePage = !tab.ping?.url || stripHash(tab.ping.url) === stripHash(view.pageUrl);
+    if (!sameTab || !samePage) setView(view.from === 'image' ? { name: 'image' } : { name: 'page' });
+  }, [tab.tabId, tab.ping?.url]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const top = view.name === 'detail' ? view.from : view.name === 'boards' || view.name === 'board' ? 'library' : view.name === 'share' ? 'library' : view.name === 'siteshare' ? 'page' : view.name;
   const fullScreen = view.name === 'detail' || view.name === 'boards' || view.name === 'board' || view.name === 'share' || view.name === 'siteshare';
 
@@ -81,7 +89,7 @@ export function App() {
       )}
 
       {view.name === 'page' && (
-        <PageView tab={tab} tester={tester} onTester={setTester} onOpen={(usage, fontId) => setView({ name: 'detail', fontId, usage, from: 'page' })} onShare={() => setView({ name: 'siteshare' })} toast={showToast} />
+        <PageView tab={tab} tester={tester} onTester={setTester} onOpen={(usage, fontId) => setView({ name: 'detail', fontId, usage, from: 'page', pageUrl: tab.ping?.url, tabId: tab.tabId })} onShare={() => setView({ name: 'siteshare' })} toast={showToast} />
       )}
       {view.name === 'library' && (
         <LibraryView tester={libTester} onTester={setLibTester} onOpen={(fontId) => setView({ name: 'detail', fontId, from: 'library' })} onBoards={() => setView({ name: 'boards' })} toast={showToast} />
@@ -126,6 +134,8 @@ export function App() {
     </div>
   );
 }
+
+const stripHash = (u: string) => u.replace(/#.*$/, '');
 
 /** Floating button that appears after scrolling down. */
 function BackToTop() {

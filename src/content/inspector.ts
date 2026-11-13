@@ -18,7 +18,7 @@ interface Current {
   /** The font this element showed before a swap ("Try on page", "Make it free"). */
   swappedFrom?: string;
   /** Hovering a picture (SVG drawing, image, canvas): there is no font to read. */
-  picture?: { kind: 'svg' | 'image'; el: Element };
+  picture?: { kind: 'svg' | 'image'; el: Element; text?: 'checking' | 'yes' | 'no' | 'unknown' };
 }
 
 let root: ShadowRoot | null = null;
@@ -62,14 +62,14 @@ async function loadUiFonts() {
   const load = async (file: string, family: string) => {
     try {
       const buf = await (await fetch(chrome.runtime.getURL(`fonts/${file}`))).arrayBuffer();
-      const face = new FontFace(`${OWN_FONT_PREFIX}${family}`, buf, { weight: '100 900' });
+      const face = new FontFace(`${OWN_FONT_PREFIX}${family}`, buf, { weight: '100 900', unicodeRange: file.includes('-ext') ? 'U+0100-024F, U+1E00-1EFF, U+20A0-20CF, U+2C60-2C7F, U+A720-A7FF' : 'U+0000-00FF, U+0131, U+0152-0153, U+2000-206F, U+20AC, U+2122, U+2212' });
       await face.load();
       document.fonts.add(face);
     } catch {
       /* falls back to system-ui; the tooltip still works */
     }
   };
-  await Promise.all([load('Inter.woff2', 'Inter'), load('JetBrainsMono.woff2', 'JetBrains Mono')]);
+  await Promise.all([load('Geist.woff2', 'Geist'), load('Geist-ext.woff2', 'Geist'), load('GeistMono.woff2', 'Geist Mono'), load('GeistMono-ext.woff2', 'Geist Mono')]);
 }
 
 function ensureUi() {
@@ -99,8 +99,8 @@ function ensureUi() {
       <canvas class="metrics" width="576" height="208"></canvas>
       <div class="rows"></div>
       <div class="picnote" hidden>
-        <p>This is a picture, not text, so there is no font to read here. Identify the picture to find the closest fonts.</p>
-        <button class="btn primary identify">${iconSvg(ScanImageIcon, 14)}<span>Identify this picture</span></button>
+        <p></p>
+        <button class="btn primary identify">${iconSvg(ScanImageIcon, 14)}<span>Identify the font in this picture</span></button>
       </div>
       <div class="foot">
         <button class="btn primary copycss">${iconSvg(Copy01Icon, 14)}<span>Copy all as CSS</span></button>
@@ -215,7 +215,47 @@ function pictureOf(el: Element): Current['picture'] | undefined {
   const svg = el.closest('svg');
   if (svg && !svg.querySelector('text')) return { kind: 'svg', el: svg };
   if (el instanceof HTMLImageElement || el instanceof HTMLCanvasElement || el instanceof HTMLVideoElement || el instanceof HTMLPictureElement) return { kind: 'image', el };
+  // A box showing a background image and no text (common on social sites).
+  if (!(el.textContent ?? '').trim() && /url\(/.test(getComputedStyle(el).backgroundImage)) return { kind: 'image', el };
   return undefined;
+}
+
+const hasOwnText = (el: Element) => [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && (n.nodeValue ?? '').trim());
+
+/** Whether a picture has text in it, found by a quick check of the screen (cached per picture). */
+const pictureText = new WeakMap<Element, 'yes' | 'no' | 'unknown'>();
+
+function checkPictureText(pic: NonNullable<Current['picture']>) {
+  const known = pictureText.get(pic.el);
+  if (known) {
+    pic.text = known;
+    return;
+  }
+  pic.text = 'checking';
+  const r = pic.el.getBoundingClientRect();
+  const rect = { x: Math.max(0, r.left), y: Math.max(0, r.top), w: Math.min(innerWidth, r.right) - Math.max(0, r.left), h: Math.min(innerHeight, r.bottom) - Math.max(0, r.top), dpr: devicePixelRatio };
+  if (rect.w < 16 || rect.h < 10) {
+    pictureText.set(pic.el, 'no');
+    pic.text = 'no';
+    return;
+  }
+  // Keep the card and toolbar out of the screenshot.
+  hideUi(true);
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      chrome.runtime.sendMessage({ type: 'ffp:picture-text', rect }, (reply?: { ok: boolean; hasText?: boolean }) => {
+        void chrome.runtime.lastError;
+        hideUi(false);
+        const v = reply?.ok ? (reply.hasText ? 'yes' : 'no') : 'unknown';
+        if (v !== 'unknown') pictureText.set(pic.el, v);
+        if (current?.picture?.el === pic.el) {
+          current.picture.text = v;
+          renderCard();
+          position();
+        }
+      });
+    }),
+  );
 }
 
 function infoFor(el: Element): Current {
@@ -297,8 +337,15 @@ function renderCard() {
   $<HTMLElement>('.chip').hidden = !!pic;
   const name = $<HTMLElement>('.name');
   if (pic) {
-    name.textContent = 'Picture, not text';
-    name.style.fontFamily = '"FFP Inter", system-ui';
+    const t = pic.text ?? 'unknown';
+    $<HTMLElement>('.picnote p').textContent =
+      t === 'checking' ? 'Checking this picture for text…'
+        : t === 'no' ? 'No text found in this picture, so there is no font here.'
+          : t === 'yes' ? 'The text here is part of a picture, so its font cannot be read from the page. Identify it to find the font.'
+            : 'If this picture has text, identify it to find the font.';
+    $<HTMLElement>('.identify').hidden = t === 'no' || t === 'checking';
+    name.textContent = t === 'yes' ? 'Picture with text' : t === 'no' ? 'Picture, no text' : 'Picture';
+    name.style.fontFamily = '"FFP Geist", system-ui';
     name.style.fontWeight = '600';
     name.style.fontStyle = 'normal';
     $<HTMLElement>('.meta').textContent = `[${pic.kind === 'svg' ? 'SVG DRAWING' : 'IMAGE'}]`;
@@ -423,6 +470,7 @@ function show(el: Element) {
     return;
   }
   current = infoFor(el);
+  if (current.picture) checkPictureText(current.picture);
   saved = false;
   copiedRow = null;
   const card = $<HTMLElement>('.card');
@@ -459,7 +507,14 @@ function setPinned(on: boolean) {
 function targetAt(x: number, y: number): Element | null {
   const el = document.elementFromPoint(x, y);
   if (!el || isOurNode(el) || el === document.documentElement || el === document.body) return null;
-  return el;
+  if (hasOwnText(el) || pictureOf(el) || (el.textContent ?? '').trim()) return el;
+  // An empty layer on top (sites often cover pictures with one): look underneath for a picture or text.
+  for (const under of document.elementsFromPoint(x, y)) {
+    if (under === el || isOurNode(under) || under === document.body || under === document.documentElement) continue;
+    if (pictureOf(under)) return under;
+    if (hasOwnText(under)) return under;
+  }
+  return null;
 }
 
 function onMove(e: MouseEvent) {

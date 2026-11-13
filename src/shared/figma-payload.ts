@@ -55,6 +55,10 @@ export interface FigmaStyle {
   transform: string;
   sample: string;
   count: number;
+  /** Style guide grouping and names (set by the extension; older pastes may lack them). */
+  group?: 'Headings' | 'Body' | 'Buttons & labels' | 'Code';
+  label?: string;
+  token?: string;
 }
 
 export interface FigmaPayload {

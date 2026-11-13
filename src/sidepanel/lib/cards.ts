@@ -27,8 +27,8 @@ export const THEMES: Record<Theme, { bg: string; ink: string; muted: string; lin
 export const SIZES = { landscape: [1200, 675], portrait: [1080, 1350] } as const;
 export type CardSize = keyof typeof SIZES;
 
-const UI = '"FFP Inter", system-ui, sans-serif';
-const MONO = '"FFP JetBrains Mono", ui-monospace, monospace';
+const UI = '"FFP Geist", system-ui, sans-serif';
+const MONO = '"FFP Geist Mono", ui-monospace, monospace';
 export const ALPHABET = 'Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk Ll Mm Nn Oo Pp Qq Rr Ss Tt Uu Vv Ww Xx Yy Zz 0123456789 &?!';
 
 /** CSS that draws a saved font in the panel, loading its files first. */

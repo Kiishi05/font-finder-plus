@@ -9,8 +9,8 @@ import { db } from '../../shared/db';
 import { bestFileUrl, fontId } from '../../shared/records';
 import type { PageFontUsage, PageScan, SystemScan } from '../../shared/types';
 import { getFontBytes, outlineText } from './fonts';
-import { blendMatches, letterScores } from './lookalike';
-import { shapeFor } from './shapes';
+import { freeLookalikes } from './lookalike';
+import { organizeStyles } from '../../shared/styleguide';
 import { detectScale, nameStyles } from './system';
 
 const SOURCE_NAME: Record<string, string> = { google: 'Google Fonts', adobe: 'Adobe Fonts', 'self-hosted': 'the site', system: 'your computer' };
@@ -48,13 +48,11 @@ async function fontFor(f: PageFontUsage, tabId: number): Promise<FigmaFont> {
   let standIn: FigmaFont['standIn'] = null;
   let alternatives: FigmaFont['alternatives'] = [];
   // Free look-alikes. Google fonts get them too: Figma's own Google Fonts list can lag behind.
-  const shape = await shapeFor({ catalogFamily, files: f.files, kind: f.kind, family: f.family }, tabId).catch(() => null);
-  if (shape) {
-    const letters = await letterScores({ tabId, family: f.family, weight: f.sample.fontWeight, style: f.sample.fontStyle, onPage: true });
-    const m = blendMatches(shape.shape, letters, { exclude: catalogFamily ?? undefined, classification: rec?.classification ?? f.classification, limit: 10, ignoreWeight: shape.notRegular });
-    if (m[0]) standIn = { family: m[0].family, score: m[0].score, reason: m[0].reason };
-    alternatives = m.slice(1).map((x) => ({ family: x.family, score: x.score }));
-  }
+  const look = await freeLookalikes({ fontId: fontId(f.family, f.source), family: f.family, catalogFamily, files: f.files, kind: f.kind, classification: f.classification, weight: f.sample.fontWeight, style: f.sample.fontStyle, onPage: true }, tabId);
+  const m = look?.matches ?? [];
+  if (m[0]) standIn = { family: m[0].family, score: m[0].score, reason: m[0].reason };
+  alternatives = m.slice(1).map((x) => ({ family: x.family, score: x.score }));
+
   const previewText = name.length > 30 ? name.slice(0, 30) : name;
   return {
     key: f.key,
@@ -106,7 +104,7 @@ export async function buildFigmaPayload(scan: PageScan, tabId: number, system?: 
   }
   const byKey = new Map(out.map((f) => [f.key, f]));
   for (const [from, to] of alias) byKey.set(from, byKey.get(to)!);
-  const styles: FigmaStyle[] = named
+  const all: FigmaStyle[] = named
     .filter((s) => byKey.has(s.fontKey))
     .map((s) => ({
       name: s.name,
@@ -122,6 +120,8 @@ export async function buildFigmaPayload(scan: PageScan, tabId: number, system?: 
       sample: s.sample,
       count: s.count,
     }));
+  // A tidy system: near-duplicates merged, grouped and named like a style guide.
+  const styles: FigmaStyle[] = organizeStyles(all);
   const scale = named.length ? detectScale(named) : null;
   const payload: FigmaPayload = {
     mark: FIGMA_MARK,

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { googleFontsUrl } from '../../../shared/catalog';
 import { ArrowUpRight01Icon } from '../../../shared/icons';
 import type { Match } from '../../../shared/similar';
-import { blendMatches, letterScores } from '../../lib/lookalike';
+import { freeLookalikes, type LookalikeInput, type LookalikeResult } from '../../lib/lookalike';
 import type { Classification } from '../../../shared/types';
 import { Icon } from '../../components/Icon';
 import { trySwap, undoSwap, useGoogleFont, useSwaps } from '../../lib/google';
@@ -16,41 +16,41 @@ interface Props {
   /** The font's key on the current page, when it is on the page (enables "Try on page"). */
   pageKey: string | null;
   tabId: number | null;
-  /** Where to draw the font's letters to compare letter shapes (null: proportions only). */
-  lettersFrom: { family: string; onPage: boolean; weight?: string; style?: string } | null;
+  /** The font, for the shared look-alike calculation. */
+  input: LookalikeInput | null;
   sampleText: string;
   toast: (m: string) => void;
 }
 
-export function SimilarCard({ shape, loading, exclude, classification, pageKey, tabId, lettersFrom, sampleText, toast }: Props) {
+export function SimilarCard({ shape, loading, pageKey, tabId, input, sampleText, toast }: Props) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [matchX, setMatchX] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const swaps = useSwaps(tabId);
   const current = pageKey ? swaps[pageKey] ?? null : null;
 
-  const [letters, setLetters] = useState<Map<string, number> | null | undefined>(undefined);
-  const lettersKey = lettersFrom ? `${lettersFrom.family}|${lettersFrom.onPage}|${lettersFrom.weight}|${lettersFrom.style}` : '';
+  // The same calculation as Make it free and Send to Figma, so they always agree.
+  const [result, setResult] = useState<LookalikeResult | null | undefined>(undefined);
+  const inputKey = input ? JSON.stringify([input.fontId, input.weight, input.style, input.onPage, input.files.length]) : '';
   useEffect(() => {
-    if (!lettersFrom) return setLetters(null);
-    setLetters(undefined);
+    if (!input) return setResult(null);
+    setResult(undefined);
     let live = true;
-    letterScores({ tabId, ...lettersFrom }).then((m) => live && setLetters(m));
+    freeLookalikes(input, tabId).then((r) => live && setResult(r));
     return () => {
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lettersKey, tabId]);
-  useEffect(() => {
-    if (letters === undefined) return;
-    setMatches(shape ? blendMatches(shape.shape, letters, { exclude, classification, limit: 6, ignoreWeight: shape.notRegular }) : []);
-  }, [shape, exclude, classification, letters]);
+  }, [inputKey, tabId]);
+  useEffect(() => setMatches(result?.matches.slice(0, 6) ?? []), [result]);
+  const letters = result === undefined ? undefined : result?.letters ?? null;
+  const x = result?.x ?? shape?.shape.x ?? null;
 
   const tryIt = async (family: string) => {
     if (tabId == null || !pageKey || !shape) return;
     setBusy(family);
     try {
-      const n = await trySwap(tabId, pageKey, family, matchX ? shape.shape.x : null);
+      const n = await trySwap(tabId, pageKey, family, matchX ? x : null);
       toast(n ? `Showing ${family} on the page` : 'This font is not on the page right now');
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Could not try this font on the page');
@@ -64,6 +64,7 @@ export function SimilarCard({ shape, loading, exclude, classification, pageKey, 
       <h2>[Similar free fonts] Closest matches</h2>
       {loading && !shape && <span className="muted" style={{ fontSize: 12 }}>Measuring the font…</span>}
       {shape && letters === undefined && <span className="muted" style={{ fontSize: 12 }}>Comparing letter shapes…</span>}
+      {letters === false && <span className="muted" style={{ fontSize: 11.5 }}>Compared by proportions only (its letters could not be drawn), so these are rougher.</span>}
       {!loading && !shape && <span className="muted" style={{ fontSize: 12 }}>The font could not be measured, so similar fonts cannot be found. This happens when its file cannot be read.</span>}
       {shape && (
         <>
