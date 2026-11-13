@@ -740,7 +740,7 @@ try {
   await fs.promises.writeFile(path.join(out, 'a11y.json'), JSON.stringify(a11y, null, 2));
   check('accessibility: no WCAG A/AA violations in the panel', a11y.length === 0, a11y.map((x) => `${x.theme}/${x.tab}:${x.id}(${x.n})`).join(', '));
 
-  const allowed = /^(chrome-extension:|data:|blob:|https:\/\/fonts\.googleapis\.com\/|https:\/\/fonts\.gstatic\.com\/|https:\/\/www\.googleapis\.com\/webfonts\/|http:\/\/127\.0\.0\.1:)/;
+  const allowed = /^(chrome-extension:|data:|blob:|https:\/\/fonts\.googleapis\.com\/|https:\/\/fonts\.gstatic\.com\/|https:\/\/www\.googleapis\.com\/webfonts\/|https:\/\/api\.fontshare\.com\/|https:\/\/cdn\.fontshare\.com\/|http:\/\/127\.0\.0\.1:)/;
   const odd = [...new Set(extRequests.filter((u) => !allowed.test(u)))];
   await fs.promises.writeFile(path.join(out, 'requests.json'), JSON.stringify([...new Set(extRequests.map((u) => u.slice(0, 120)))], null, 2));
   // Delete all my data (Settings > Privacy).
@@ -762,7 +762,7 @@ try {
   });
   check('Delete all my data empties the library', left === 0, `rows left: ${left}`);
 
-  check('privacy: the extension only talks to Google Fonts and the page\'s own font files', odd.length === 0, odd.slice(0, 5).join(' '));
+  check('privacy: the extension only talks to Google Fonts, Fontshare and the page\'s own font files', odd.length === 0, odd.slice(0, 5).join(' '));
 } catch (err) {
   check('test run finished without errors', false, String(err?.stack ?? err));
 } finally {
@@ -795,6 +795,15 @@ try {
   check('a local file explains how to allow file access', /Allow access to file URLs/.test(acc.explainInjectError('Cannot access contents of url "file:///Users/me/site.html"', undefined, false)));
   check("Chrome's own pages, the Web Store and PDFs get clear reasons", /Chrome's own pages/.test(acc.explainInjectError('Cannot access a chrome:// URL', 'chrome://newtab/', false)) && /Web Store/.test(acc.explainInjectError('The extensions gallery cannot be scripted.', 'https://chromewebstore.google.com/detail/x', false)) && /PDF/.test(acc.explainInjectError('Cannot access contents of url "https://a.com/doc.pdf"', undefined, false)));
   check('Google Docs and Figma are recognised as drawing text as pictures', !!acc.drawsTextAsPictures('https://docs.google.com/document/d/abc/edit') && !!acc.drawsTextAsPictures('https://www.figma.com/design/abc/x') && !acc.drawsTextAsPictures('https://stripe.com'));
+  const tmp4 = path.join(root, 'node_modules/.cache/ffp-names.mjs');
+  await build({ stdin: { contents: "export * from './src/sidepanel/lib/fontnames.ts'; export * from './src/shared/freecatalog.ts'; export * from './src/shared/licences.ts';", resolveDir: root, loader: 'ts' }, outfile: tmp4, format: 'esm', bundle: true, platform: 'node', logLevel: 'silent', loader: { '.json': 'json' } });
+  const nm = await import(tmp4);
+  const L = (t) => ({ text: t, confidence: 90, bbox: { x0: 0, y0: 0, x1: 300, y1: 20 }, baseline: null, symbols: [] });
+  check('free catalogues: Amiamie is confirmed (Bye Bye Binary), Satoshi is Fontshare', nm.freeFont('Amiamie')?.s === 'byebyebinary' && nm.knownFont('Satoshi')?.licence === 'fontshare' && nm.fontshareFamily('Satoshi')?.slug === 'satoshi');
+  const post = nm.findFontNames([L('Amiamie'), L('Amiamie is an Helvetica-inspired typeface')]).map((n) => n.name);
+  check('a name in a post about type is confirmed from the free catalogues', post.includes('Amiamie'), post.join(', '));
+  const recipe = nm.findFontNames([L('Delicious'), L('Bake for 20 minutes')]).map((n) => n.name);
+  check('everyday words from the free lists are not taken as fonts outside posts about type', !recipe.length, recipe.join(', '));
   check('names ending in VF are grouped under the family', cat.familyGroupName(cat.cleanFamilyName('die-grotesk-vf')) === 'Die Grotesk', cat.familyGroupName(cat.cleanFamilyName('die-grotesk-vf')));
   check('Soehne spelling is recognised as a Klim font', cat.licenseFromCatalog('SOEHNE', 'self-hosted') === 'commercial');
   check('Copy CSS keeps fallbacks up to the font that renders', JSON.stringify(tidyStack(['Söhne', 'Helvetica', 'Arial', 'sans-serif'], 'Arial')) === JSON.stringify(['Söhne', 'Helvetica', 'Arial', 'sans-serif']));

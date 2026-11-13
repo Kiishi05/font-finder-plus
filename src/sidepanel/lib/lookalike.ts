@@ -14,6 +14,7 @@ import { blend } from '../../shared/lookalike-core';
 import { FINE_CHARS, FINE_SHORTLIST, fineFontScore, rerankFine, type FinePrint } from '../../shared/finematch';
 import { finePrintsFromCanvas } from '../../shared/glyphprint';
 import { googleFamily } from '../../shared/catalog';
+import { fontshareFamily } from '../../shared/freecatalog';
 
 const cache = new Map<string, Promise<Map<string, number> | null>>();
 
@@ -128,9 +129,17 @@ function googleFinePrints(family: string, weight: string): Promise<Record<string
   let p = candidatePrints.get(key);
   if (!p) {
     p = (async () => {
-      const q = `family=${encodeURIComponent(family).replace(/%20/g, '+')}${want !== 400 ? `:wght@${want}` : ''}&text=${encodeURIComponent(FINE_CHARS)}`;
-      const css = await (await fetch(`https://fonts.googleapis.com/css2?${q}`)).text();
-      const url = /url\((https:[^)]+)\)/.exec(css)?.[1];
+      const fs = fontshareFamily(family);
+      let cssUrl: string;
+      if (fs?.slug) {
+        const w = fs.w?.length ? fs.w.reduce((a, b) => (Math.abs(b - want) < Math.abs(a - want) ? b : a), fs.w[0]) : 400;
+        cssUrl = `https://api.fontshare.com/v2/css?f[]=${fs.slug}@${w}&display=swap`;
+      } else {
+        cssUrl = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, '+')}${want !== 400 ? `:wght@${want}` : ''}&text=${encodeURIComponent(FINE_CHARS)}`;
+      }
+      const css = await (await fetch(cssUrl)).text();
+      let url = /url\('?((?:https:)?\/\/[^')]+)'?\)/.exec(css)?.[1];
+      if (url?.startsWith('//')) url = `https:${url}`;
       if (!url) return null;
       const name = `FFP fine ${family} ${want}`;
       const face = new FontFace(name, await (await fetch(url)).arrayBuffer(), { weight: String(want) });

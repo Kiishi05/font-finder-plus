@@ -21,8 +21,11 @@ await build({
   outfile: tmp, bundle: true, format: 'esm', platform: 'node', logLevel: 'silent', loader: { '.json': 'json' },
 });
 const m = await import(`${tmp}?t=${Date.now()}`);
-const meta = JSON.parse(fs.readFileSync(path.join(root, 'src/shared/data/glyph-index.json'), 'utf8'));
-const ix = new Uint8Array(zlib.gunzipSync(fs.readFileSync(path.join(root, 'public/data/glyph-index.bin.gz'))));
+// Google Fonts letter prints, then Fontshare's (as the extension loads them).
+const gfMeta = JSON.parse(fs.readFileSync(path.join(root, 'src/shared/data/glyph-index.json'), 'utf8'));
+const fsMeta = JSON.parse(fs.readFileSync(path.join(root, 'src/shared/data/fontshare-shapes.json'), 'utf8')).index;
+const meta = { families: [...gfMeta.families, ...fsMeta.families], weights: [...gfMeta.weights, ...fsMeta.weights] };
+const ix = new Uint8Array(Buffer.concat([zlib.gunzipSync(fs.readFileSync(path.join(root, 'public/data/glyph-index.bin.gz'))), zlib.gunzipSync(fs.readFileSync(path.join(root, 'public/data/fontshare-index.bin.gz')))]));
 
 const L = '/usr/share/fonts/truetype';
 // [query, how to get it, expected free families (first is the main answer), why]

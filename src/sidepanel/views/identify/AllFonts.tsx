@@ -6,6 +6,7 @@ import { ArrowUpRight01Icon, FolderAddIcon } from '../../../shared/icons';
 import { SaveFontButton } from '../../components/SaveFontButton';
 import { imageVerdict, type Verdict } from '../../../shared/imagerank';
 import { knownFont, licenceTypeFor } from '../../../shared/licences';
+import { CATALOGUES_CHECKED, SOURCE_NAME, freeFont, freeLicenceLabel } from '../../../shared/freecatalog';
 import type { PageScan } from '../../../shared/types';
 import { Icon } from '../../components/Icon';
 import { groupBlocks, type TextBlock } from '../../lib/blocks';
@@ -167,13 +168,15 @@ function NamedRow({ n, onOpen, image, toast }: { n: NamedFont; onOpen: () => voi
   const rec = recordForName(n.name);
   const lic = n.kind === 'google' ? googleFamily(n.name)?.l : n.known ? licenceTypeFor(n.known) : null;
   const badge = licenseBadge(rec.licenseType);
+  const free = n.kind === 'google' ? null : freeFont(n.name);
   return (
     <div className="named">
       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
         <b className="grow">{n.name}</b>
-        <span className={`lic ${badge.tone}`}><i />{lic && lic in LICENSE_LABEL ? LICENSE_LABEL[lic as keyof typeof LICENSE_LABEL] : badge.text}</span>
+        <span className={`lic ${badge.tone}`}><i />{free ? `Free · ${freeLicenceLabel(free)}` : lic && lic in LICENSE_LABEL ? LICENSE_LABEL[lic as keyof typeof LICENSE_LABEL] : badge.text}</span>
       </div>
-      {n.kind === 'unknown' && <span className="muted" style={{ fontSize: 11.5 }}>Looks like the font's name (the biggest text in a post about a typeface). It is not in the catalogues we know, so who made it and its licence are unknown.</span>}
+      {n.kind !== 'unknown' && <span className="muted" style={{ fontSize: 11.5 }}>Confirmed: listed on {free ? SOURCE_NAME[free.s] : n.kind === 'google' ? 'Google Fonts' : n.known?.by ?? 'a foundry we know'}.</span>}
+      {n.kind === 'unknown' && <span className="muted" style={{ fontSize: 11.5 }}>Possibly the font's name (the biggest text in a post about a typeface), but not confirmed: it is not in {CATALOGUES_CHECKED.join(', ')}. Who made it and its licence are unknown.</span>}
       {rec.foundry && <span className="muted" style={{ fontSize: 11.5 }}>By {rec.foundry}</span>}
       <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
         <button className="btn sm" onClick={onOpen}>Details</button>
@@ -203,7 +206,7 @@ function BlockCard({ i, total, block, image, result, named, picked, onPick, onOp
       <img className="blockimg" src={thumb} alt={`Text style ${i + 1} from your image`} />
       {named && (
         <div className="named inline">
-          <span className="muted" style={{ fontSize: 11.5 }}>{named.kind === 'unknown' ? "Looks like the font's name:" : 'Named here:'}</span> <b>{named.name}</b>
+          <span className="muted" style={{ fontSize: 11.5 }}>{named.kind === 'unknown' ? 'Possible font name (not confirmed):' : 'Named here:'}</span> <b>{named.name}</b>
           <button className="btn sm" onClick={() => onOpen(named.name)}>Details</button>
           <WhereToGet name={named.name} />
         </div>
@@ -218,7 +221,7 @@ function BlockCard({ i, total, block, image, result, named, picked, onPick, onOp
             <span className="mono" style={{ fontSize: 12 }}>{m.score}%</span>
           </div>
           <div className="mprev" dir="auto" style={{ fontFamily: m.onPage ? undefined : g.css, fontWeight: m.bold ? 700 : 400 }}>{sample}</div>
-          {nameDiffers && <span className="muted" style={{ fontSize: 11.5 }}>The image names {named!.name}. These are the free Google fonts that look closest to it.</span>}
+          {nameDiffers && <span className="muted" style={{ fontSize: 11.5 }}>The image names {named!.name}. These are the free fonts (Google Fonts and Fontshare) that look closest to it.</span>}
           {result.verdict === 'unlikely' && <span className="muted" style={{ fontSize: 11.5 }}>No free font is a close match, so the font in your image is probably paid or made for this design. These are the nearest free ones.</span>}
           {result.matches.length > 1 && (
             <div className="chips" role="radiogroup" aria-label={`Other matches for text style ${i + 1}`}>

@@ -2,6 +2,7 @@
 // their files to try them on a page. These are the Google Fonts API calls the
 // suggestions need; nothing about the page is sent.
 import { useEffect, useState } from 'react';
+import { fontshareFamily } from '../../shared/freecatalog';
 import { googleFamily } from '../../shared/catalog';
 import { arrayBufferToBase64, sendToTab } from '../../shared/messages';
 import { getFontBytes } from './fonts';
@@ -33,17 +34,27 @@ export function familyParam(family: string, opts: { axes?: boolean } = {}): stri
   return `${name}:ital,wght@${tuples.join(';')}`;
 }
 
+/** Stylesheet address for a free family: Google Fonts, or Fontshare for its families. */
+export function freeCssUrl(family: string, weights?: number[]): string {
+  const fs = fontshareFamily(family);
+  if (fs?.slug) {
+    const w = weights?.length ? weights : fs.w?.length ? fs.w : [400];
+    return `https://api.fontshare.com/v2/css?f[]=${fs.slug}@${w.join(',')}&display=swap`;
+  }
+  return `https://fonts.googleapis.com/css2?family=${familyParam(family)}&display=swap`;
+}
+
 const linked = new Map<string, Promise<void>>();
 
 /** Add a Google Fonts stylesheet to the panel (once per family). Resolves when the stylesheet has loaded. */
 export function linkGoogleFamily(family: string, opts: { axes?: boolean } = {}): Promise<void> {
-  const param = familyParam(family, opts);
+  const param = fontshareFamily(family) ? freeCssUrl(family) : familyParam(family, opts);
   const hit = linked.get(param);
   if (hit) return hit;
   const p = new Promise<void>((resolve) => {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = `https://fonts.googleapis.com/css2?family=${param}&display=swap`;
+    link.href = param.startsWith('https:') ? param : `https://fonts.googleapis.com/css2?family=${param}&display=swap`;
     link.onload = () => resolve();
     link.onerror = () => resolve();
     document.head.appendChild(link);
@@ -94,7 +105,9 @@ function parseCss(css: string): CssFace[] {
   let m: RegExpExecArray | null;
   while ((m = re.exec(css))) {
     const body = m[2];
-    const url = /url\((https:[^)]+)\)/.exec(body)?.[1];
+    // Google gives https: addresses; Fontshare gives //cdn.fontshare.com ones (first is WOFF2).
+    let url = /url\('?((?:https:)?\/\/[^')]+)'?\)/.exec(body)?.[1];
+    if (url?.startsWith('//')) url = `https:${url}`;
     if (!url) continue;
     out.push({
       subset: m[1] ?? 'latin',
@@ -109,8 +122,8 @@ function parseCss(css: string): CssFace[] {
 
 /** The files for a Google family (Latin subsets), ready to send to the page. */
 export async function swapFaces(family: string) {
-  const res = await fetch(`https://fonts.googleapis.com/css2?family=${familyParam(family)}&display=swap`, { credentials: 'omit' });
-  if (!res.ok) throw new Error('Google Fonts did not answer.');
+  const res = await fetch(freeCssUrl(family), { credentials: 'omit' });
+  if (!res.ok) throw new Error(fontshareFamily(family) ? 'Fontshare did not answer.' : 'Google Fonts did not answer.');
   const faces = parseCss(await res.text()).filter((f) => SWAP_SUBSETS.test(f.subset));
   return Promise.all(
     faces.map(async (f) => ({ base64: arrayBufferToBase64(await getFontBytes(f.url, null)), weight: f.weight, style: f.style, unicodeRange: f.unicodeRange })),
@@ -125,7 +138,7 @@ export async function trySwap(tabId: number, key: string, family: string, aspect
   const faces = await swapFaces(family);
   const r = await sendToTab<{ ok: boolean; count?: number; error?: string }>(
     tabId,
-    { type: 'ffp:swap', key, family: gf?.family ?? family, faces, generic: GENERIC[gf?.c ?? 'unknown'], aspect },
+    { type: 'ffp:swap', key, family: gf?.family ?? family, faces, generic: GENERIC[gf?.c ?? fontshareFamily(family)?.c ?? 'unknown'], aspect },
     30000,
   );
   if (!r?.ok) throw new Error(r?.error ?? 'The page did not answer.');

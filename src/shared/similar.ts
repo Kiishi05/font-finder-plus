@@ -1,11 +1,14 @@
 // Similar fonts and pairs, from measured shapes (see shape.ts). Only Google
 // Fonts families are suggested, so every suggestion is free to use.
 import shapesJson from './data/gf-shapes.json';
+import fsShapesJson from './data/fontshare-shapes.json';
+import { fontshareFamily } from './freecatalog';
 import { googleFamily } from './catalog';
 import { unpackShape, type Shape } from './shape';
 import type { Classification } from './types';
 
 const raw = (shapesJson as unknown as { families: Record<string, (number | null)[]> }).families;
+const fsRaw = (fsShapesJson as unknown as { families: Record<string, (number | null)[]> }).families;
 export const SHAPES_DATE = (shapesJson as { generated: string }).generated;
 
 const SECONDARY_LATIN = new Set(['japanese', 'korean', 'chinese-simplified', 'chinese-traditional', 'chinese-hongkong', 'tibetan', 'sinhala', 'myanmar', 'khmer', 'lao']);
@@ -29,7 +32,7 @@ const val = (s: Shape, k: Feat): number | null => {
   return k === 'contrast' ? Math.log(Math.max(0.2, v)) : v;
 };
 
-interface Entry { family: string; shape: Shape; c: Classification; p: number }
+interface Entry { family: string; shape: Shape; c: Classification; p: number; source?: 'google' | 'fontshare' }
 let entries: Entry[] | null = null;
 const stats = {} as Record<string, { mean: number; sd: number }>;
 
@@ -50,6 +53,12 @@ function load(): Entry[] {
     const sig = arr.join(',');
     const prev = seen.get(sig);
     if (!prev || e.p < prev.p) seen.set(sig, e);
+  }
+  // Free Fontshare families, measured the same way.
+  for (const [family, arr] of Object.entries(fsRaw)) {
+    const ff = fontshareFamily(family);
+    if (!ff) continue;
+    seen.set(`fontshare:${family}`, { family, shape: unpackShape(arr), c: ff.c, p: 600, source: 'fontshare' });
   }
   entries = [...seen.values()];
   for (const k of FEATS) {
@@ -129,6 +138,8 @@ export interface Match {
   c: Classification;
   /** Google Fonts popularity rank (1 is the most used). */
   p?: number;
+  /** Where the free font comes from (Google Fonts unless said). */
+  source?: 'google' | 'fontshare';
 }
 
 /**
@@ -162,6 +173,7 @@ export function similarTo(target: Shape, opts: { exclude?: string; classificatio
       reason: reason(d),
       c: e.c,
       p: e.p,
+      source: e.source ?? 'google',
     }))
     .sort((a, b) => b.score - a.score);
 }

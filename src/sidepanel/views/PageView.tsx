@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useRef, useState } from 'react';
-import { CLASS_LABEL, LICENSE_LABEL, SOURCE_LABEL, googleFamily, licenseBadge } from '../../shared/catalog';
+import { CLASS_LABEL, SOURCE_LABEL, freeSourceOf, licenseBadge } from '../../shared/catalog';
 import { declarationCss } from '../../shared/css';
 import { db, saveFont } from '../../shared/db';
 import { Share08Icon, Alert02Icon, ArrowDown01Icon, ArrowRight01Icon, ArrowUp01Icon, Bookmark02Icon, CloseIcon, SourceCodeIcon, Target02Icon } from '../../shared/icons';
@@ -427,7 +427,7 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
         )}
       </div>
       <span style={{ fontSize: 12.5 }}>
-        {rows.length === 1 ? 'One font on this page is' : `${rows.length} fonts on this page are`} paid or have an unknown licence. Preview the page with the closest free fonts from Google Fonts instead.
+        {rows.length === 1 ? 'One font on this page is' : `${rows.length} fonts on this page are`} paid or have an unknown licence. Preview the page with the closest free fonts from Google Fonts and Fontshare instead.
       </span>
       <div className="freelist">
         {(all ? rows : rows.slice(0, 5)).map((r) => (
@@ -439,9 +439,9 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
                   <b>{r.match.family}</b> <span className="mono muted" style={{ fontSize: 11 }}>{r.match.score}%</span>
                   <br />
                   {r.match.score >= CLOSE_MATCH ? (
-                    <span className="lic free" style={{ fontSize: 11 }}><i />Free on Google Fonts · {LICENSE_LABEL[googleFamily(r.match.family)?.l ?? 'OFL']}</span>
+                    <span className="lic free" style={{ fontSize: 11 }}><i />Free on {freeSourceOf(r.match.family).site} · {freeSourceOf(r.match.family).licence}</span>
                   ) : (
-                    <span className="lic warn" style={{ fontSize: 11 }} title="No free Google font is close to this one. This is the nearest, but it will look noticeably different."><i />Not a close match · free on Google Fonts</span>
+                    <span className="lic warn" style={{ fontSize: 11 }} title="No free font is close to this one. This is the nearest, but it will look noticeably different."><i />Not a close match · free on {freeSourceOf(r.match.family).site}</span>
                   )}
                 </>
               ) : r.state === 'measuring' ? <span className="muted">Measuring…</span> : <span className="muted" title="The font file could not be read and the page could not draw its letters for measuring.">Could not be measured</span>}</span>
@@ -452,7 +452,7 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
         <button className="btn sm primary" onClick={swapAll} disabled={busy || !rows.some((r) => r.match)}>{busy ? 'Loading fonts…' : anySwapped ? 'Swap again' : 'Swap all on the page'}</button>
         {anySwapped && <button className="btn sm" onClick={() => undoSwap(tabId, null)}>Undo all</button>}
       </div>
-      <span className="muted" style={{ fontSize: 11.5 }}>The closest free fonts from Google Fonts, the same as in each font's Similar fonts. Matches under {CLOSE_MATCH}% are marked: they are the nearest free option but look noticeably different. Nothing changes on the real site; reloading the page also undoes it.</span>
+      <span className="muted" style={{ fontSize: 11.5 }}>The closest free fonts from Google Fonts and Fontshare, the same as in each font's Similar fonts. Matches under {CLOSE_MATCH}% are marked: they are the nearest free option but look noticeably different. Nothing changes on the real site; reloading the page also undoes it.</span>
     </section>
   );
 }

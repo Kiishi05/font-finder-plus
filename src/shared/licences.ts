@@ -3,6 +3,7 @@
 // - Commercial fonts: we only say who sells the font and that a paid licence is
 //   needed. Exact terms vary by foundry and licence, so we link to the foundry.
 // - Anything we do not know is shown as unknown.
+import { SOURCE_NAME, freeFont } from './freecatalog';
 import type { LicenseType } from './types';
 
 export type Allowed = 'yes' | 'conditions' | 'licence' | 'check' | 'no' | 'unknown';
@@ -116,6 +117,27 @@ export const SUMMARIES: Record<string, LicenceSummary> = {
     uses: { web: { a: 'licence', note: 'Through an Adobe Fonts web project on your own account.' }, print: { a: 'licence' }, apps: { a: 'check' }, logos: { a: 'check' }, modify: { a: 'no' }, sell: { a: 'no' } },
     notes: [],
   },
+  fontsquirrel: {
+    name: 'Listed on Font Squirrel as free for commercial use',
+    short: 'Font Squirrel only lists fonts that are free for commercial use, but each font has its own licence.',
+    url: 'https://www.fontsquirrel.com',
+    uses: all('check'),
+    notes: ['Read the licence on the font\'s Font Squirrel page before using it, especially for apps, logos or changes to the font.'],
+  },
+  byebyebinary: {
+    name: 'Free, with Bye Bye Binary conditions',
+    short: 'Shared for free by the Bye Bye Binary collective, with conditions of use (for example keeping its inclusive characters and crediting the font).',
+    url: 'https://typotheque.genderfluid.space',
+    uses: all('check'),
+    notes: ['Read the licence that comes with the font: the conditions can differ from font to font.'],
+  },
+  freefoundry: {
+    name: 'Free font from an open-source foundry',
+    short: 'Shared for free by its foundry. Each font comes with its own licence.',
+    url: null,
+    uses: all('check'),
+    notes: ['Read the licence that comes with the font before using it.'],
+  },
   unknown: {
     name: 'Unknown',
     short: 'We could not find who makes this font or how it is licensed.',
@@ -128,7 +150,7 @@ export const SUMMARIES: Record<string, LicenceSummary> = {
 export interface KnownFont {
   by: string;
   url: string;
-  licence: 'commercial' | 'fontshare' | 'OFL' | 'apple';
+  licence: 'commercial' | 'fontshare' | 'OFL' | 'apple' | 'fontsquirrel' | 'byebyebinary' | 'freefoundry';
   note?: string;
 }
 
@@ -194,13 +216,21 @@ export function knownFont(family: string): KnownFont | null {
   for (const [k, v] of KNOWN) {
     if (k.length >= 4 && s.startsWith(k) && (!best || k.length > best[0].length)) best = [k, v];
   }
-  return best ? best[1] : null;
+  if (best) return best[1];
+  // Free fonts listed on Fontshare, Font Squirrel and open-source foundries (exact names only).
+  const free = freeFont(family);
+  if (free) {
+    const by = free.s === 'fontshare' ? `${free.f ?? 'Indian Type Foundry'} (Fontshare)` : free.f && free.f !== SOURCE_NAME[free.s] ? `${free.f} (${SOURCE_NAME[free.s]})` : SOURCE_NAME[free.s];
+    const licence: KnownFont['licence'] = free.l === 'OFL' ? 'OFL' : free.l === 'fontshare' ? 'fontshare' : free.l === 'fontsquirrel' ? 'fontsquirrel' : free.l === 'byebyebinary' ? 'byebyebinary' : 'freefoundry';
+    return { by, url: free.u, licence };
+  }
+  return null;
 }
 
 /** Licence type for the badge, from a known-font entry. */
 export function licenceTypeFor(k: KnownFont): LicenseType {
   if (k.licence === 'OFL') return 'OFL';
-  if (k.licence === 'fontshare') return 'free-other';
+  if (k.licence === 'fontshare' || k.licence === 'fontsquirrel' || k.licence === 'byebyebinary' || k.licence === 'freefoundry') return 'free-other';
   return 'commercial';
 }
 
@@ -216,6 +246,9 @@ export function summaryFor(type: LicenseType, known: KnownFont | null, source: s
     };
   }
   if (known?.licence === 'fontshare') return SUMMARIES.fontshare;
+  if (known?.licence === 'fontsquirrel') return { ...SUMMARIES.fontsquirrel, url: known.url };
+  if (known?.licence === 'byebyebinary') return { ...SUMMARIES.byebyebinary, url: known.url };
+  if (known?.licence === 'freefoundry') return { ...SUMMARIES.freefoundry, url: known.url, name: `Free font from ${known.by}` };
   if (type === 'OFL' || type === 'APACHE' || type === 'UFL') return SUMMARIES[type];
   if (type === 'commercial') return { ...SUMMARIES.commercial, url: known?.url ?? null };
   if (source === 'adobe') return SUMMARIES.adobe;

@@ -117,7 +117,7 @@ export function SettingsView({ settings, update, toast }: Props) {
       <section className="section">
         <h2>[Privacy]</h2>
         <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-          Everything runs on this computer. Your library is stored locally. No browsing data is sent anywhere. Font files are downloaded only from the sites that already use them.
+          Everything runs on this computer. Your library is stored locally. No browsing data is sent anywhere. Font files are downloaded only from the sites that already use them, and free look-alikes from Google Fonts and Fontshare.
         </p>
         <span className="mono muted" style={{ fontSize: 10.5 }}>
           Google Fonts catalogue: {CATALOG_COUNT} families, updated {CATALOG_DATE}

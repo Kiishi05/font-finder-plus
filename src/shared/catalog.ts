@@ -1,5 +1,6 @@
 import catalogJson from './data/gf-catalog.json';
 import { knownFont, licenceTypeFor } from './licences';
+import { fontshareFamily, freeLicenceLabel } from './freecatalog';
 import type { Classification, LicenseType, SourceKind } from './types';
 
 interface CatalogEntry {
@@ -183,4 +184,12 @@ export function licenseBadge(l: LicenseType): { text: string; tone: 'free' | 'wa
   if (l === 'system') return { text: 'System', tone: 'warn' };
   if (l === 'commercial') return { text: 'Paid', tone: 'warn' };
   return { text: 'Unknown', tone: 'neutral' };
+}
+
+/** Where a free look-alike comes from: its site, licence and page (Google Fonts or Fontshare). */
+export function freeSourceOf(family: string): { site: string; licence: string; url: string } {
+  const fs = fontshareFamily(family);
+  if (fs && !googleFamily(family)) return { site: 'Fontshare', licence: freeLicenceLabel(fs), url: fs.u };
+  const gf = googleFamily(family);
+  return { site: 'Google Fonts', licence: LICENSE_LABEL[gf?.l ?? 'OFL'], url: googleFontsUrl(gf?.family ?? family) };
 }

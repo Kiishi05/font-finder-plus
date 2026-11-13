@@ -30,7 +30,7 @@ Find a font in an image: drop in a screenshot or photo (PNG, JPG, WebP or HEIC),
 
 Save fonts to your library, sort them into collections, build mood boards and make share cards.
 
-Private by design: everything runs on your computer. No account, no tracking, no analytics. The only network calls are to Google Fonts for the catalogue and previews, and to the page's own font files when you inspect it.
+Private by design: everything runs on your computer. No account, no tracking, no analytics. The only network calls are to Google Fonts and Fontshare for free font previews, and to the page's own font files when you inspect it.
 
 ## Privacy practices tab
 
@@ -64,7 +64,7 @@ Font Finder Plus runs entirely on your computer.
 - It reads a web page only when you start it on that page. It reads the page's fonts, text styles and font files to show you what fonts are used.
 - Images you add are read on your computer. They are not uploaded.
 - Your saved fonts, collections, boards, history and screenshots are stored in your browser on this computer. You can export them from the Library tab and delete them all in Settings > Privacy.
-- The extension contacts Google Fonts (fonts.googleapis.com, fonts.gstatic.com and, if you add an API key, www.googleapis.com/webfonts) to load the catalogue and font previews. Google may see these requests as it does for any website using Google Fonts. It also downloads the page's own font files from the site that serves them, the same files your browser already loaded.
+- The extension contacts Google Fonts (fonts.googleapis.com, fonts.gstatic.com and, if you add an API key, www.googleapis.com/webfonts) and Fontshare (api.fontshare.com, cdn.fontshare.com) to load free font previews and look-alikes. These requests carry only a font name. Google may see these requests as it does for any website using Google Fonts. It also downloads the page's own font files from the site that serves them, the same files your browser already loaded.
 - No analytics, no tracking, no account, no advertising. Nothing about the pages you visit is sent anywhere.
 - An optional Google Fonts API key is stored only in Chrome's local storage on this computer.
 

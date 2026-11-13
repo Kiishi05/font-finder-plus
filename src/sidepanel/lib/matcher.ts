@@ -1,9 +1,13 @@
 import indexJson from '../../shared/data/glyph-index.json';
+import fsShapes from '../../shared/data/fontshare-shapes.json';
 import type { QueryGlyph } from './imageprep';
 import type { PrintQuery } from '../../shared/glyphprint';
 import { orderImageMatches } from '../../shared/imagerank';
 
-const meta = indexJson as unknown as { generated: string; families: string[]; weights: number[] };
+const gfMeta = indexJson as unknown as { generated: string; families: string[]; weights: number[] };
+const fsMeta = (fsShapes as unknown as { index: { families: string[]; weights: number[] } }).index;
+// Google Fonts, then Fontshare (its letter prints are appended to the index in the worker).
+const meta = { families: [...gfMeta.families, ...fsMeta.families], weights: [...gfMeta.weights, ...fsMeta.weights] };
 export const INDEX_COUNT = meta.families.length;
 
 export interface ImageMatch {
@@ -64,6 +68,7 @@ export function matchGlyphs(glyphs: QueryGlyph[], limit = 10, extra: PageFontFil
       id,
       type: 'match',
       indexUrl: chrome.runtime.getURL('data/glyph-index.bin.gz'),
+      extraIndexUrl: chrome.runtime.getURL('data/fontshare-index.bin.gz'),
       families: meta.families,
       weights: meta.weights,
       glyphs: glyphs.map((g) => ({ ci: g.ci, bits: g.bits, aspect: g.aspect, h: g.h, bottom: g.bottom })),
@@ -90,6 +95,7 @@ export function lookalikeScores(src: { file?: ArrayBuffer; prints?: PrintQuery[]
       id,
       type: 'match',
       indexUrl: chrome.runtime.getURL('data/glyph-index.bin.gz'),
+      extraIndexUrl: chrome.runtime.getURL('data/fontshare-index.bin.gz'),
       families: meta.families,
       weights: meta.weights,
       glyphs: src.prints ?? [],

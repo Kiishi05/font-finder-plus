@@ -2,7 +2,8 @@
 // names under each sample). Names are checked against the Google Fonts
 // catalogue and the known foundry list; nothing is guessed beyond those.
 import { allGoogleFamilies, googleFamily } from '../../shared/catalog';
-import { knownFontNames, type KnownFont } from '../../shared/licences';
+import { knownFont, knownFontNames, type KnownFont } from '../../shared/licences';
+import { allFreeFonts } from '../../shared/freecatalog';
 import type { OcrLine } from './ocr';
 
 export interface NamedFont {
@@ -16,12 +17,14 @@ export interface NamedFont {
 
 const squash = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
 
-let index: Map<string, { name: string; kind: NamedFont['kind']; known: KnownFont | null }> | null = null;
+let index: Map<string, { name: string; kind: NamedFont['kind']; known: KnownFont | null; free?: boolean }> | null = null;
 function getIndex() {
   if (index) return index;
   index = new Map();
   for (const { name, known } of knownFontNames()) index.set(squash(name), { name, kind: known.licence === 'OFL' && googleFamily(name) ? 'google' : 'known', known });
   for (const name of allGoogleFamilies()) if (!index.has(squash(name))) index.set(squash(name), { name, kind: 'google', known: null });
+  // Free fonts from Fontshare, Font Squirrel and open-source foundries.
+  for (const f of allFreeFonts()) if (!index.has(squash(f.name))) index.set(squash(f.name), { name: f.name, kind: 'known', known: knownFont(f.name), free: true });
   return index;
 }
 
@@ -45,7 +48,7 @@ export function findFontNames(lines: OcrLine[]): NamedFont[] {
     // The line is only a name, maybe with a style ("Montserrat Bold", "3. Satoshi").
     const bare = squash(l.text.replace(STYLE, ' ').replace(/^\s*\d+[.)]?\s*/, ''));
     const whole = ix.get(bare);
-    if (whole && bare.length >= 3 && (!EVERYDAY.has(bare) || aboutFonts)) {
+    if (whole && bare.length >= 3 && (!EVERYDAY.has(bare) || aboutFonts) && (!whole.free || aboutFonts || bare.length >= 8)) {
       if (!found.has(whole.name)) found.set(whole.name, { name: whole.name, kind: whole.kind, known: whole.known, line: li });
       return;
     }
@@ -60,6 +63,8 @@ export function findFontNames(lines: OcrLine[]): NamedFont[] {
         if (n === 1) {
           const capital = /^[A-Z0-9]/.test(words[i]);
           if (!capital) continue;
+          // One-word names from the large free lists (many are everyday words) need a post about fonts.
+          if (hit.free && !aboutFonts) continue;
           if (EVERYDAY.has(key) ? !strong : !(cue || short)) continue;
         }
         for (let k = i; k < i + n; k++) used[k] = true;

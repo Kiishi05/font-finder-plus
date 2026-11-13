@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { googleFontsUrl } from '../../../shared/catalog';
+import { freeSourceOf } from '../../../shared/catalog';
 import { ArrowUpRight01Icon } from '../../../shared/icons';
 import type { Match } from '../../../shared/similar';
 import { freeLookalikes, type LookalikeInput, type LookalikeResult } from '../../lib/lookalike';
@@ -83,7 +83,7 @@ export function SimilarCard({ shape, loading, pageKey, tabId, input, sampleText,
             ))}
           </div>
           <span className="muted" style={{ fontSize: 11.5 }}>
-            Free fonts from Google Fonts, ranked by measured proportions: x-height, width, weight, contrast and roundness.
+            Free fonts from Google Fonts and Fontshare, ranked by how alike their letters look and by measured proportions (x-height, width, weight, contrast).
             {shape.from === 'page' ? ' The font file could not be read, so the font was measured from how the page draws it.' : ''}
             {shape.from === 'rendered' ? ' Measured from how the installed font draws.' : ''}
             {shape.notRegular ? ' Measured from a non-regular weight, so weight counts for less.' : ''}
@@ -111,7 +111,7 @@ function MatchRow({ m, text, active, busy, canTry, onTry }: { m: Match; text: st
             {busy ? 'Loading…' : active ? 'Showing on page · Undo' : 'Try on page'}
           </button>
         )}
-        <a className="btn sm ghost" href={googleFontsUrl(m.family)} target="_blank" rel="noreferrer">Google Fonts <Icon icon={ArrowUpRight01Icon} size={13} /></a>
+        <a className="btn sm ghost" href={freeSourceOf(m.family).url} target="_blank" rel="noreferrer">{freeSourceOf(m.family).site} <Icon icon={ArrowUpRight01Icon} size={13} /></a>
       </div>
     </div>
   );

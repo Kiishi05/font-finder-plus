@@ -13,6 +13,7 @@
     "test": "node tests/run.mjs",
     "package": "node scripts/package.mjs",
     "build:figma": "node scripts/build-figma.mjs",
+    "build:free": "node scripts/build-free-catalogs.mjs",
     "test:accuracy": "node tests/lookalike-bench.mjs && node tests/lookalike-bench.mjs canvas",
     "accuracy": "node scripts/build.mjs && FFP_TEST=1 node scripts/build.mjs && node scripts/accuracy-report.mjs",
     "build:shapes": "node scripts/build-gf-shapes.mjs",

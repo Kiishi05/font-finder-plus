@@ -33,25 +33,32 @@ function fingerprintFile(buf: ArrayBuffer): Uint8Array | null {
   }
 }
 
-interface Req { id: number; type: 'match'; indexUrl: string; families: string[]; weights: number[]; glyphs: Query[]; limit: number; extra?: Extra[]; file?: ArrayBuffer; lookalike?: boolean }
+interface Req { id: number; type: 'match'; indexUrl: string; /** A second index appended after the first (Fontshare). */ extraIndexUrl?: string; families: string[]; weights: number[]; glyphs: Query[]; limit: number; extra?: Extra[]; file?: ArrayBuffer; lookalike?: boolean }
 
 let index: Uint8Array | null = null;
 let loading: Promise<Uint8Array> | null = null;
 
-async function loadIndex(url: string): Promise<Uint8Array> {
+async function gunzip(url: string): Promise<Uint8Array> {
+  const res = await fetch(url);
+  const stream = res.body!.pipeThrough(new DecompressionStream('gzip'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function loadIndex(url: string, extraUrl?: string): Promise<Uint8Array> {
   if (index) return index;
   loading ??= (async () => {
-    const res = await fetch(url);
-    const stream = res.body!.pipeThrough(new DecompressionStream('gzip'));
-    const buf = await new Response(stream).arrayBuffer();
-    index = new Uint8Array(buf);
+    const [a, b] = await Promise.all([gunzip(url), extraUrl ? gunzip(extraUrl).catch(() => new Uint8Array(0)) : Promise.resolve(new Uint8Array(0))]);
+    const all = new Uint8Array(a.length + b.length);
+    all.set(a, 0);
+    all.set(b, a.length);
+    index = all;
     return index;
   })();
   return loading;
 }
 
 self.onmessage = async (e: MessageEvent<Req>) => {
-  const { id, indexUrl, families, weights, limit, extra, file } = e.data;
+  const { id, indexUrl, extraIndexUrl, families, weights, limit, extra, file } = e.data;
   try {
     let glyphs: Query[] = (e.data.glyphs ?? []).map((g) => ({ ...g, bits: g.bits instanceof Uint8Array ? g.bits : Uint8Array.from(g.bits as ArrayLike<number>) }));
     // Look-alikes of a font file: its own letters are the query.
@@ -67,7 +74,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
         glyphs.push({ ...q, bits: Uint8Array.from(q.bits) });
       }
     }
-    let ix = await loadIndex(indexUrl);
+    let ix = await loadIndex(indexUrl, extraIndexUrl);
     let fams = families;
     let wts = weights;
     const onPage = new Set<string>();

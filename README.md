@@ -98,13 +98,13 @@ The manifest allows WebAssembly (`'wasm-unsafe-eval'` in the extension's content
 ## Privacy
 
 - Everything runs on your computer. The library lives in IndexedDB inside the extension. There is no account and no server.
-- No browsing data is sent anywhere. Font files are downloaded only from the hosts the page already uses.
+- No browsing data is sent anywhere. Font files are downloaded only from the hosts the page already uses, and free look-alikes only from Google Fonts and Fontshare (api.fontshare.com, cdn.fontshare.com). Those requests carry only the font's name, nothing about the page you are on.
 - For fonts in the Google Fonts catalogue, the language check asks Google Fonts for a file holding the test characters (the request carries only the family name and those characters, nothing about the page you are on).
 - Identify from images runs on this computer: text recognition, matching and the image never leave it.
 - Local Font Access (installed styles) runs only when you click, and the font list never leaves your computer.
 - Your Google Fonts API key is stored only in `chrome.storage.local`. It is never written to code, logs or the library, and it is only sent to Google's Web Fonts API when you use it.
 - **Delete all my data** in Settings > Privacy clears the library, collections, boards, history and screenshots.
-- The test suite checks this: it records every request the extension makes during a full run and fails if any goes to a host other than Google Fonts or the page's own font files.
+- The test suite checks this: it records every request the extension makes during a full run and fails if any goes to a host other than Google Fonts, Fontshare or the page's own font files.
 
 ## How the real font is found
 
@@ -120,7 +120,7 @@ Fonts the browser has not fetched yet (pages often load fonts lazily) are given 
 
 ## How close the free look-alikes are
 
-Make it free, Similar fonts and the Figma stand-ins all pick the closest free Google Fonts family the same way:
+Make it free, Similar fonts and the Figma stand-ins all pick the closest free family (from Google Fonts and Fontshare) the same way:
 
 - **Letter shapes (70%).** Each letter (a to z and A, E, G, H, M, O, R, S) is drawn and compared with the same letters of every Latin Google Fonts family, using the index built for identifying fonts in images.
 - **Proportions (30%).** x-height, cap height, ascenders, descenders, width, weight, contrast, roundness, how open "c" and "e" are, and the width of each letter.
@@ -138,6 +138,16 @@ A free look-alike is still a different font. Paid fonts have no free copy, so ch
   - Licences are not in that metadata or in the Developer API. They are read from the official [google/fonts](https://github.com/google/fonts) repository, where each family sits in an `ofl/`, `apache/` or `ufl/` folder. Families that cannot be found there are stored as unknown, never guessed.
 - Facts about a specific font (foundry, designer, version, metrics, axes) are read from the font file's own tables with [fontkit](https://github.com/foliojs/fontkit), in a Web Worker so pages and the panel stay fast.
 
+
+### Free fonts beyond Google Fonts
+
+`npm run build:free` builds `src/shared/data/free-catalog.json` from:
+
+- **Fontshare** (Indian Type Foundry, api.fontshare.com): every family with its licence (ITF Free Font License, or SIL OFL), designers and weights. Fontshare families are also measured like Google Fonts (`fontshare-shapes.json`, `public/data/fontshare-index.bin.gz`), so they can be suggested as look-alikes, tried on the page and found in images.
+- **Font Squirrel** (its public font list): names, foundries and links. Font Squirrel lists fonts free for commercial use; each font keeps its own licence, so Font Finder Plus says to check it.
+- **Bye Bye Binary**, **Collletttivo** and **Open Foundry** (their font pages): names and links.
+
+These lists confirm a font's name (for example a name written in an image) and say where to get it. A name in none of them is shown as not confirmed.
 ## Known limits
 
 - Chrome does not let extensions run on `chrome://` pages, the Chrome Web Store or the built-in PDF viewer.
