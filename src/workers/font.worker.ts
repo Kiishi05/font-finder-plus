@@ -9,6 +9,39 @@ import type { Classification, ParsedFontFile } from '../shared/types';
 interface Req {
   id: number;
   bytes: ArrayBuffer;
+  /** Ask for the outlines of this text instead of the file's facts. */
+  outline?: { text: string; size: number };
+}
+
+/** SVG of a line of text drawn from the font's own outlines (y points down, baseline at the ascent). */
+function outlineSvg(bytes: ArrayBuffer, text: string, size: number): { svg: string; width: number; height: number } {
+  const f0: any = fontkit.create(new Uint8Array(bytes) as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const font = f0.fonts ? f0.fonts[0] : f0;
+  const s = size / font.unitsPerEm;
+  const asc = font.ascent;
+  const run = font.layout(text);
+  let x = 0;
+  const parts: string[] = [];
+  const n = (v: number) => Math.round(v * 100) / 100;
+  run.glyphs.forEach((g: any, i: number) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    const pos = run.positions[i];
+    const ox = x + pos.xOffset;
+    const oy = pos.yOffset;
+    const P = (px: number, py: number) => `${n((ox + px) * s)} ${n((asc - (oy + py)) * s)}`;
+    for (const c of g.path.commands) {
+      const a = c.args;
+      if (c.command === 'moveTo') parts.push(`M${P(a[0], a[1])}`);
+      else if (c.command === 'lineTo') parts.push(`L${P(a[0], a[1])}`);
+      else if (c.command === 'quadraticCurveTo') parts.push(`Q${P(a[0], a[1])} ${P(a[2], a[3])}`);
+      else if (c.command === 'bezierCurveTo') parts.push(`C${P(a[0], a[1])} ${P(a[2], a[3])} ${P(a[4], a[5])}`);
+      else if (c.command === 'closePath') parts.push('Z');
+    }
+    x += pos.xAdvance;
+  });
+  const width = Math.ceil(x * s) + 2;
+  const height = Math.ceil((asc - font.descent) * s) + 2;
+  if (!parts.length) throw new Error('No outlines');
+  return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><path fill="#111111" d="${parts.join('')}"/></svg>`, width, height };
 }
 
 function name(font: any, key: string): string | null {
@@ -99,7 +132,15 @@ function parse(bytes: ArrayBuffer): ParsedFontFile {
 }
 
 self.onmessage = (e: MessageEvent<Req>) => {
-  const { id, bytes } = e.data;
+  const { id, bytes, outline } = e.data;
+  if (outline) {
+    try {
+      (self as unknown as Worker).postMessage({ id, ok: true, outline: outlineSvg(bytes, outline.text, outline.size) });
+    } catch {
+      (self as unknown as Worker).postMessage({ id, ok: false, error: 'No outlines' });
+    }
+    return;
+  }
   try {
     const parsed = parse(bytes);
     (self as unknown as Worker).postMessage({ id, ok: true, parsed });

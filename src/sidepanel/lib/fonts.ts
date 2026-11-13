@@ -112,19 +112,32 @@ export function previewFaces(files: FaceFile[]): FaceFile[] {
 
 let worker: Worker | null = null;
 let seq = 0;
-const pending = new Map<number, { resolve: (p: ParsedFontFile) => void; reject: (e: Error) => void }>();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pending = new Map<number, { resolve: (p: any) => void; reject: (e: Error) => void }>();
 
 function getWorker(): Worker {
   if (worker) return worker;
   worker = new Worker(new URL('../../workers/font.worker.ts', import.meta.url), { type: 'module' });
-  worker.onmessage = (e: MessageEvent<{ id: number; ok: boolean; parsed?: ParsedFontFile; error?: string }>) => {
+  worker.onmessage = (e: MessageEvent<{ id: number; ok: boolean; parsed?: ParsedFontFile; outline?: FontOutline; error?: string }>) => {
     const p = pending.get(e.data.id);
     if (!p) return;
     pending.delete(e.data.id);
-    if (e.data.ok && e.data.parsed) p.resolve(e.data.parsed);
+    if (e.data.ok && (e.data.parsed || e.data.outline)) p.resolve(e.data.parsed ?? e.data.outline);
     else p.reject(new Error(e.data.error ?? 'This font file could not be read.'));
   };
   return worker;
+}
+
+export interface FontOutline { svg: string; width: number; height: number }
+
+/** A line of text as vector outlines from the font file (for previews in Figma). */
+export function outlineText(bytes: ArrayBuffer, text: string, size = 48): Promise<FontOutline> {
+  const id = ++seq;
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    const copy = bytes.slice(0);
+    getWorker().postMessage({ id, bytes: copy, outline: { text, size } }, [copy]);
+  });
 }
 
 export function parseFontBytes(bytes: ArrayBuffer): Promise<ParsedFontFile> {

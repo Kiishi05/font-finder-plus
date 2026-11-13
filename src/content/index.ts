@@ -84,6 +84,30 @@ if (!window.__ffpLoaded) {
           .catch(() => reply({ ok: false }));
         return true;
       }
+      case 'ffp:specimen': {
+        // A line of text drawn in the font the way this page draws it (preview for Figma).
+        const fam = `"${msg.family.replace(/"/g, '')}"`;
+        document.fonts
+          .load(`${msg.style} ${msg.weight} 48px ${fam}`, msg.text)
+          .catch(() => undefined)
+          .then(() => {
+            const font = `${msg.style} ${msg.weight} 96px ${fam}`;
+            const c = document.createElement('canvas');
+            const ctx = c.getContext('2d')!;
+            ctx.font = font;
+            const m = ctx.measureText(msg.text);
+            const asc = Math.ceil(m.actualBoundingBoxAscent || 90);
+            const desc = Math.ceil(m.actualBoundingBoxDescent || 24);
+            c.width = Math.min(4000, Math.ceil(m.width) + 8);
+            c.height = asc + desc + 8;
+            ctx.font = font;
+            ctx.fillStyle = '#111111';
+            ctx.fillText(msg.text, 4, asc + 4);
+            reply({ ok: true, png: c.toDataURL('image/png'), width: c.width / 2, height: c.height / 2 });
+          })
+          .catch(() => reply({ ok: false }));
+        return true;
+      }
       case 'ffp:select-area':
         hideUi(true);
         selectArea().then((r) => {

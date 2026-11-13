@@ -13,6 +13,7 @@ import { MissingNote } from '../components/MissingNote';
 import type { Match } from '../../shared/similar';
 import { trySwap, undoSwap, useSwaps } from '../lib/google';
 import { measureOnPage } from '../lib/shapes';
+import { SendToFigma } from '../components/SendToFigma';
 import { blendMatches, letterScores } from '../lib/lookalike';
 import type { Shape } from '../../shared/shape';
 import { Icon } from '../components/Icon';
@@ -187,7 +188,13 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
       {scan?.truncated && <div className="notice neutral">This page is very large. The first 6,000 text elements were checked.</div>}
 
       {scan && (
-        <div className="row" style={{ marginTop: 'auto', gap: 6 }}>
+        <div className="figmarow" style={{ marginTop: 'auto' }}>
+          <SendToFigma scan={scan} tabId={tab.tabId} toast={toast} />
+          <span className="muted">Copies every font, its licence, a free stand-in and the type styles for the Font Finder Plus Figma plugin.</span>
+        </div>
+      )}
+      {scan && (
+        <div className="row" style={{ gap: 6 }}>
           <button className="btn" style={{ flex: 1, height: 40, borderRadius: 12 }} onClick={copyAll}>Copy all CSS</button>
           <button className="btn" style={{ flex: 1, height: 40, borderRadius: 12 }} onClick={onShare}><Icon icon={Share08Icon} size={15} />Share card</button>
           <button className="btn" style={{ flex: 1, height: 40, borderRadius: 12 }} onClick={rescan} disabled={loading}>{loading ? 'Reading…' : 'Scan again'}</button>

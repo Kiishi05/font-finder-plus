@@ -7,6 +7,7 @@ import { Icon } from '../components/Icon';
 import { Select } from '../components/Select';
 import { copyToClipboard, usePageScan, useSystemScan, type TabState } from '../lib/hooks';
 import { usePreviewFamily } from '../lib/preview';
+import { SendToFigma } from '../components/SendToFigma';
 import { EXPORTS, detectScale, devSummary, exportSystem, nameStyles, type ExportFormat, type NamedStyle } from '../lib/system';
 
 interface Props {
@@ -38,7 +39,7 @@ export function SystemView({ tab, toast }: Props) {
   return (
     <>
       <nav className="jump" aria-label="Jump to">
-        {[['sys-styles', 'Styles'], ['sys-read', 'Readability'], ['sys-dev', 'Developer'], ['sys-export', 'Export'], ['sys-compare', 'Compare']].map(([id, label]) => (
+        {[['sys-styles', 'Styles'], ['sys-read', 'Readability'], ['sys-dev', 'Developer'], ['sys-figma', 'Figma'], ['sys-export', 'Export'], ['sys-compare', 'Compare']].map(([id, label]) => (
           <button key={id} onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{label}</button>
         ))}
       </nav>
@@ -49,6 +50,11 @@ export function SystemView({ tab, toast }: Props) {
           <StylesCard styles={styles} scan={scan} tabId={tab.tabId} toast={toast} />
           <ReadabilityCard issues={system.issues} tabId={tab.tabId} toast={toast} />
           <DevCard system={system} scan={scan} />
+          <section className="section" id="sys-figma">
+            <h2>[Figma] Send this type system to Figma</h2>
+            <span className="muted" style={{ fontSize: 12 }}>Copies {styles.length} text styles and every font with its licence, where to get it, a preview and the closest free stand-in. In Figma, run the Font Finder Plus plugin and paste. It shows which fonts you have, then builds the text styles, variables and a specimen page.</span>
+            <div className="row" style={{ gap: 6 }}><SendToFigma scan={scan} tabId={tab.tabId} system={system} toast={toast} primary /></div>
+          </section>
           <ExportCard styles={styles} host={scan.host} toast={toast} />
           <CompareCard tabId={tab.tabId} scan={scan} system={system} styles={styles} />
           <button className="btn" style={{ height: 40, borderRadius: 12 }} onClick={rerun} disabled={loading}>{loading ? 'Reading…' : 'Check the page again'}</button>

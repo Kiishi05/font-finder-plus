@@ -9,6 +9,7 @@ export {
   Cancel01Icon,
   ContrastIcon,
   Copy01Icon,
+  FigmaIcon,
   Delete02Icon,
   KeyboardIcon,
   PencilEdit01Icon,

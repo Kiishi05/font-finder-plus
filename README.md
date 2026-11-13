@@ -60,6 +60,10 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
 - The side panel stays open across tabs in a window and follows the tab you are on. With access to all sites, the inspector starts by itself on each tab; without it, click the icon once on each tab (Chrome's rule).
 - **Sample text:** each font's name, your own text, or a sample sentence in one of 16 languages.
 
+## Figma plugin
+
+**Send to Figma** (bottom of the Page tab, or the Figma section of the System tab) copies every font on the page with its licence, where to get it, a preview and its closest free stand-in, plus the page's text styles. Paste it into the Font Finder Plus Figma plugin to get text styles, variables and a specimen page, with installed and missing fonts marked. See [figma-plugin/README.md](figma-plugin/README.md) to load it (`npm run build:figma`, then in the Figma desktop app: Plugins > Development > Import plugin from manifest).
+
 ## Permissions, and why each one is needed
 
 | Permission | Why |
@@ -133,6 +137,7 @@ src/
 scripts/        build, catalogue and package scripts
 tests/          end-to-end, performance and real-site checks, and test pages
 store/          Chrome Web Store listing text
+figma-plugin/   the Figma plugin (npm run build:figma; node tests/figma.mjs)
 ```
 
 Rename the product in `src/shared/brand.ts` and `public/manifest.json`.

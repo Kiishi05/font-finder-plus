@@ -483,6 +483,22 @@ try {
   const hn = await panel.evaluate(() => [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Helvetica Neue LT Pro'))?.textContent ?? 'missing');
   check('Make it free swaps a Helvetica-shaped font for Arimo, by letter shapes', /Arimo/.test(hn), hn);
   check('Make it free shows the free licence of a close match', /Free · SIL Open Font License/.test(acme), acme);
+
+  // Send to Figma: copies fonts, licences, stand-ins, previews and styles.
+  await panel.evaluate(() => { window.__copied = null; navigator.clipboard.writeText = async (t) => { window.__copied = t; }; });
+  await panel.locator('.figmarow button', { hasText: 'Send to Figma' }).click();
+  await panel.waitForFunction(() => window.__copied, null, { timeout: 90000 }).catch(() => {});
+  const figmaText = await panel.evaluate(() => window.__copied ?? '');
+  fs.writeFileSync(path.join(out, 'figma-payload.txt'), figmaText);
+  let fp = null;
+  try { fp = JSON.parse(figmaText.slice(figmaText.indexOf('\n') + 1)); } catch {}
+  const fhn = fp?.fonts?.find((f) => f.name === 'Helvetica Neue LT Pro');
+  check('Send to Figma copies the page for the plugin', figmaText.startsWith('FONT-FINDER-PLUS/FIGMA/1') && fp?.fonts?.length >= 4 && fp?.styles?.length >= 3, `${fp?.fonts?.length} fonts, ${fp?.styles?.length} styles, ${(figmaText.length / 1024).toFixed(0)} KB`);
+  check('Figma payload has a stand-in, licence and vector preview for a paid font', fhn?.standIn?.family === 'Arimo' && /Monotype/.test(fhn?.getIt?.label ?? '') && fhn?.preview?.kind === 'svg' && fhn.preview.svg.includes('<path'), JSON.stringify({ s: fhn?.standIn, g: fhn?.getIt, p: fhn?.preview?.kind }));
+  const figNames = (fp?.fonts ?? []).map((f) => f.name.toLowerCase());
+  check('each font is listed once in the Figma payload', figNames.length === new Set(figNames).size, figNames.join(', '));
+  const facme = fp?.fonts?.find((f) => f.name === 'Acme Mono');
+  check('fonts without a readable file get a picture preview from the page', facme?.preview?.kind === 'png' && facme.preview.data.startsWith('data:image/png'), facme?.preview?.kind ?? 'none');
   await panel.waitForFunction(() => [...document.querySelectorAll('.fcard')].some((c) => /Courier New|Liberation Mono/.test(c.textContent)), null, { timeout: 15000 }).catch(() => {});
   check('text added later in a new style is picked up', (await panel.locator('.fcard', { hasText: /Courier New|Liberation Mono/ }).count()) >= 1);
   await panel.bringToFront();
