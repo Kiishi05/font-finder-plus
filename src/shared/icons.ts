@@ -73,3 +73,6 @@ export function iconSvg(icon: unknown, size = 16, strokeWidth = 1.5, filled = fa
 
 // settings icons
 export { ViewIcon, ViewOffIcon } from '@hugeicons/core-free-icons';
+// image icons
+export { InformationCircleIcon, ImageNotFound01Icon } from '@hugeicons/core-free-icons';
+// end image icons
