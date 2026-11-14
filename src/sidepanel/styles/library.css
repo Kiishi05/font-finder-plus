@@ -1,1 +1,230 @@
-/* library view: redesign styles */
+/* Library, Boards, Fonts I've seen and collection editing. Everything is
+   scoped to .libv (a display: contents wrapper) or to class names only these
+   views use, so other views keep their look. */
+.libv { display: contents; }
+.libv .sub { margin: 0; }
+.libv .anchor { position: relative; display: inline-flex; flex: none; }
+.libv .linkbtn:disabled { opacity: 0.4; cursor: default; }
+.libv .linkbtn .flip { transform: rotate(180deg); }
+.libv .sechead .count { margin-left: 0; }
+.libv .sechead h2 { flex: none; }
+.libv .sechead .linkbtn { margin-left: auto; }
+.libv .sechead::after { content: ''; flex: 1; order: 1; }
+.libv .sechead .linkbtn { order: 2; }
+.libv .crumb .sl { color: var(--field-2); }
+.libv .danger, .libv .danger svg { color: var(--red-text); }
+@media (hover: hover) and (pointer: fine) {
+  .libv .iconbtn.sm.danger:hover { color: var(--red-text); background: var(--red-soft); }
+  .libv .btn.danger:not(:disabled):hover { background: var(--red-soft); filter: brightness(0.97); }
+}
+.libv .btn.dangerfill:hover { opacity: 0.9; }
+.libv .confirmrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 14px; border-radius: var(--r-inner); background: var(--card); font-size: 12.5px; }
+.libv .section .confirmrow { padding: 0; background: none; }
+
+/* Search bar: white, icon, input, then its buttons */
+.libsearch { display: flex; align-items: center; gap: 6px; padding: 7px 7px 7px 16px; border-radius: 16px; background: var(--card); }
+.libsearch .s { display: inline-flex; align-items: center; color: var(--faint); flex: none; }
+.libsearch input { flex: 1; min-width: 0; height: 32px; padding: 0 0 0 4px; border: none; outline: none; background: transparent; color: var(--ink); font-size: 13.5px; }
+.libsearch input::placeholder { color: var(--faint); }
+.libsearch .iconbtn.sm { position: relative; }
+.libsearch .iconbtn.sm[aria-expanded='true'], .libsearch .iconbtn.sm.on { background: var(--field); color: var(--ink); }
+.libsearch .dotbadge { position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+.libsearch .viewtoggle { flex: none; padding: 2px; border-radius: var(--r-ctl); background: var(--field); }
+.libsearch .viewtoggle button { width: 28px; height: 28px; border-radius: 9px; color: var(--faint); }
+.libsearch .viewtoggle button[aria-pressed='true'] { background: var(--card); color: var(--ink); box-shadow: none; }
+
+/* Menus: a subtle edge and a shadow */
+.lmenu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; min-width: 220px; max-width: min(300px, calc(100vw - 24px)); max-height: 340px; overflow-y: auto; padding: 4px; border-radius: 14px; background: var(--card); box-shadow: 0 0 0 1px var(--line), 0 10px 28px rgba(0, 0, 0, 0.14); transform-origin: top right; animation: lmenuin 160ms var(--ease-out); text-align: left; cursor: default; }
+@keyframes lmenuin { from { opacity: 0; transform: scale(0.97); } }
+.lmenu.wide { min-width: 230px; }
+.lmenu > button, .lmenu > label { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 8px 10px; border: none; border-radius: 10px; background: transparent; color: var(--ink); font-size: 13px; text-align: left; cursor: pointer; }
+@media (hover: hover) and (pointer: fine) { .lmenu > button:hover, .lmenu > label:hover { background: var(--field); } }
+.lmenu svg { color: var(--muted); flex: none; }
+.lmenu .danger, .lmenu .danger svg { color: var(--red-text); }
+.lmenu .sep { height: 1px; margin: 4px 6px; background: var(--line); }
+.lmenu .mlbl { padding: 6px 10px 2px; font-size: 11.5px; color: var(--faint); }
+.lmenu .tick { margin-left: auto; display: inline-flex; }
+.lmenu .tick svg { color: var(--ink); }
+.lmenu button.mcol { align-items: flex-start; }
+.lmenu .mdot { width: 8px; height: 8px; margin-top: 5px; border-radius: 3px; flex: none; }
+.lmenu .mname { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.lmenu button.mcol .tick { align-self: center; }
+.lmenu .mselect select { flex: 1; min-width: 0; border: none; background: transparent; color: var(--ink); font: inherit; font-size: 13px; padding: 0; cursor: pointer; -webkit-appearance: none; appearance: none; text-overflow: ellipsis; }
+
+/* Collections: one line that scrolls sideways */
+.colrow { position: relative; display: flex; gap: 6px; margin: 0 -12px; padding: 0 12px; overflow-x: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 24px), transparent); }
+.colrow::-webkit-scrollbar { display: none; }
+.colrow .chip { flex: none; background: var(--card); color: var(--muted); }
+.colrow .chip.newcol { color: var(--ink); }
+.colrow .chip[aria-pressed='true'] { background: var(--ink); color: var(--card); }
+@media (hover: hover) and (pointer: fine) { .colrow .chip:not([aria-pressed='true']):hover { background: var(--hover); } }
+.colrow .chip .sw { width: 8px; height: 8px; border-radius: 3px; flex: none; }
+.colrow .chip .cn { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.colrow .chip .n { color: var(--faint); font-variant-numeric: tabular-nums; }
+.colrow .chip[aria-pressed='true'] .n { color: var(--card); opacity: 0.6; }
+
+/* Boards and Fonts I've seen */
+.libtiles { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.libtile { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 14px; border: none; border-radius: var(--r-card); background: var(--card); color: var(--ink); text-align: left; transition: transform 160ms var(--ease-out); }
+.libtile:active { transform: scale(0.98); }
+.libtile .ic { width: 32px; height: 32px; border-radius: var(--r-ctl); background: var(--inset); color: var(--muted); display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.libtile .t { display: flex; flex-direction: column; min-width: 0; }
+.libtile .t b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.libtile .t span { font-size: 12px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Filters */
+.libfilters { gap: 14px; animation: fadein 200ms var(--ease-out); }
+.libfilters .fhead { display: flex; align-items: center; justify-content: space-between; margin: -6px -6px -4px 0; }
+.libfilters .fgroup { display: flex; flex-direction: column; gap: 8px; }
+.libfilters .fgroup > span { font-size: 12px; color: var(--faint); }
+.libfilters .ffoot { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--line); }
+.activef { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.activef .chip { gap: 4px; padding-right: 8px; }
+.activef .chip svg { opacity: 0.7; }
+.activef .linkbtn { margin-left: 4px; }
+
+/* The chosen collection */
+.colbar { display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 12px 14px 12px 18px; border-radius: var(--r-card); background: var(--card); }
+.colbar .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.colbar b { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 8px; font-weight: 500; white-space: nowrap; }
+.colbar b .cn { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.colbar b .n { flex: none; font-weight: 400; font-size: 12px; color: var(--faint); }
+.colbar > .grow { font-size: 12.5px; }
+
+/* Preview bar */
+.libtester { display: flex; align-items: center; gap: 10px; padding: 7px 8px 7px 16px; border-radius: 16px; background: var(--card); color: var(--faint); }
+.libtester > svg { flex: none; }
+.libtester input[type='text'] { flex: 1; min-width: 0; height: 32px; border: none; outline: none; background: transparent; color: var(--ink); font-size: 13.5px; }
+.libtester input[type='text']::placeholder { color: var(--faint); }
+.libtester .px { width: 34px; flex: none; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
+.libtester input[type='range'] { width: 84px; min-width: 0; flex: none; }
+@media (max-width: 340px) { .libtester input[type='range'] { width: 56px; } .libtester .px { display: none; } }
+
+/* Font cards: grid */
+.libv .grid2 { align-items: stretch; }
+.libv .lcard { position: relative; display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 8px; border-radius: var(--r-card); background: var(--card); overflow: visible; }
+.libv .lcard .spec { display: flex; align-items: center; height: 96px; padding: 0 12px; border-radius: 12px; background: var(--inset); color: var(--ink); line-height: 1.05; overflow: hidden; overflow-wrap: anywhere; }
+.libv .lcard .spec span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.libv .lcard .meta { display: flex; flex-direction: column; gap: 3px; padding: 0 6px 6px; border: none; min-width: 0; }
+.libv .lcard .nm { display: flex; min-width: 0; }
+.libv .lcard .nm b { flex: 1; min-width: 0; font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.libv .lcard .nm .namebtn { overflow-wrap: normal; }
+.libv .lcard .sm2 { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--faint); min-width: 0; white-space: nowrap; }
+.libv .lic { font-size: 12px; font-weight: 400; gap: 6px; flex: none; }
+.libv .lic.neutral i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--faint); }
+.libv .lcard .moreanchor { position: absolute; top: 12px; right: 12px; }
+.libv .lcard .more { background: var(--card); }
+.libv .lcard .cardmenu.incard { top: 46px; left: 4px; right: 4px; min-width: 0; max-width: none; transform-origin: top center; }
+.libv .more { opacity: 0; transition: opacity 150ms ease; }
+@media (hover: hover) and (pointer: fine) {
+  .libv .lcard:hover .more, .libv .lcard:focus-within .more, .libv .lrow:hover .more, .libv .lrow:focus-within .more { opacity: 1; }
+}
+@media (hover: none) { .libv .more { opacity: 1; } }
+.libv .menuopen .more { opacity: 1; background: var(--field); color: var(--ink); }
+.libv .menuopen { z-index: 5; }
+.libv .lcard, .libv .lrow { transition: transform 160ms var(--ease-out); }
+.libv .spec.invert { background: var(--ink); color: var(--card); }
+.libv .missing { margin: 0; }
+
+/* Font cards: wide list */
+.libv .lrow { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border-radius: var(--r-card); background: var(--card); }
+.libv .lrow .nm { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.libv .lrow .nm b { font-weight: 500; min-width: 0; max-width: 60%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.libv .lrow .nm .namebtn { overflow-wrap: normal; }
+.libv .lrow .nm .s { flex: 1; min-width: 0; font-size: 12px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.libv .lrow .moreanchor { margin: -6px -8px -6px 0; }
+.libv .lrow .spec { line-height: 1.15; color: var(--ink); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.libv .lrow .spec.invert { padding: 10px 12px; border-radius: 12px; }
+
+/* Fields, colours and font pills (collection editor, board editor, picker) */
+.fld { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.fld > span { font-size: 12px; color: var(--faint); }
+.fld .fl { display: flex; justify-content: space-between; }
+.fld .cc { font-variant-numeric: tabular-nums; }
+.fld .cc.over { color: var(--red-text); }
+.fld .field { width: 100%; }
+.lswatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.lswatches button { width: 28px; height: 28px; padding: 0; border: none; border-radius: var(--r-ctl); background: var(--c); box-shadow: 0 0 0 2px var(--card), 0 0 0 2px transparent; transition: box-shadow 150ms ease, transform 160ms var(--ease-out); }
+.lswatches button[aria-checked='true'] { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--ink); }
+.lswatches button:active { transform: scale(0.94); }
+.addpills .chip.fpill, .chip.fpill { height: 32px; padding: 0 12px 0 9px; gap: 6px; color: var(--ink); max-width: 100%; }
+.chip.fpill svg { flex: none; color: var(--faint); }
+.chip.fpill[aria-pressed='true'], .chip.fpill[aria-pressed='true'] svg { color: var(--card); }
+.chip.fpill .pf { font-size: 15px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.libv .btn.wide:disabled { opacity: 0.4; }
+.libv .delcol { align-self: center; margin-top: 4px; padding: 6px 8px; }
+
+/* Collection picker (Page and font details) */
+.picker .chip.colchip { max-width: 100%; }
+.picker .chip .cn { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.newcol-inline { display: flex; flex-direction: column; gap: 12px; width: 100%; padding: 14px; border-radius: var(--r-inner); background: var(--inset); }
+.newcol-inline .field { background: var(--card); }
+.newcol-inline .lswatches button { box-shadow: 0 0 0 2px var(--inset), 0 0 0 2px transparent; }
+.newcol-inline .lswatches button[aria-checked='true'] { box-shadow: 0 0 0 2px var(--inset), 0 0 0 4px var(--ink); }
+.newcol-inline .btn.sm:not(.primary) { background: var(--card); }
+
+/* Boards */
+.boardgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.boardcard { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 8px; border: none; border-radius: var(--r-card); background: var(--card); color: var(--ink); text-align: left; transition: transform 160ms var(--ease-out); }
+.boardcard:active { transform: scale(0.98); }
+.boardcard .meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 0 6px 6px; }
+.boardcard .meta b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.boardcard .meta span { font-size: 12px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bthumb { display: flex; flex-direction: column; justify-content: center; gap: 6px; height: 112px; padding: 12px; border-radius: 12px; overflow: hidden; }
+.bthumb.light { background: #f2f1ec; color: #111111; }
+.bthumb.dark { background: #111111; color: #f4f3ef; }
+.bthumb .bt { display: block; font-size: 17px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bthumb .bempty { align-self: center; font-size: 12.5px; opacity: 0.6; }
+.bthumb.big { height: 140px; }
+.libv .bprev { padding: 8px; }
+.libv .bprev .cardcanvas { box-shadow: none; border-radius: 12px; }
+.bgpick { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.bgpick button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 38px; border: none; border-radius: var(--r-ctl); background: var(--field); color: var(--muted); font-weight: 500; transition: background-color 150ms ease, transform 160ms var(--ease-out); }
+.bgpick button:active { transform: scale(0.97); }
+.bgpick button[aria-checked='true'] { background: var(--ink); color: var(--card); }
+.bgpick .sw2 { width: 14px; height: 14px; border-radius: 4px; }
+.bgpick .sw2.light { background: #f2f1ec; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }
+.bgpick .sw2.dark { background: #111111; }
+.bgpick button[aria-checked='true'] .sw2.dark, .bgpick button:not([aria-checked='true']) .sw2.dark { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35); }
+.switchrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; border-top: 1px solid var(--line); }
+.bacts { display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+
+/* Fonts I've seen */
+.recbar { display: flex; align-items: center; gap: 10px; padding: 12px 14px 12px 18px; border-radius: var(--r-card); background: var(--card); font-size: 12.5px; color: var(--muted); }
+.recbar .grow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recbar b { font-weight: 500; color: var(--ink); }
+.recdot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+.recdot.off { background: var(--faint); box-shadow: none; }
+.seenlist { display: flex; flex-direction: column; }
+.libv .seenrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 2px 12px; padding: 14px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.libv .seenrow:first-child { border-top: 0; padding-top: 0; }
+.libv .seenrow .n { font-size: 19px; line-height: 1.25; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; overflow-wrap: normal; }
+.libv .seenrow .w { grid-column: 1 / -1; font-size: 12px; color: var(--faint); overflow-wrap: anywhere; }
+.libv .seenrow .w a { color: var(--muted); text-decoration: none; }
+.libv .seenrow .w a:hover { color: var(--ink); text-decoration: underline; }
+.libv .seenrow .w .linkbtn { font-size: 12px; }
+.libv .seenrow .sitesmore { display: flex; flex-direction: column; gap: 2px; padding-top: 4px; }
+.sites { display: flex; flex-direction: column; }
+.site { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 12.5px; min-width: 0; }
+.site:first-child { border-top: 0; padding-top: 0; }
+.site b { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.site .n { color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; flex: none; }
+.site.paused b { color: var(--faint); }
+.site .ptag { flex: none; padding: 1px 7px; border-radius: 99px; background: var(--field); color: var(--muted); font-size: 11px; font-weight: 500; }
+.site .iconbtn.sm { margin: -2px 0; }
+
+/* Tooltips on buttons at the right edge open leftwards, so they never widen the page */
+.libv .tip.tipr::after { left: auto; right: 0; transform: translate(0, 2px); }
+.libv .tip.tipr:hover::after, .libv .tip.tipr:focus-visible::after { transform: translate(0, 0); }
+
+/* Only the list of collections scrolls in a font's menu; its actions stay in reach */
+.lmenu .mlist { max-height: 216px; overflow-y: auto; }
+.lmenu .mlist > button { display: flex; align-items: flex-start; gap: 10px; width: 100%; min-height: 36px; padding: 8px 10px; border: none; border-radius: 10px; background: transparent; color: var(--ink); font-size: 13px; text-align: left; cursor: pointer; }
+@media (hover: hover) and (pointer: fine) { .lmenu .mlist > button:hover { background: var(--field); } }
+.lmenu.cardmenu { max-height: none; overflow: visible; }
+/* Room after the last collection so it clears the fade */
+.colrow::after { content: ''; flex: none; width: 12px; }
+/* Long names end in … */
+.libv .lcard .nm .namebtn, .libv .lrow .nm .namebtn { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* Save stays in reach under a long list of fonts */
+.libv .stickysave { position: sticky; bottom: 12px; z-index: 4; }

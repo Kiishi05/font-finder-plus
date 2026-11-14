@@ -78,3 +78,11 @@ export { InformationCircleIcon, ImageNotFound01Icon } from '@hugeicons/core-free
 // end image icons
 // system icons
 export { RefreshIcon as SysRefreshIcon, TextFontIcon as SysTextFontIcon } from '@hugeicons/core-free-icons';
+// library icons
+export {
+  MoreHorizontalIcon as LibMoreIcon,
+  FilterHorizontalIcon as LibFilterIcon,
+  Edit02Icon as LibEditIcon,
+  BookmarkAdd02Icon as LibBookmarkAddIcon,
+  Folder01Icon as LibFolderIcon,
+} from '@hugeicons/core-free-icons';
