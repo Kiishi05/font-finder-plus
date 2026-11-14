@@ -414,7 +414,7 @@ function PreviewBar({ value, onChange }: { value: TesterState; onChange: (t: Tes
         id="tester-text"
         type="text"
         aria-label="Preview text"
-        placeholder={value.mode === 'language' ? 'Showing a language sample' : 'Type to preview'}
+        placeholder={value.mode === 'language' ? 'Type to preview' : 'Type to preview'}
         value={value.text}
         onChange={(e) => set({ text: e.target.value, mode: e.target.value ? 'mine' : 'names' })}
       />
@@ -445,7 +445,7 @@ function PreviewBar({ value, onChange }: { value: TesterState; onChange: (t: Tes
             <button role="menuitemradio" aria-checked={value.align === 'center'} onClick={() => set({ align: 'center' })}><Icon icon={TextAlignCenterIcon} size={16} />Align centre{value.align === 'center' && <span className="tick"><Icon icon={Tick02Icon} size={15} /></span>}</button>
             <button role="menuitemcheckbox" aria-checked={value.invert} onClick={() => set({ invert: !value.invert })}><Icon icon={ContrastIcon} size={16} />Light text on dark{value.invert && <span className="tick"><Icon icon={Tick02Icon} size={15} /></span>}</button>
             <div className="sep" />
-            <button role="menuitem" onClick={() => { onChange({ ...DEFAULT_TESTER, size: 36 }); setOpen(false); }}><Icon icon={ArrowReloadHorizontalIcon} size={16} />Reset preview</button>
+            <button role="menuitem" onClick={() => { onChange({ ...DEFAULT_TESTER, mode: 'names', size: 36 }); setOpen(false); }}><Icon icon={ArrowReloadHorizontalIcon} size={16} />Reset preview</button>
           </div>
         )}
       </span>

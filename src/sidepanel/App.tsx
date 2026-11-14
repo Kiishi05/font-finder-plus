@@ -37,7 +37,7 @@ export function App() {
   const tab = useActiveTab();
   const [toast, showToast] = useToast();
   const [tester, setTester] = useState<TesterState>(DEFAULT_TESTER);
-  const [libTester, setLibTester] = useState<TesterState>({ ...DEFAULT_TESTER, size: 36 });
+  const [libTester, setLibTester] = useState<TesterState>({ ...DEFAULT_TESTER, mode: 'names', size: 36 });
 
   // Right-click "Identify the font in this image" opens the Image tab with that image.
   const [pending, setPending] = useState<IdentifyRequest | null>(null);

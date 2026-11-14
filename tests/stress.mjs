@@ -153,9 +153,9 @@ try {
       await panel.waitForTimeout(800);
       await shoot(panel, `${name}-image-start-${envName}`);
       await panel.setInputFiles('input[aria-label="Upload an image"]', file);
-      await panel.waitForSelector('.editbox canvas', { timeout: 15000 });
+      await panel.waitForSelector('.ipic canvas, .ipic img', { timeout: 15000 });
       await shoot(panel, `${name}-image-loaded-${envName}`);
-      await panel.locator('button', { hasText: 'Read the text' }).click();
+      // Reading starts by itself.
       await panel.waitForSelector('#allfonts, .ocrline', { timeout: 120000 }).catch(() => {});
       await panel.waitForFunction(() => !/Comparing letters|Matching…|Reading the text/.test(document.body.innerText), null, { timeout: 180000 }).catch(() => {});
       await shoot(panel, `${name}-image-results-${envName}`);
