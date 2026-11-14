@@ -76,3 +76,5 @@ export { ViewIcon, ViewOffIcon } from '@hugeicons/core-free-icons';
 // image icons
 export { InformationCircleIcon, ImageNotFound01Icon } from '@hugeicons/core-free-icons';
 // end image icons
+// system icons
+export { RefreshIcon as SysRefreshIcon, TextFontIcon as SysTextFontIcon } from '@hugeicons/core-free-icons';
