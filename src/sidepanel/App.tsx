@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { BRAND } from '../shared/brand';
 import { ArrowUp01Icon, Settings02Icon } from '../shared/icons';
 import type { PageFontUsage } from '../shared/types';
 import { Icon } from './components/Icon';
@@ -91,7 +90,6 @@ export function App() {
     <div className="app">
       {!fullScreen && (
         <div className="topbar">
-          <div className="brand">{BRAND.shortName}</div>
           <nav className="tabs" aria-label="Sections">
             <button aria-current={top === 'page' ? 'page' : undefined} onClick={() => setView({ name: 'page' })}>Page</button>
             <button aria-current={top === 'image' ? 'page' : undefined} onClick={() => setView({ name: 'image' })}>Image</button>

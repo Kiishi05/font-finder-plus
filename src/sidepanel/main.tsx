@@ -2,6 +2,12 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { ShotViewer } from './ShotViewer';
 import './styles.css';
+import './styles/page.css';
+import './styles/details.css';
+import './styles/image.css';
+import './styles/system.css';
+import './styles/library.css';
+import './styles/settings.css';
 
 // Tell the background the panel is open. When the panel closes the port drops,
 // and the background turns the hover card off in this window.
