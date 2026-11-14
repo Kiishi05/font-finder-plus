@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Font Finder Plus</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Inter:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,600&family=Lobster&display=swap">
+<style>
+:root {
+  --desk: #e5e5e5; --bg: #f2f2f2; --sheet: #ffffff; --ink: #171717; --ink-2: #525252; --ink-3: #737373;
+  --line: rgba(0,0,0,0.08); --field: #f2f2f2; --hover: #e5e5e5; --field-2: #e5e5e5;
+  --free: #0b7a37; --free-dot: #19a35a; --paid: #8a5a00; --paid-dot: #e39b12;
+  --ui: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, Menlo, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --r-card: 18px; --r-ctl: 11px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --desk: #050505; --bg: #0d0d0d; --sheet: #171717; --ink: #f2f2f2; --ink-2: #a3a3a3; --ink-3: #8a8a8a;
+  --line: rgba(255,255,255,0.08); --field: #262626; --hover: #333333; --field-2: #333333;
+  --free: #6be29c; --free-dot: #3ad47a; --paid: #f2be6b; --paid-dot: #e39b12; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --desk: #050505; --bg: #0d0d0d; --sheet: #171717; --ink: #f2f2f2; --ink-2: #a3a3a3; --ink-3: #8a8a8a;
+  --line: rgba(255,255,255,0.08); --field: #262626; --hover: #333333; --field-2: #333333;
+  --free: #6be29c; --free-dot: #3ad47a; --paid: #f2be6b; --paid-dot: #e39b12; color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--desk); color: var(--ink); font: 13px/1.45 var(--ui); -webkit-font-smoothing: antialiased; }
+.desk { min-height: 100vh; display: flex; justify-content: center; padding-left: max(0px, env(safe-area-inset-left, 0px)); padding-right: max(0px, env(safe-area-inset-right, 0px)); }
+.panel { width: 400px; max-width: 100%; background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; gap: 8px; padding: 12px 12px 120px; }
+button { font: inherit; color: inherit; }
+h2 { margin: 0; font: 500 14px/1.3 var(--ui); }
+p { margin: 0; }
+.box { background: var(--sheet); border-radius: var(--r-card); padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+.faint { color: var(--ink-3); }
+.topbar { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.brand { font-weight: 600; font-size: 13px; padding: 0 4px; }
+.tabs { display: flex; gap: 2px; padding: 3px; background: var(--sheet); border-radius: 13px; flex: 1; }
+.tabs button { flex: 1; height: 28px; border: 0; background: transparent; border-radius: 10px; color: var(--ink-2); cursor: pointer; }
+.tabs button[aria-current] { background: var(--field); color: var(--ink); }
+.iconbtn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--r-ctl); background: transparent; color: var(--ink-3); cursor: pointer; flex: none; transition: background-color 150ms ease, color 150ms ease, transform 160ms var(--ease-out); }
+@media (hover: hover) and (pointer: fine) { .iconbtn:hover { background: var(--hover); color: var(--ink); } }
+.iconbtn[aria-pressed="true"] { color: var(--ink); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: var(--r-ctl); border: 0; background: var(--field); cursor: pointer; font-weight: 500; color: var(--ink); white-space: nowrap; text-decoration: none; transition: background-color 150ms ease, opacity 150ms ease, transform 160ms var(--ease-out); }
+.btn.primary { background: var(--ink); color: var(--sheet); }
+.btn.sm { height: 30px; padding: 0 10px; font-size: 12.5px; }
+@media (hover: hover) and (pointer: fine) { .btn:not(.primary):hover { background: var(--field-2); } .btn.primary:hover { opacity: 0.88; } }
+.on-grey .btn:not(.primary) { background: var(--sheet); }
+@media (hover: hover) and (pointer: fine) { .on-grey .btn:not(.primary):hover { background: var(--hover); } }
+.iconbtn:active, .btn:active { transform: scale(0.97); }
+:is(.iconbtn, .btn, .tabs button, .row, .link, .chip):focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.link { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; padding: 0; color: var(--ink-2); font-weight: 500; font-size: 12.5px; cursor: pointer; text-decoration: none; }
+.link:hover { color: var(--ink); }
+.lic { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; flex: none; }
+.lic i { width: 6px; height: 6px; border-radius: 50%; }
+.lic.free { color: var(--free); } .lic.free i { background: var(--free-dot); }
+.lic.paid { color: var(--paid); } .lic.paid i { background: var(--paid-dot); }
+.lic.unknown { color: var(--ink-3); } .lic.unknown i { box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+.tip { position: relative; }
+.tip::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translate(-50%, 2px); background: var(--ink); color: var(--sheet); font: 500 11.5px/1 var(--ui); padding: 6px 8px; border-radius: 9px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 120ms ease-out, transform 160ms var(--ease-out); z-index: 4; }
+.tip:hover::after, .tip:focus-visible::after { opacity: 1; transform: translate(-50%, 0); transition-delay: 250ms; }
+.toast { position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%); background: var(--ink); color: var(--sheet); padding: 8px 14px; border-radius: 12px; font-size: 12.5px; z-index: 20; animation: toastin 200ms var(--ease-out); white-space: nowrap; }
+@keyframes toastin { from { opacity: 0; transform: translate(-50%, 8px); } }
+@keyframes fadein { from { opacity: 0; transform: translateY(4px); } }
+
+
+/* System tab. Same tokens as Page v2, Details and Image. The health check and readability keep the old colour language. */
+:root { --inset: #f8f8f8; --g: #19c05a; --g-text: #0b7a37; --g-soft: #e3f6ea; --a: #e39b12; --a-text: #7a4e00; --a-soft: #fbefd9; --r: #d92d20; --r-text: #b42318; --r-soft: #fdecea; --bad: #b42318; --bad-dot: #e5484d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --inset: #212121; --g: #3ad47a; --g-text: #6be29c; --g-soft: rgba(58,212,122,0.14); --a: #f2b04a; --a-text: #f2be6b; --a-soft: rgba(242,176,74,0.14); --r: #f0605a; --r-text: #ff8a80; --r-soft: rgba(240,96,90,0.16); --bad: #ff8a80; } }
+:root[data-theme="dark"] { --inset: #212121; --g: #3ad47a; --g-text: #6be29c; --g-soft: rgba(58,212,122,0.14); --a: #f2b04a; --a-text: #f2be6b; --a-soft: rgba(242,176,74,0.14); --r: #f0605a; --r-text: #ff8a80; --r-soft: rgba(240,96,90,0.16); --bad: #ff8a80; }
+.sechead { display: flex; align-items: baseline; gap: 8px; }
+.sechead .count { color: var(--ink-3); font-size: 12px; }
+.sechead .grow { flex: 1; }
+.sub { font-size: 12.5px; color: var(--ink-3); }
+.hair { border-top: 1px solid var(--line); }
+
+/* Health: the old card. A score box, coloured bars, pills for each finding. */
+.score { display: flex; align-items: center; gap: 14px; }
+.score .num { display: flex; align-items: baseline; gap: 2px; padding: 10px 14px; border-radius: 16px; background: var(--inset); flex: none; }
+.score .num b { font: 600 30px/1 var(--ui); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.score .num small { font-size: 12px; color: var(--ink-3); }
+.score .num.good b { color: var(--g-text); } .score .num.warn b { color: var(--a-text); } .score .num.bad b { color: var(--r-text); }
+.score .txt { display: flex; flex-direction: column; gap: 2px; }
+.score .txt b { font-weight: 500; font-size: 15px; }
+.parts { display: flex; flex-direction: column; }
+.part { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 1fr 90px 30px 14px; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.part:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 8px; }
+@media (hover: hover) and (pointer: fine) { .part:hover .lbl { color: var(--ink); } }
+.part .n { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 12.5px; }
+.part .chev { display: inline-flex; color: var(--ink-3); transition: transform 200ms var(--ease-out); }
+.part[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.bar { height: 6px; border-radius: 3px; background: var(--field); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 3px; }
+.bar i.good { background: var(--g); } .bar i.warn { background: var(--a); } .bar i.bad { background: var(--r); }
+.finds { display: flex; flex-direction: column; gap: 12px; padding: 8px 0 14px; animation: fadein 200ms var(--ease-out); }
+.find { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; }
+.find > span:last-child { flex: 1; padding-top: 1px; }
+.pill { flex: none; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; line-height: 1.5; background: var(--field); color: var(--ink-3); }
+.pill.bad { background: var(--r-soft); color: var(--r-text); }
+.pill.warn { background: var(--a-soft); color: var(--a-text); }
+.pill.good { background: var(--g-soft); color: var(--g-text); }
+.on-grey .pill:not(.bad):not(.warn):not(.good) { background: var(--sheet); }
+
+/* Type styles */
+.scale { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; background: var(--inset); border-radius: 14px; font-size: 12.5px; }
+.scale b { font-weight: 500; }
+.scale .sizes { color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.styles { display: flex; flex-direction: column; }
+.style { display: flex; flex-direction: column; gap: 8px; padding: 16px 0; border-top: 1px solid var(--line); }
+.style:first-child { border-top: 0; padding-top: 4px; }
+.style .top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.tag { font: 500 11.5px var(--ui); padding: 3px 7px; border-radius: 8px; background: var(--field); color: var(--ink-2); flex: none; }
+.style .who { font-size: 12.5px; color: var(--ink-2); flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.style .sample { line-height: 1.15; overflow-wrap: anywhere; color: var(--ink); }
+.style .meta { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.copied { color: var(--ink) !important; }
+
+/* Readability: a main card with a card for each issue, as before. */
+.issues { display: flex; flex-direction: column; gap: 8px; }
+.issue { display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 14px; background: var(--inset); }
+.issue .top { display: flex; align-items: flex-start; gap: 8px; }
+.issue .top b { font-weight: 500; flex: 1; }
+.issue .top b span { color: var(--ink-3); font-weight: 400; }
+.issue p { font-size: 12.5px; color: var(--ink-2); }
+.issue .quote { font-size: 12.5px; color: var(--ink-3); font-style: italic; }
+.issue .btn { align-self: flex-start; margin-top: 6px; }
+.readnote { font-size: 12px; color: var(--ink-3); }
+
+/* Fonts and loading */
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.stat { background: var(--inset); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat span { font-size: 12px; color: var(--ink-3); }
+.stat b { font-weight: 500; font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tips { display: flex; flex-direction: column; gap: 12px; margin: 8px 0; }
+.famsbox { background: var(--inset); border-radius: 14px; overflow: hidden; }
+.famhead { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 8px; padding: 12px 14px; cursor: pointer; font-weight: 500; }
+.famhead .count { color: var(--ink-3); font-weight: 400; font-size: 12px; }
+.famhead .grow { flex: 1; }
+.famhead .chev { display: inline-flex; color: var(--ink-3); transition: transform 200ms var(--ease-out); }
+.famhead[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.famhead:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: 14px; }
+.fams { display: flex; flex-direction: column; margin: 0 6px 6px; padding: 2px 12px; background: var(--sheet); border-radius: 11px; animation: fadein 200ms var(--ease-out); }
+.fam { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 12.5px; }
+.fam:first-child { border-top: 0; }
+.fam b { font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fam .r { color: var(--ink-3); font-variant-numeric: tabular-nums; text-align: right; }
+.fam .d { grid-column: 1 / -1; color: var(--ink-3); font-size: 12px; }
+.disc { all: unset; display: inline-flex; align-items: center; gap: 4px; color: var(--ink-2); font-weight: 500; font-size: 12.5px; cursor: pointer; }
+.disc .chev { display: inline-flex; transition: transform 200ms var(--ease-out); }
+.disc[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.disc:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+
+/* Take it with you: Figma and export */
+.figrow { display: flex; flex-direction: column; gap: 12px; padding: 14px; background: var(--inset); border-radius: 14px; }
+.figrow .btn { width: 100%; }
+.figrow .t { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.figrow .t b { font-weight: 500; }
+.figrow .t span { font-size: 12px; color: var(--ink-3); }
+.fmt { display: flex; gap: 6px; flex-wrap: wrap; }
+.fmt .chip { height: 30px; }
+.chip { height: 28px; padding: 0 10px; border-radius: 10px; border: 0; background: var(--field); cursor: pointer; font-size: 12.5px; color: var(--ink-2); transition: background-color 150ms ease, transform 160ms var(--ease-out); }
+@media (hover: hover) and (pointer: fine) { .chip:not([aria-pressed="true"]):hover { background: var(--field-2); } }
+.chip:active { transform: scale(0.97); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
+.chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.code { margin: 0; background: var(--inset); border-radius: 14px; padding: 12px 14px; font: 12px/1.6 var(--mono); color: var(--ink-2); overflow: auto; max-height: 188px; white-space: pre; }
+.code .c { color: var(--ink-3); }
+.exacts { display: flex; gap: 8px; }
+.exnote { font-size: 12px; color: var(--ink-3); }
+
+/* Compare */
+.cmp { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.cmp td { padding: 8px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.cmp td:first-child { color: var(--ink-3); width: 30%; }
+.cmp { margin-top: 8px; table-layout: fixed; }
+.cmp th { text-align: left; font-weight: 500; font-size: 12px; color: var(--ink-2); padding: 0 0 8px; }
+.cmp td { padding: 8px 8px 8px 0; }
+.cmp td svg { vertical-align: -3px; }
+
+/* Floating section tabs, as in Details. */
+.floatnav { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 30; display: flex; padding: 4px; border-radius: 14px; background: var(--sheet); border: 1px solid var(--line); box-shadow: 0 10px 28px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.06); max-width: calc(min(400px, 100vw) - 24px); }
+.floatnav .hl { position: absolute; top: 4px; left: 0; height: 28px; border-radius: 10px; background: var(--ink); transition: transform 250ms var(--ease-out), width 250ms var(--ease-out); }
+.floatnav button { position: relative; border: 0; background: transparent; height: 28px; padding: 0 10px; border-radius: 10px; color: var(--ink-2); font: 500 12.5px var(--ui); cursor: pointer; white-space: nowrap; transition: color 150ms ease; }
+.floatnav button[aria-current="true"] { color: var(--sheet); }
+.floatnav button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .floatnav button:not([aria-current="true"]):hover { color: var(--ink); } }
+.again { align-self: center; margin-top: 4px; }
+
+/* Version 2: Tabs. One subject at a time. */
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 3px; background: var(--sheet); border-radius: 13px; }
+.seg button { height: 28px; border: 0; border-radius: 10px; background: transparent; color: var(--ink-2); cursor: pointer; font-size: 12.5px; }
+.seg button[aria-current] { background: var(--field); color: var(--ink); }
+.seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.pagehead { display: flex; align-items: center; gap: 10px; padding: 4px 6px 0; }
+.pagehead .site { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pagehead .site b { font-weight: 500; }
+.pagehead .site span { font-size: 12px; color: var(--ink-3); }
+
+/* Version 3: Summary. A short summary; each row opens its own page. */
+.rows { display: flex; flex-direction: column; margin: 0 -8px; }
+.go { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 28px 1fr auto 14px; gap: 12px; align-items: center; padding: 12px 8px; border-radius: 12px; cursor: pointer; transition: background-color 150ms ease; }
+.go + .go { box-shadow: 0 -1px 0 var(--line); }
+@media (hover: hover) and (pointer: fine) { .go:hover { background: var(--field); box-shadow: none; } .go:hover + .go { box-shadow: none; } }
+.go:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.go .ic { width: 28px; height: 28px; border-radius: 10px; background: var(--field); display: inline-flex; align-items: center; justify-content: center; color: var(--ink-2); }
+.go .t { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.go .t b { font-weight: 500; }
+.go .t span { font-size: 12px; color: var(--ink-3); }
+.go .v { font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.go .v.bad { color: var(--bad); }
+.go .chev { color: var(--ink-3); display: inline-flex; }
+.back { all: unset; display: inline-flex; align-items: center; gap: 4px; color: var(--ink-2); font-weight: 500; cursor: pointer; padding: 4px 6px; border-radius: 10px; align-self: flex-start; }
+.back:hover { color: var(--ink); }
+.back:focus-visible { outline: 2px solid var(--ink); }
+.drill { display: flex; flex-direction: column; gap: 8px; animation: fadein 200ms var(--ease-out); }
+
+/* Dropdown (custom listbox, as in Details) */
+.dd { position: relative; }
+.dd > button { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px 0 12px; border-radius: var(--r-ctl); border: 0; background: var(--field); cursor: pointer; font-weight: 500; width: 100%; justify-content: space-between; }
+.dd .chev { display: inline-flex; color: var(--ink-3); transition: transform 200ms var(--ease-out); }
+.dd[data-open] .chev { transform: rotate(180deg); }
+.dd ul { position: absolute; top: calc(100% + 4px); left: 0; right: 0; margin: 0; padding: 4px; list-style: none; background: var(--sheet); border-radius: 14px; box-shadow: 0 0 0 1px var(--line), 0 8px 24px rgba(0,0,0,0.12); z-index: 5; transform-origin: top; animation: ddin 160ms var(--ease-out); }
+@keyframes ddin { from { opacity: 0; transform: scale(0.97); } }
+.dd li { padding: 8px 10px; border-radius: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.dd li:hover { background: var(--field); }
+.dd li span { font-size: 12px; color: var(--ink-3); }
+
+/* radius+2 */
+
+.box[id] { scroll-margin-top: 52px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ---- App shell: the whole side panel, linked together ---- */
+.proto-picker { display: none !important; }
+.topbar { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.topbar .brand { display: none; }
+.topbar .tabs { display: flex; flex: 1; gap: 2px; padding: 4px; background: var(--sheet); border-radius: 14px; }
+.topbar .tabs a { flex: 1; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; color: var(--ink-2); font: 500 13px var(--ui); text-decoration: none; transition: background-color 150ms ease, color 150ms ease; }
+.topbar .tabs a[aria-current="page"] { background: var(--field); color: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .topbar .tabs a:not([aria-current]):hover { color: var(--ink); } }
+.topbar .setbtn { width: 42px; height: 42px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; background: var(--sheet); color: var(--ink-2); text-decoration: none; transition: color 150ms ease, transform 160ms cubic-bezier(0.23,1,0.32,1); }
+.topbar .setbtn svg { width: 18px; height: 18px; }
+@media (hover: hover) and (pointer: fine) { .topbar .setbtn:hover { color: var(--ink); } }
+.topbar .tabs a:active, .topbar .setbtn:active { transform: scale(0.97); }
+.topbar a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* Buttons 4px taller everywhere */
+.btn { height: 38px !important; }
+.btn.sm { height: 34px !important; }
+.btn.wide, .btn.big { height: 44px !important; }
+/* Details back button: the same white container as Library and Settings */
+.topbar2 > .iconbtn:first-child { width: 40px; height: 40px; border-radius: 13px; background: var(--sheet); color: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .topbar2 > .iconbtn:first-child:hover { background: var(--hover); } }
+/* Floating section tabs, a little bigger */
+.floatnav { padding: 5px !important; border-radius: 14px !important; }
+.floatnav button { height: 34px !important; padding: 0 12px !important; font-size: 13px !important; border-radius: 10px !important; }
+.floatnav .hl { height: 34px !important; top: 5px !important; border-radius: 10px !important; }
+</style><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<div class="desk"><div class="panel">
+  <div class="topbar">
+    <nav class="tabs" aria-label="Sections"><button>Page</button><button>Image</button><button aria-current="page">System</button><button>Library</button></nav>
+    <button class="iconbtn tip" aria-label="Settings" data-tip="Settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 12C15.5 13.933 13.933 15.5 12 15.5C10.067 15.5 8.5 13.933 8.5 12C8.5 10.067 10.067 8.5 12 8.5C13.933 8.5 15.5 10.067 15.5 12Z" stroke="currentColor" stroke-width="1.5"></path><path d="M21.011 14.0965C21.5329 13.9558 21.7939 13.8854 21.8969 13.7508C22 13.6163 22 13.3998 22 12.9669V11.0332C22 10.6003 22 10.3838 21.8969 10.2493C21.7938 10.1147 21.5329 10.0443 21.011 9.90358C19.0606 9.37759 17.8399 7.33851 18.3433 5.40087C18.4817 4.86799 18.5509 4.60156 18.4848 4.44529C18.4187 4.28902 18.2291 4.18134 17.8497 3.96596L16.125 2.98673C15.7528 2.77539 15.5667 2.66972 15.3997 2.69222C15.2326 2.71472 15.0442 2.90273 14.6672 3.27873C13.208 4.73448 10.7936 4.73442 9.33434 3.27864C8.95743 2.90263 8.76898 2.71463 8.60193 2.69212C8.43489 2.66962 8.24877 2.77529 7.87653 2.98663L6.15184 3.96587C5.77253 4.18123 5.58287 4.28891 5.51678 4.44515C5.45068 4.6014 5.51987 4.86787 5.65825 5.4008C6.16137 7.3385 4.93972 9.37763 2.98902 9.9036C2.46712 10.0443 2.20617 10.1147 2.10308 10.2492C2 10.3838 2 10.6003 2 11.0332V12.9669C2 13.3998 2 13.6163 2.10308 13.7508C2.20615 13.8854 2.46711 13.9558 2.98902 14.0965C4.9394 14.6225 6.16008 16.6616 5.65672 18.5992C5.51829 19.1321 5.44907 19.3985 5.51516 19.5548C5.58126 19.7111 5.77092 19.8188 6.15025 20.0341L7.87495 21.0134C8.24721 21.2247 8.43334 21.3304 8.6004 21.3079C8.76746 21.2854 8.95588 21.0973 9.33271 20.7213C10.7927 19.2644 13.2088 19.2643 14.6689 20.7212C15.0457 21.0973 15.2341 21.2853 15.4012 21.3078C15.5682 21.3303 15.7544 21.2246 16.1266 21.0133L17.8513 20.034C18.2307 19.8187 18.4204 19.711 18.4864 19.5547C18.5525 19.3984 18.4833 19.132 18.3448 18.5991C17.8412 16.6616 19.0609 14.6226 21.011 14.0965Z" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"></path></svg></button>
+  </div>
+  <div id="stage" style="display:flex;flex-direction:column;gap:8px"></div>
+</div></div>
+<script>
+const ICON = {"ImageUploadIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 16L7.46967 11.5303C7.80923 11.1908 8.26978 11 8.75 11C9.23022 11 9.69077 11.1908 10.0303 11.5303L14 15.5M15.5 17L14 15.5M21 16L18.5303 13.5303C18.1908 13.1908 17.7302 13 17.25 13C16.7698 13 16.3092 13.1908 15.9697 13.5303L14 15.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 2.5C7.77027 2.5 5.6554 2.5 4.25276 3.69797C4.05358 3.86808 3.86808 4.05358 3.69797 4.25276C2.5 5.6554 2.5 7.77027 2.5 12C2.5 16.2297 2.5 18.3446 3.69797 19.7472C3.86808 19.9464 4.05358 20.1319 4.25276 20.302C5.6554 21.5 7.77027 21.5 12 21.5C16.2297 21.5 18.3446 21.5 19.7472 20.302C19.9464 20.1319 20.1319 19.9464 20.302 19.7472C21.5 18.3446 21.5 16.2297 21.5 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M15.5 5.5C16.0898 4.89316 17.6597 2.5 18.5 2.5C19.3403 2.5 20.9102 4.89316 21.5 5.5M18.5 3V9.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ScanImageIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M6.5 21.5C6.03563 21.5 5.80344 21.5 5.60812 21.478C3.98545 21.2952 2.70484 20.0145 2.52201 18.3919C2.5 18.1966 2.5 17.9644 2.5 17.5M17.5 21.5C17.9644 21.5 18.1966 21.5 18.3919 21.478C20.0145 21.2952 21.2952 20.0145 21.478 18.3919C21.5 18.1966 21.5 17.9644 21.5 17.5M6.5 2.5C6.03563 2.5 5.80344 2.5 5.60812 2.52201C3.98545 2.70484 2.70484 3.98545 2.52201 5.60812C2.5 5.80344 2.5 6.03563 2.5 6.5M17.5 2.5C17.9644 2.5 18.1966 2.5 18.3919 2.52201C20.0145 2.70484 21.2952 3.98545 21.478 5.60812C21.5 5.80344 21.5 6.03563 21.5 6.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M6.87868 6.87868C7.75736 6 9.17157 6 12 6C14.8284 6 16.2426 6 17.1213 6.87868C18 7.75736 18 9.17157 18 12C18 14.8284 18 16.2426 17.1213 17.1213C16.2426 18 14.8284 18 12 18C9.17157 18 7.75736 18 6.87868 17.1213C6 16.2426 6 14.8284 6 12C6 9.17157 6 7.75736 6.87868 6.87868Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M6.5 15.5L8.0333 13.8522C8.56719 13.2785 9.43281 13.2785 9.9667 13.8522C10.5259 14.4532 11.4415 14.4204 11.9623 13.7808L13.3711 12.0505C13.9688 11.3165 15.0312 11.3165 15.6289 12.0505L17.7603 14.6678\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M10.375 9.75H10.25M10.5 9.75C10.5 9.88807 10.3881 10 10.25 10C10.1119 10 10 9.88807 10 9.75C10 9.61193 10.1119 9.5 10.25 9.5C10.3881 9.5 10.5 9.61193 10.5 9.75Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ClipboardIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17.0235 3.03358L16.0689 2.77924C13.369 2.05986 12.019 1.70018 10.9555 2.31074C9.89196 2.9213 9.53023 4.26367 8.80678 6.94841L7.78366 10.7452C7.0602 13.4299 6.69848 14.7723 7.3125 15.8298C7.92652 16.8874 9.27651 17.247 11.9765 17.9664L12.9311 18.2208C15.631 18.9401 16.981 19.2998 18.0445 18.6893C19.108 18.0787 19.4698 16.7363 20.1932 14.0516L21.2163 10.2548C21.9398 7.57005 22.3015 6.22768 21.6875 5.17016C21.0735 4.11264 19.7235 3.75295 17.0235 3.03358Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M16.8538 7.43306C16.8538 8.24714 16.1901 8.90709 15.3714 8.90709C14.5527 8.90709 13.889 8.24714 13.889 7.43306C13.889 6.61898 14.5527 5.95904 15.3714 5.95904C16.1901 5.95904 16.8538 6.61898 16.8538 7.43306Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M12 20.9463L11.0477 21.2056C8.35403 21.9391 7.00722 22.3059 5.94619 21.6833C4.88517 21.0608 4.52429 19.6921 3.80253 16.9547L2.78182 13.0834C2.06006 10.346 1.69918 8.97731 2.31177 7.89904C2.84167 6.96631 4 7.00027 5.5 7.00015\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "ImageCropIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M22 20H10C7.17157 20 5.75736 20 4.87868 19.1213C4 18.2426 4 16.8284 4 14V2\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M6 20C9.68373 16.4365 13.8235 11.7106 20 15.2551\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M2 4L14 4C16.8284 4 18.2426 4 19.1213 4.87868C20 5.75736 20 7.17157 20 10L20 22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle></svg>", "Tick02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M5 14L8.5 17.5L19 6.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowDown01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 9.00005C18 9.00005 13.5811 15 12 15C10.4188 15 6 9 6 9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowRight01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9.00005 6C9.00005 6 15 10.4189 15 12C15 13.5812 9 18 9 18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowUpRight01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9 6.65032C9 6.65032 15.9383 6.10759 16.9154 7.08463C17.8924 8.06167 17.3496 15 17.3496 15M16.5 7.5L6.5 17.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Bookmark02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 17.9808V9.70753C4 6.07416 4 4.25748 5.17157 3.12874C6.34315 2 8.22876 2 12 2C15.7712 2 17.6569 2 18.8284 3.12874C20 4.25748 20 6.07416 20 9.70753V17.9808C20 20.2867 20 21.4396 19.2272 21.8523C17.7305 22.6514 14.9232 19.9852 13.59 19.1824C12.8168 18.7168 12.4302 18.484 12 18.484C11.5698 18.484 11.1832 18.7168 10.41 19.1824C9.0768 19.9852 6.26947 22.6514 4.77285 21.8523C4 21.4396 4 20.2867 4 17.9808Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "FolderAddIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13 21H12C7.28595 21 4.92893 21 3.46447 19.5355C2 18.0711 2 15.714 2 11V7.94427C2 6.1278 2 5.21956 2.38032 4.53806C2.65142 4.05227 3.05227 3.65142 3.53806 3.38032C4.21956 3 5.1278 3 6.94427 3C8.10802 3 8.6899 3 9.19926 3.19101C10.3622 3.62712 10.8418 4.68358 11.3666 5.73313L12 7M8 7H16.75C18.8567 7 19.91 7 20.6667 7.50559C20.9943 7.72447 21.2755 8.00572 21.4944 8.33329C21.9796 9.05942 21.9992 10.0588 22 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M18 13V21M22 17H14\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Search01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 17L21 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19C15.4183 19 19 15.4183 19 11Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Alert02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13.9248 21H10.0752C5.44476 21 3.12955 21 2.27636 19.4939C1.42317 17.9879 2.60736 15.9914 4.97574 11.9985L6.90057 8.75333C9.17559 4.91778 10.3131 3 12 3C13.6869 3 14.8244 4.91777 17.0994 8.75332L19.0243 11.9985C21.3926 15.9914 22.5768 17.9879 21.7236 19.4939C20.8704 21 18.5552 21 13.9248 21Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 9V13\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12.125 16.75H12M12.25 16.75C12.25 16.8881 12.1381 17 12 17C11.8619 17 11.75 16.8881 11.75 16.75C11.75 16.6119 11.8619 16.5 12 16.5C12.1381 16.5 12.25 16.6119 12.25 16.75Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Settings02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15.5 12C15.5 13.933 13.933 15.5 12 15.5C10.067 15.5 8.5 13.933 8.5 12C8.5 10.067 10.067 8.5 12 8.5C13.933 8.5 15.5 10.067 15.5 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M21.011 14.0965C21.5329 13.9558 21.7939 13.8854 21.8969 13.7508C22 13.6163 22 13.3998 22 12.9669V11.0332C22 10.6003 22 10.3838 21.8969 10.2493C21.7938 10.1147 21.5329 10.0443 21.011 9.90358C19.0606 9.37759 17.8399 7.33851 18.3433 5.40087C18.4817 4.86799 18.5509 4.60156 18.4848 4.44529C18.4187 4.28902 18.2291 4.18134 17.8497 3.96596L16.125 2.98673C15.7528 2.77539 15.5667 2.66972 15.3997 2.69222C15.2326 2.71472 15.0442 2.90273 14.6672 3.27873C13.208 4.73448 10.7936 4.73442 9.33434 3.27864C8.95743 2.90263 8.76898 2.71463 8.60193 2.69212C8.43489 2.66962 8.24877 2.77529 7.87653 2.98663L6.15184 3.96587C5.77253 4.18123 5.58287 4.28891 5.51678 4.44515C5.45068 4.6014 5.51987 4.86787 5.65825 5.4008C6.16137 7.3385 4.93972 9.37763 2.98902 9.9036C2.46712 10.0443 2.20617 10.1147 2.10308 10.2492C2 10.3838 2 10.6003 2 11.0332V12.9669C2 13.3998 2 13.6163 2.10308 13.7508C2.20615 13.8854 2.46711 13.9558 2.98902 14.0965C4.9394 14.6225 6.16008 16.6616 5.65672 18.5992C5.51829 19.1321 5.44907 19.3985 5.51516 19.5548C5.58126 19.7111 5.77092 19.8188 6.15025 20.0341L7.87495 21.0134C8.24721 21.2247 8.43334 21.3304 8.6004 21.3079C8.76746 21.2854 8.95588 21.0973 9.33271 20.7213C10.7927 19.2644 13.2088 19.2643 14.6689 20.7212C15.0457 21.0973 15.2341 21.2853 15.4012 21.3078C15.5682 21.3303 15.7544 21.2246 16.1266 21.0133L17.8513 20.034C18.2307 19.8187 18.4204 19.711 18.4864 19.5547C18.5525 19.3984 18.4833 19.132 18.3448 18.5991C17.8412 16.6616 19.0609 14.6226 21.011 14.0965Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "RotateClockwiseIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 2V5.13219C4 5.42605 4.36724 5.55908 4.55527 5.33333C6.3854 3.2875 9.04499 2 12.0051 2C17.5251 2 22 6.47715 22 12C22 15.9582 19.7015 19.3793 16.367 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M11.7347 22.0001C12.2016 22.0001 12.6611 21.9688 13.1111 21.9084M2.26537 8.66675C2.15297 9.06394 2.06477 9.46536 2 9.86901M2.03457 13.5381C2.10487 13.9381 2.19644 14.3343 2.30852 14.7245M3.83292 17.9963C4.07124 18.3497 4.3296 18.69 4.6071 19.0147M7.42857 21.3607C7.78228 21.5632 8.15042 21.7464 8.53228 21.9084\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ContrastIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle><path d=\"M12 22V2\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 7L20.5 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 17L20.5 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 12H22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowLeft01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15 6C15 6 9.00001 10.4189 9 12C8.99999 13.5812 15 18 15 18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "InformationCircleIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle><path d=\"M12 16V12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12.125 8.25H12M12.25 8.25C12.25 8.11193 12.1381 8 12 8C11.8619 8 11.75 8.11193 11.75 8.25C11.75 8.38807 11.8619 8.5 12 8.5C12.1381 8.5 12.25 8.38807 12.25 8.25Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Tick02Small": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M5 14L8.5 17.5L19 6.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowDownSmall": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 9.00005C18 9.00005 13.5811 15 12 15C10.4188 15 6 9 6 9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowUpRightSmall": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9 6.65032C9 6.65032 15.9383 6.10759 16.9154 7.08463C17.8924 8.06167 17.3496 15 17.3496 15M16.5 7.5L6.5 17.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Search01Small": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 17L21 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19C15.4183 19 19 15.4183 19 11Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "PerspectiveIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4.5 11.9999C4.5 9.51223 4.5 8.2684 5.17206 7.38465C5.24545 7.28814 5.32409 7.19589 5.40762 7.10833C6.17248 6.30646 7.38276 6.13056 9.8033 5.77875L12.1623 5.43589C15.5764 4.93968 17.2834 4.69157 18.3917 5.6695C19.5 6.64743 19.5 8.4018 19.5 11.9106V12.0892C19.5 15.598 19.5 17.3523 18.3917 18.3303C17.2834 19.3082 15.5764 19.0601 12.1623 18.5639L9.80329 18.221C7.38275 17.8692 6.17248 17.6933 5.40762 16.8914C5.32409 16.8039 5.24545 16.7116 5.17206 16.6151C4.5 15.7314 4.5 14.4875 4.5 11.9999Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M12 22L12 2M2 12H22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "ImageUploadBig": "<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 16L7.46967 11.5303C7.80923 11.1908 8.26978 11 8.75 11C9.23022 11 9.69077 11.1908 10.0303 11.5303L14 15.5M15.5 17L14 15.5M21 16L18.5303 13.5303C18.1908 13.1908 17.7302 13 17.25 13C16.7698 13 16.3092 13.1908 15.9697 13.5303L14 15.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 2.5C7.77027 2.5 5.6554 2.5 4.25276 3.69797C4.05358 3.86808 3.86808 4.05358 3.69797 4.25276C2.5 5.6554 2.5 7.77027 2.5 12C2.5 16.2297 2.5 18.3446 3.69797 19.7472C3.86808 19.9464 4.05358 20.1319 4.25276 20.302C5.6554 21.5 7.77027 21.5 12 21.5C16.2297 21.5 18.3446 21.5 19.7472 20.302C19.9464 20.1319 20.1319 19.9464 20.302 19.7472C21.5 18.3446 21.5 16.2297 21.5 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M15.5 5.5C16.0898 4.89316 17.6597 2.5 18.5 2.5C19.3403 2.5 20.9102 4.89316 21.5 5.5M18.5 3V9.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "InfoSmall": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle><path d=\"M12 16V12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12.125 8.25H12M12.25 8.25C12.25 8.11193 12.1381 8 12 8C11.8619 8 11.75 8.11193 11.75 8.25C11.75 8.38807 11.8619 8.5 12 8.5C12.1381 8.5 12.25 8.38807 12.25 8.25Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "FigmaIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"15\" cy=\"12\" r=\"3\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle><path d=\"M9 21C10.6569 21 12 19.6569 12 18V15H9C7.34315 15 6 16.3431 6 18C6 19.6569 7.34315 21 9 21Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 9V15H9C7.34315 15 6 13.6569 6 12C6 10.3431 7.34315 9 9 9H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 3V9H9C7.34315 9 6 7.65685 6 6C6 4.34315 7.34315 3 9 3H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 3V9H15C16.6569 9 18 7.65685 18 6C18 4.34315 16.6569 3 15 3H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "CodeIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M16 6.99998L19.0664 9.64296C20.3554 10.7541 21 11.3096 21 12C21 12.6903 20.3555 13.2459 19.0664 14.357L16 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M8 6.99998L4.93365 9.64296C3.64455 10.7541 3 11.3096 3 12C3 12.6903 3.64455 13.2459 4.93365 14.357L8 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Download01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2.99969 17.0002C2.99969 17.9302 2.99969 18.3952 3.10192 18.7767C3.37932 19.8119 4.18796 20.6206 5.22324 20.898C5.60474 21.0002 6.06972 21.0002 6.99969 21.0002L16.9997 21.0002C17.9297 21.0002 18.3947 21.0002 18.7762 20.898C19.8114 20.6206 20.6201 19.8119 20.8975 18.7767C20.9997 18.3952 20.9997 17.9302 20.9997 17.0002\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M16.4998 11.5002C16.4998 11.5002 13.1856 16.0002 11.9997 16.0002C10.8139 16.0002 7.49976 11.5002 7.49976 11.5002M11.9997 15.0002V3.00016\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Copy01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M7.5 14.5C7.5 11.2002 7.5 9.55025 8.52513 8.52513C9.55025 7.5 11.2002 7.5 14.5 7.5C17.7998 7.5 19.4497 7.5 20.4749 8.52513C21.5 9.55025 21.5 11.2002 21.5 14.5C21.5 17.7998 21.5 19.4497 20.4749 20.4749C19.4497 21.5 17.7998 21.5 14.5 21.5C11.2002 21.5 9.55025 21.5 8.52513 20.4749C7.5 19.4497 7.5 17.7998 7.5 14.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M7.5 16.5C6.10355 16.5 5.40533 16.5 4.84402 16.3036C3.83866 15.9518 3.0482 15.1613 2.69641 14.156C2.5 13.5947 2.5 12.8964 2.5 11.5V9.5C2.5 6.20017 2.5 4.55025 3.52513 3.52513C4.55025 2.5 6.20017 2.5 9.5 2.5H11.5C12.8964 2.5 13.5947 2.5 14.156 2.69641C15.1613 3.0482 15.9518 3.83866 16.3036 4.84402C16.5 5.40533 16.5 6.10355 16.5 7.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Target02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M14 2.20004C13.3538 2.06886 12.6849 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 11.3151 21.9311 10.6462 21.8 10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M12.0303 11.9625L16.5832 7.4096M19.7404 4.34462L19.1872 2.35748C19.0853 2.03011 18.6914 1.89965 18.4259 2.11662C16.9898 3.29018 15.4254 4.87091 16.703 7.36419C19.2771 8.56455 20.7466 6.94584 21.8733 5.5853C22.0975 5.3146 21.9623 4.90767 21.6247 4.81005L19.7404 4.34462Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "GitCompareIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M19 17L19 11C19 8.17157 19 6.75736 18.1213 5.87868C17.2426 5 15.8284 5 13 5H10M10 5C10 4.29977 11.9943 2.99153 12.5 2.5M10 5C10 5.70023 11.9943 7.00847 12.5 7.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M5 7.5L5 13.5C5 16.3284 5 17.7426 5.87868 18.6213C6.75736 19.5 8.17157 19.5 11 19.5H14M14 19.5C14 20.2002 12.0057 21.5085 11.5 22M14 19.5C14 18.7998 12.0057 17.4915 11.5 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><circle cx=\"19\" cy=\"19\" r=\"2\" stroke=\"currentColor\" stroke-width=\"1.5\"></circle><circle cx=\"5\" cy=\"5\" r=\"2\" stroke=\"currentColor\" stroke-width=\"1.5\"></circle></svg>", "RefreshIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M20.0092 2V5.13219C20.0092 5.42605 19.6418 5.55908 19.4537 5.33333C17.6226 3.2875 14.9617 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "TextFontIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M14 19L11.1069 10.7479C9.76348 6.91597 9.09177 5 8 5C6.90823 5 6.23652 6.91597 4.89309 10.7479L2 19M4.5 12H11.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M21.9692 13.9392V18.4392M21.9692 13.9392C22.0164 13.1161 22.0182 12.4891 21.9194 11.9773C21.6864 10.7709 20.4258 10.0439 19.206 9.89599C18.0385 9.75447 17.1015 10.055 16.1535 11.4363M21.9692 13.9392L19.1256 13.9392C18.6887 13.9392 18.2481 13.9603 17.8272 14.0773C15.2545 14.7925 15.4431 18.4003 18.0233 18.845C18.3099 18.8944 18.6025 18.9156 18.8927 18.9026C19.5703 18.8724 20.1955 18.545 20.7321 18.1301C21.3605 17.644 21.9692 16.9655 21.9692 15.9392V13.9392Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "DashboardSpeed01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13.5 13L17 9M14 15C14 16.1046 13.1046 17 12 17C10.8954 17 10 16.1046 10 15C10 13.8954 10.8954 13 12 13C13.1046 13 14 13.8954 14 15Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M6 12C6 8.68629 8.68629 6 12 6C13.0929 6 14.1175 6.29218 15 6.80269\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M2.50006 12.0001C2.50006 7.52172 2.50006 5.28255 3.8913 3.8913C5.28255 2.50006 7.52172 2.50006 12.0001 2.50006C16.4784 2.50006 18.7176 2.50006 20.1088 3.8913C21.5001 5.28255 21.5001 7.52172 21.5001 12.0001C21.5001 16.4784 21.5001 18.7176 20.1088 20.1088C18.7176 21.5001 16.4784 21.5001 12.0001 21.5001C7.52172 21.5001 5.28255 21.5001 3.8913 20.1088C2.50006 18.7176 2.50006 16.4784 2.50006 12.0001Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path></svg>", "ViewIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M21.544 11.045C21.848 11.4713 22 11.6845 22 12C22 12.3155 21.848 12.5287 21.544 12.955C20.1779 14.8706 16.6892 19 12 19C7.31078 19 3.8221 14.8706 2.45604 12.955C2.15201 12.5287 2 12.3155 2 12C2 11.6845 2.15201 11.4713 2.45604 11.045C3.8221 9.12944 7.31078 5 12 5C16.6892 5 20.1779 9.12944 21.544 11.045Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path></svg>", "CopySmall": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M7.5 14.5C7.5 11.2002 7.5 9.55025 8.52513 8.52513C9.55025 7.5 11.2002 7.5 14.5 7.5C17.7998 7.5 19.4497 7.5 20.4749 8.52513C21.5 9.55025 21.5 11.2002 21.5 14.5C21.5 17.7998 21.5 19.4497 20.4749 20.4749C19.4497 21.5 17.7998 21.5 14.5 21.5C11.2002 21.5 9.55025 21.5 8.52513 20.4749C7.5 19.4497 7.5 17.7998 7.5 14.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M7.5 16.5C6.10355 16.5 5.40533 16.5 4.84402 16.3036C3.83866 15.9518 3.0482 15.1613 2.69641 14.156C2.5 13.5947 2.5 12.8964 2.5 11.5V9.5C2.5 6.20017 2.5 4.55025 3.52513 3.52513C4.55025 2.5 6.20017 2.5 9.5 2.5H11.5C12.8964 2.5 13.5947 2.5 14.156 2.69641C15.1613 3.0482 15.9518 3.83866 16.3036 4.84402C16.5 5.40533 16.5 6.10355 16.5 7.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ChevR": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9.00005 6C9.00005 6 15 10.4189 15 12C15 13.5812 9 18 9 18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ChevD": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 9.00005C18 9.00005 13.5811 15 12 15C10.4188 15 6 9 6 9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>"};
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// Demo page: the same test site as the old System screenshot.
+const SITE = { host: 'slow-type.studio', title: 'Notes on slow typography' };
+const PARTS = [
+  { id: 'fam', label: 'Font families', score: 40, finds: [['Fix', 'bad', '6 font families. Most sites read best with 2 or 3.'], ['Tip', '', 'Lobster and Demo Regular are each used for one style only.']] },
+  { id: 'size', label: 'Sizes', score: 94, finds: [['Good', 'ok', 'Sizes follow a 1.067 scale from a 17px base.']] },
+  { id: 'wt', label: 'Weights', score: 100, finds: [['Good', 'ok', '2 weights per family at most.']] },
+  { id: 'load', label: 'Loading', score: 41, finds: [['Fix', 'bad', '1 file is TTF. WOFF2 is about a third of the size.'], ['Check', '', 'The main font is not preloaded, so text can appear late.'], ['Tip', '', 'The Google Fonts link has no display=swap.']] },
+  { id: 'read', label: 'Readability', score: 77, finds: [['Fix', 'bad', '1 text fails contrast.'], ['Tip', '', 'Small uppercase text has no letter spacing.']] },
+];
+const STYLES = [
+  { tag: 'h1', font: 'Fraunces', css: "'Fraunces', serif", w: 600, it: 0, size: 48, lh: '52.8', ratio: '1.1', tr: '−0.01em', n: 1, sample: 'Notes on slow typography' },
+  { tag: 'h1', font: 'Fraunces', css: "'Fraunces', serif", w: 600, it: 1, size: 48, lh: '52.8', ratio: '1.1', tr: '−0.01em', n: 1, sample: 'careful' },
+  { tag: 'h2', font: 'Lobster', css: "'Lobster', cursive", w: 400, it: 0, size: 24, lh: 'normal', tr: '0', n: 1, sample: 'A late arrival' },
+  { tag: 'body', font: 'Inter', css: "'Inter', sans-serif", w: 400, it: 0, size: 17, lh: '27.2', ratio: '1.6', tr: '0', n: 3, sample: 'Good type rarely announces itself. It sets a pace and gives the reader room.' },
+  { tag: 'text', font: 'Demo Regular', css: "'Geist Mono', monospace", w: 400, it: 0, size: 17, lh: '27.2', ratio: '1.6', tr: '0', n: 2, sample: 'Demo regular weight text.' },
+  { tag: 'link', font: 'Fraunces', css: "'Fraunces', serif", w: 400, it: 0, size: 16, lh: 'normal', tr: '0', n: 2, sample: 'Careers Press' },
+  { tag: 'nav', font: 'Inter', css: "'Inter', sans-serif", w: 400, it: 0, size: 14, lh: 'normal', tr: '0', n: 3, sample: 'Essays  Type  About' },
+];
+const ISSUES = [
+  { lv: 'bad', label: 'Fails', title: 'Low contrast text', n: 1, detail: 'Needs at least 4.5:1 for normal text. The lowest found is 1.5:1, #C9C8C0 on #F4F1EC.', quote: 'A pale line of supporting text that is hard to read against the warm background' },
+  { lv: '', label: 'Tip', title: 'Small uppercase text without letter spacing', n: 1, detail: 'Small capitals read better with a little letter spacing, around 0.05em.', quote: 'Issue 04 · Typography' },
+];
+const TIPS = [['Fix', 'bad', '1 file is TTF. WOFF2 is about a third of the size.'], ['Check', '', 'Loaded but not used here: k-demo-bold.'], ['Tip', '', 'Preload the main font so text does not appear late.']];
+const FAMS = [
+  ['Fraunces', '2 of 6 files', '400, 600 · font-display swap'],
+  ['Inter', '2 of 14 files', '400, 600 · font-display swap'],
+  ['Lobster', '1 of 5 files', '400 · font-display swap'],
+  ['Demo Regular', '1 of 1 file', '400 · font-display auto'],
+  ['Söhne Test', '0 of 1 file', 'Not used on this page'],
+];
+const FORMATS = [
+  ['css', 'CSS variables', 'type-system.css', 'Paste into your stylesheet. Fonts not on Google Fonts need their own @font-face and a licence.'],
+  ['tw', 'Tailwind', 'tailwind.config.js', 'Adds fontFamily and fontSize to your theme.'],
+  ['tokens', 'Design tokens', 'tokens.json', 'W3C design tokens. Works with Tokens Studio and Style Dictionary.'],
+  ['framer', 'Framer', 'framer-styles.txt', 'One text style per line, ready to recreate in Framer.'],
+  ['webflow', 'Webflow', 'webflow.css', 'Paste into Site settings, Custom code, Head.'],
+];
+const CODE = {
+  css: `<span class="c">/* Type system from slow-type.studio */</span>
+:root {
+  --font-heading: Fraunces, serif;
+  --font-body: Inter, sans-serif;
+  --font-script: Lobster, cursive;
+  --text-h1-size: 48px;
+  --text-h1-line-height: 1.1;
+  --text-h1-weight: 600;
+  --text-h1-tracking: -0.01em;
+  --text-h2-size: 24px;
+  --text-body-size: 17px;
+  --text-body-line-height: 1.6;
+}`,
+  tw: `<span class="c">// tailwind.config.js</span>
+module.exports = {
+  theme: { extend: {
+    fontFamily: {
+      heading: ['Fraunces', 'serif'],
+      body: ['Inter', 'sans-serif'],
+    },
+    fontSize: {
+      h1: ['48px', { lineHeight: '1.1', letterSpacing: '-0.01em', fontWeight: '600' }],
+      body: ['17px', { lineHeight: '1.6' }],
+    },
+  } },
+};`,
+  tokens: `{
+  "font": {
+    "heading": { "$type": "fontFamily", "$value": "Fraunces" },
+    "body": { "$type": "fontFamily", "$value": "Inter" }
+  },
+  "text": {
+    "h1": { "$type": "typography", "$value": { "fontSize": "48px" } }
+  }
+}`,
+  framer: `h1 · Fraunces 600 · 48 / 1.1 · -0.01em
+h2 · Lobster 400 · 24 / normal
+body · Inter 400 · 17 / 1.6
+nav · Inter 400 · 14 / normal`,
+  webflow: `<span class="c">&lt;style&gt;</span>
+h1 { font: 600 48px/1.1 Fraunces, serif; letter-spacing: -0.01em; }
+h2 { font: 400 24px Lobster, cursive; }
+body { font: 400 17px/1.6 Inter, sans-serif; }
+<span class="c">&lt;/style&gt;</span>`,
+};
+
+const st = { open: null, all: false, fams: false, fmt: 'css', dd: false, shown: null, sub: 'overview', drill: null, copied: null };
+
+// ------------------------------------------------ building blocks
+const tone = (n) => (n >= 85 ? 'good' : n >= 65 ? 'warn' : 'bad');
+const PILL = { Fix: 'bad', Fails: 'bad', Check: 'warn', Tip: '', Good: 'good' };
+const pill = (l) => `<span class="pill ${PILL[l]}">${l}</span>`;
+const pct = (n) => `<span class="bar"><i class="${tone(n)}" style="width:${n}%"></i></span>`;
+const health = (opts = {}) => `
+  <section class="box" id="s-health">
+    <div class="sechead" style="align-items:center"><h2>Type system check</h2><span class="grow"></span><button class="iconbtn tip" data-recheck aria-label="Check the page again" data-tip="Check the page again" style="margin:-6px -6px -6px 0">${ICON.RefreshIcon}</button></div>
+    <div class="score">
+      <div class="num ${tone(61)}"><b>61</b><small>/100</small></div>
+      <div class="txt"><b>Fair</b><span class="sub">Fonts, sizes, weights, loading and readability, from what this page uses.</span></div>
+    </div>
+    <div class="parts">${PARTS.map((p) => `
+      <button class="part" data-part="${p.id}" aria-expanded="${st.open === p.id}"><span class="lbl">${p.label}</span>${pct(p.score)}<span class="n">${p.score}</span><span class="chev">${ICON.ChevD}</span></button>
+      ${st.open === p.id ? `<div class="finds">${p.finds.map(([l, t, x]) => `<div class="find">${pill(l)}<span>${x}</span></div>`).join('')}</div>` : ''}`).join('')}
+    </div>
+    ${opts.noCopy ? '' : `<div><button class="btn sm" data-copy="report">${st.copied === 'report' ? ICON.Tick02Icon + 'Copied' : ICON.CopySmall + 'Copy report'}</button></div>`}
+  </section>`;
+
+const styleRow = (s, i) => `
+  <div class="style">
+    <div class="top"><span class="tag">${s.tag}</span><span class="who">${s.font} · ${s.w}${s.it ? ' italic' : ''}</span>
+      <button class="iconbtn tip ${st.copied === 'st' + i ? 'copied' : ''}" data-copy="st${i}" aria-label="Copy CSS for ${s.tag}" data-tip="${st.copied === 'st' + i ? 'Copied' : 'Copy CSS'}">${st.copied === 'st' + i ? ICON.Tick02Icon : ICON.Copy01Icon}</button></div>
+    <div class="sample" style="font-family:${s.css};font-weight:${s.w};font-style:${s.it ? 'italic' : 'normal'};font-size:${Math.min(s.size, 36)}px;letter-spacing:${s.tr === '0' ? 'normal' : '-0.01em'}">${esc(s.sample)}</div>
+    <div class="meta">${s.size}px / ${s.lh === 'normal' ? 'normal' : `${s.lh}px`} · tracking ${s.tr} · used ${s.n}×</div>
+  </div>`;
+const styles = () => {
+  const list = st.all ? STYLES : STYLES.slice(0, 5);
+  return `
+  <section class="box" id="s-styles">
+    <div class="sechead"><h2>Type styles</h2><span class="count">${STYLES.length}</span></div>
+    <div class="scale"><span><b>Minor second scale</b> (1.067) from a 17px base</span><span class="sizes">48 · 24 · 17 · 16 · 14 px</span></div>
+    <div class="styles">${list.map(styleRow).join('')}</div>
+    ${STYLES.length > 5 ? `<div><button class="disc" data-all aria-expanded="${st.all}">${st.all ? 'Show fewer' : `Show ${STYLES.length - 5} more`}<span class="chev">${ICON.ChevD}</span></button></div>` : ''}
+  </section>`;
+};
+
+const readability = () => `
+  <section class="box" id="s-read">
+    <div class="sechead"><h2>Readability</h2><span class="count">${ISSUES.length} to look at</span></div>
+    <div class="issues">${ISSUES.map((x, i) => `
+      <div class="issue on-grey">
+        <div class="top">${pill(x.label)}<b>${x.title} <span>(${x.n})</span></b></div>
+        <p>${x.detail}</p>
+        <div class="quote">“${esc(x.quote)}”</div>
+        <button class="btn sm" data-show="${i}">${ICON.Target02Icon}${st.shown === i ? 'Hide outlines' : 'Show on page'}</button>
+      </div>`).join('')}</div>
+    <p class="readnote">Checked against WCAG 2.1 AA contrast and common reading guidelines. Text on images or gradients is not checked for contrast.</p>
+  </section>`;
+
+const loading = () => `
+  <section class="box" id="s-load">
+    <div class="sechead"><h2>Fonts and loading</h2></div>
+    <div class="stats"><div class="stat"><span>Files</span><b>5</b></div><div class="stat"><span>Size</span><b>503 KB</b></div><div class="stat"><span>Formats</span><b>WOFF2 · TTF</b></div></div>
+    <div class="tips">${TIPS.map(([l, t, x]) => `<div class="find">${pill(l)}<span>${x}</span></div>`).join('')}</div>
+    <div class="famsbox">
+      <button class="famhead" data-fams aria-expanded="${st.fams}"><span>Each family</span><span class="count">${FAMS.length}</span><span class="grow"></span><span class="chev">${ICON.ChevD}</span></button>
+      ${st.fams ? `<div class="fams">${FAMS.map(([f, r, d]) => `<div class="fam"><b>${f}</b><span class="r">${r}</span><span class="d">${d}</span></div>`).join('')}</div>` : ''}
+    </div>
+  </section>`;
+
+const fmtOf = () => FORMATS.find((f) => f[0] === st.fmt);
+const figma = () => `
+  <div class="figrow">
+    <div class="t"><b>Send to Figma</b><span>Copies 7 text styles and every font with its licence. In Figma, run the Font Finder Plus plugin and paste.</span></div>
+    <button class="btn primary" data-copy="figma">${st.copied === 'figma' ? ICON.Tick02Icon + 'Copied' : ICON.FigmaIcon + 'Copy for Figma'}</button>
+  </div>`;
+const exporter = () => {
+  const f = fmtOf();
+  return `
+    <div class="dd" ${st.dd ? 'data-open' : ''}>
+      <button data-dd aria-haspopup="listbox" aria-expanded="${st.dd}"><span>${f[1]}</span><span class="chev">${ICON.ChevD}</span></button>
+      ${st.dd ? `<ul role="listbox">${FORMATS.map((x) => `<li role="option" data-fmt="${x[0]}" aria-selected="${x[0] === st.fmt}">${x[1]}${x[0] === st.fmt ? ICON.Tick02Small : `<span>${x[2]}</span>`}</li>`).join('')}</ul>` : ''}
+    </div>
+    <p class="exnote">${f[3]}</p>
+    <pre class="code" tabindex="0" aria-label="${f[1]} code">${CODE[st.fmt]}</pre>
+    <div class="exacts">
+      <button class="btn sm primary" data-copy="code">${st.copied === 'code' ? ICON.Tick02Icon + 'Copied' : ICON.CopySmall + 'Copy'}</button>
+      <button class="btn sm" data-toast="Downloaded ${f[2]}">${ICON.Download01Icon}Download</button>
+    </div>`;
+};
+const takeIt = () => `
+  <section class="box" id="s-export">
+    <div class="sechead"><h2>Use this type system</h2></div>
+    ${figma()}
+    <div class="hair"></div>
+    <div class="sechead"><h2 style="font-size:13px">Export as code</h2></div>
+    ${exporter()}
+  </section>`;
+
+const CMP = [
+  ['Fonts', '6', '2'],
+  ['Body text', 'Inter 17px / 1.6', 'Söhne 16px / 1.5'],
+  ['Main heading', 'Fraunces 48px / 1.1', 'Söhne 56px / 1.05'],
+  ['Text styles', '7', '5'],
+  ['Size scale', '1.067, minor second', '1.25, major third'],
+  ['Readability', '2 to look at', 'All clear'],
+];
+const CMPF = [['Fraunces', 1, 0], ['Inter', 1, 0], ['Lobster', 1, 0], ['Demo Regular', 1, 0], ['Söhne', 0, 1], ['Söhne Mono', 0, 1]];
+const compare = () => `
+  <section class="box" id="s-compare" style="gap:8px">
+    <div class="sechead"><h2>Compare with another tab</h2></div>
+    <p class="sub">Puts this page's type next to another site you have open. Open Font Finder Plus on that tab once and it shows up here.</p>
+    <div class="dd" style="margin-top:8px"><button data-toast="Pick another open tab"><span style="display:flex;gap:6px;align-items:center;min-width:0"><span class="faint" style="font-weight:400">With</span>stripe.com</span><span class="chev">${ICON.ChevD}</span></button></div>
+    <table class="cmp"><thead><tr><th></th><th>This page</th><th>stripe.com</th></tr></thead><tbody>
+      ${CMP.map(([k, a, b]) => `<tr><td>${k}</td><td>${a}</td><td>${b}</td></tr>`).join('')}
+    </tbody></table>
+    <table class="cmp"><thead><tr><th>Font</th><th>This page</th><th>stripe.com</th></tr></thead><tbody>
+      ${CMPF.map(([f, a, b]) => `<tr><td style="color:var(--ink)">${f}</td><td>${a ? ICON.Tick02Small : '<span class="faint">–</span>'}</td><td>${b ? ICON.Tick02Small : '<span class="faint">–</span>'}</td></tr>`).join('')}
+    </tbody></table>
+  </section>`;
+
+// ------------------------------------------------ the three versions
+const NAV = [['s-health', 'Health'], ['s-styles', 'Styles'], ['s-read', 'Readability'], ['s-load', 'Fonts'], ['s-export', 'Export']];
+const v1 = () => `
+  ${health()}${styles()}${readability()}${loading()}${takeIt()}${compare()}
+  <nav class="floatnav" id="floatnav" aria-label="Sections"><span class="hl" aria-hidden="true"></span>${NAV.map(([id, l]) => `<button data-jump="${id}" aria-current="false">${l}</button>`).join('')}</nav>`;
+const variants = [v1];
+let current = 0, navLock = null;
+
+// ------------------------------------------------ behaviour
+let toastTimer, copyTimer;
+function toast(m) { document.querySelector('.toast')?.remove(); const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), 2200); }
+function rerender() { const y = scrollY; stage.innerHTML = variants[current](); scrollTo(0, y); navSync(true); }
+document.addEventListener('click', (e) => {
+  const q = (s) => e.target.closest(s);
+  if (!q('.dd') && st.dd) { st.dd = false; rerender(); }
+  let el;
+  if ((el = q('[data-part]'))) { st.open = st.open === el.dataset.part ? null : el.dataset.part; rerender(); return; }
+  if (q('[data-all]')) { st.all = !st.all; rerender(); return; }
+  if (q('[data-fams]')) { st.fams = !st.fams; rerender(); return; }
+  if (q('[data-dd]')) { st.dd = !st.dd; rerender(); return; }
+  if ((el = q('[data-fmt]'))) { st.fmt = el.dataset.fmt; st.dd = false; rerender(); return; }
+  if ((el = q('[data-show]'))) { const i = +el.dataset.show; st.shown = st.shown === i ? null : i; if (st.shown != null) toast('Outlined on the page'); rerender(); return; }
+  if ((el = q('[data-copy]'))) { st.copied = el.dataset.copy; rerender(); clearTimeout(copyTimer); copyTimer = setTimeout(() => { st.copied = null; rerender(); }, 1600); return; }
+  if ((el = q('[data-jump]'))) { navLock = { k: el.dataset.jump, until: Date.now() + 900 }; navSync(true); document.getElementById(el.dataset.jump)?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); return; }
+  if ((el = q('[data-sub]'))) { st.sub = el.dataset.sub; rerender(); scrollTo(0, 0); return; }
+  if ((el = q('[data-drill]'))) { st.drill = el.dataset.drill; rerender(); scrollTo(0, 0); return; }
+  if (q('[data-back]')) { st.drill = null; rerender(); scrollTo(0, 0); return; }
+  if ((el = q('[data-jump]'))) { document.getElementById(el.dataset.jump)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+  if (q('[data-recheck]')) { const b = q('[data-recheck]').querySelector('svg'); b.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], { duration: 500, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' }); toast('Checked the page again'); return; }
+  if ((el = q('[data-toast]'))) { toast(el.dataset.toast); }
+});
+// Floating tabs follow the scroll
+function navSync(force) {
+  const nav = document.getElementById('floatnav'); if (!nav) return;
+  const line = innerHeight * 0.33;
+  let cur = NAV[0][0];
+  for (const [id] of NAV) { const el = document.getElementById(id); if (el && el.getBoundingClientRect().top <= line) cur = id; }
+  if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) cur = NAV[NAV.length - 1][0];
+  if (navLock && Date.now() < navLock.until) cur = navLock.k;
+  if (cur === nav.dataset.cur && !force) return;
+  nav.dataset.cur = cur;
+  nav.querySelectorAll('button').forEach((b) => b.setAttribute('aria-current', String(b.dataset.jump === cur)));
+  const b = nav.querySelector(`[data-jump="${cur}"]`), hl = nav.querySelector('.hl');
+  hl.style.width = b.offsetWidth + 'px'; hl.style.transform = `translateX(${b.offsetLeft}px)`;
+}
+addEventListener('scroll', () => navSync(false), { passive: true });
+const stage = document.getElementById('stage');
+stage.innerHTML = v1(); requestAnimationFrame(() => navSync(true));
+
+</script>
+
+<script>
+(() => {
+  const CUR = "system";
+  const TABS = [['page', 'Page', 'index.html'], ['image', 'Image', 'image.html'], ['system', 'System', 'system.html'], ['library', 'Library', 'library.html']];
+  const GEAR = "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15.5 12C15.5 13.933 13.933 15.5 12 15.5C10.067 15.5 8.5 13.933 8.5 12C8.5 10.067 10.067 8.5 12 8.5C13.933 8.5 15.5 10.067 15.5 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M21.011 14.0965C21.5329 13.9558 21.7939 13.8854 21.8969 13.7508C22 13.6163 22 13.3998 22 12.9669V11.0332C22 10.6003 22 10.3838 21.8969 10.2493C21.7938 10.1147 21.5329 10.0443 21.011 9.90358C19.0606 9.37759 17.8399 7.33851 18.3433 5.40087C18.4817 4.86799 18.5509 4.60156 18.4848 4.44529C18.4187 4.28902 18.2291 4.18134 17.8497 3.96596L16.125 2.98673C15.7528 2.77539 15.5667 2.66972 15.3997 2.69222C15.2326 2.71472 15.0442 2.90273 14.6672 3.27873C13.208 4.73448 10.7936 4.73442 9.33434 3.27864C8.95743 2.90263 8.76898 2.71463 8.60193 2.69212C8.43489 2.66962 8.24877 2.77529 7.87653 2.98663L6.15184 3.96587C5.77253 4.18123 5.58287 4.28891 5.51678 4.44515C5.45068 4.6014 5.51987 4.86787 5.65825 5.4008C6.16137 7.3385 4.93972 9.37763 2.98902 9.9036C2.46712 10.0443 2.20617 10.1147 2.10308 10.2492C2 10.3838 2 10.6003 2 11.0332V12.9669C2 13.3998 2 13.6163 2.10308 13.7508C2.20615 13.8854 2.46711 13.9558 2.98902 14.0965C4.9394 14.6225 6.16008 16.6616 5.65672 18.5992C5.51829 19.1321 5.44907 19.3985 5.51516 19.5548C5.58126 19.7111 5.77092 19.8188 6.15025 20.0341L7.87495 21.0134C8.24721 21.2247 8.43334 21.3304 8.6004 21.3079C8.76746 21.2854 8.95588 21.0973 9.33271 20.7213C10.7927 19.2644 13.2088 19.2643 14.6689 20.7212C15.0457 21.0973 15.2341 21.2853 15.4012 21.3078C15.5682 21.3303 15.7544 21.2246 16.1266 21.0133L17.8513 20.034C18.2307 19.8187 18.4204 19.711 18.4864 19.5547C18.5525 19.3984 18.4833 19.132 18.3448 18.5991C17.8412 16.6616 19.0609 14.6226 21.011 14.0965Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>";
+  const patch = () => {
+    document.querySelectorAll('.topbar:not([data-app])').forEach((tb) => {
+      tb.dataset.app = '1';
+      tb.innerHTML = '<nav class="tabs" aria-label="Sections">' + TABS.map(([k, l, h]) => '<a href="' + h + '"' + (k === CUR ? ' aria-current="page"' : '') + '>' + l + '</a>').join('') + '</nav><a class="setbtn" href="settings.html" aria-label="Settings">' + GEAR + '</a>';
+    });
+    const sub = document.querySelector('.subtop'); const tb = document.querySelector('.topbar');
+    if (tb && CUR === 'library') tb.hidden = !!sub;
+  };
+  new MutationObserver(patch).observe(document.documentElement, { childList: true, subtree: true });
+  patch();
+  const go = (h) => { location.href = h; };
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    const href = t.closest('[data-href]'); if (href) { e.preventDefault(); e.stopImmediatePropagation(); return go(href.dataset.href); }
+    if (t.closest('[data-goback]')) { e.preventDefault(); e.stopImmediatePropagation(); return history.length > 1 ? history.back() : go('index.html'); }
+    if (CUR === 'page' && t.closest('[data-open]')) { e.preventDefault(); e.stopImmediatePropagation(); return go('details.html'); }
+    if (CUR === 'details' && t.closest('[data-toast="Back to the Page tab"]')) { e.preventDefault(); e.stopImmediatePropagation(); return go('index.html'); }
+    const dt = t.closest('[data-toast]');
+    if (dt && /^Opens Details/.test(dt.dataset.toast)) { e.preventDefault(); e.stopImmediatePropagation(); return go('details.html'); }
+    if (CUR === 'library' && t.closest('[data-open]') && !t.closest('button')) { e.preventDefault(); e.stopImmediatePropagation(); return go('details.html'); }
+  }, true);
+})();
+</script>

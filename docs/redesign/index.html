@@ -1,0 +1,671 @@
+<title>Font Finder Plus</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Inter:wght@400;600&family=Lobster&family=Arimo:wght@400;500&display=swap">
+<style>
+/* Layout: the side panel at its real 400px width on a quiet desk; only the font card changes between versions. */
+:root {
+  --desk: #e5e5e5; --bg: #f2f2f2; --sheet: #ffffff; --ink: #171717; --ink-2: #525252; --ink-3: #737373;
+  --line: rgba(0,0,0,0.08); --field: #f2f2f2; --hover: #e5e5e5; --field-2: #e5e5e5; --free: #0b7a37; --free-dot: #19a35a; --paid: #8a5a00; --paid-dot: #e39b12;
+  --ui: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, Menlo, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --r-card: 14px; --r-ctl: 9px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --desk: #050505; --bg: #0d0d0d; --sheet: #171717; --ink: #f2f2f2; --ink-2: #a3a3a3; --ink-3: #8a8a8a;
+  --line: rgba(255,255,255,0.08); --field: #262626; --hover: #333333; --field-2: #333333; --free: #6be29c; --free-dot: #3ad47a; --paid: #f2be6b; --paid-dot: #e39b12; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --desk: #050505; --bg: #0d0d0d; --sheet: #171717; --ink: #f2f2f2; --ink-2: #a3a3a3; --ink-3: #8a8a8a;
+  --line: rgba(255,255,255,0.08); --field: #262626; --hover: #333333; --field-2: #333333; --free: #6be29c; --free-dot: #3ad47a; --paid: #f2be6b; --paid-dot: #e39b12; color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--desk); color: var(--ink); font: 13px/1.45 var(--ui); -webkit-font-smoothing: antialiased; }
+.desk { min-height: 100vh; display: flex; justify-content: center; padding-block: 0 96px; padding-left: max(0px, env(safe-area-inset-left, 0px)); padding-right: max(0px, env(safe-area-inset-right, 0px)); }
+.panel { width: 400px; max-width: 100%; background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; gap: 12px; padding: 12px 12px 120px; }
+button { font: inherit; color: inherit; }
+.label { font: 12px var(--mono); color: var(--ink-3); }
+
+/* shared chrome (identical in every version) */
+.topbar { display: flex; align-items: center; gap: 8px; }
+.brand { font-weight: 600; font-size: 13px; padding: 0 4px; }
+.tabs { display: flex; gap: 2px; padding: 3px; background: var(--sheet); border-radius: 13px; flex: 1; }
+.tabs button { flex: 1; height: 28px; border: 0; background: transparent; border-radius: 10px; color: var(--ink-2); cursor: pointer; }
+.tabs button[aria-current] { background: var(--field); color: var(--ink); }
+.iconbtn { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--r-ctl); background: transparent; color: var(--ink-2); cursor: pointer; flex: none; transition: background-color 150ms ease, color 150ms ease, transform 160ms var(--ease-out); }
+.iconbtn:active, .btn:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) { .iconbtn:hover { background: var(--hover); color: var(--ink); } }
+.iconbtn:focus-visible, .btn:focus-visible, .card:focus-visible, .row:focus-visible, .tabs button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.iconbtn[aria-pressed="true"] { color: var(--ink); background: var(--field); }
+.status { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; background: var(--sheet); border-radius: var(--r-card); position: relative; }
+.live { width: 7px; height: 7px; border-radius: 50%; background: var(--ink); flex: none; }
+.status .host { font-weight: 500; }
+.status .muted { color: var(--ink-3); }
+.switch { width: 34px; height: 20px; border-radius: 12px; background: var(--ink); border: 0; position: relative; cursor: pointer; flex: none; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--sheet); transform: translateX(14px); transition: transform 160ms var(--ease-out); }
+.switch[aria-checked="false"] { background: var(--ink-3); }
+.switch[aria-checked="false"]::after { transform: none; }
+.menu { position: absolute; right: 8px; top: 44px; z-index: 5; min-width: 200px; background: var(--sheet); border: 1px solid var(--line); border-radius: 14px; padding: 4px; box-shadow: 0 12px 32px rgba(0,0,0,0.12); transform-origin: top right; animation: menuin 150ms var(--ease-out); }
+@keyframes menuin { from { opacity: 0; transform: translateY(-4px) scale(0.97); } }
+.menu button { display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; padding: 0 10px; border: 0; background: transparent; border-radius: 10px; cursor: pointer; text-align: left; }
+.menu button:hover, .menu button:focus-visible { background: var(--hover); outline: none; }
+.menu svg { color: var(--ink-2); }
+.mif { background: var(--sheet); border-radius: var(--r-card); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.mif .row1 { display: flex; align-items: center; gap: 8px; }
+.mif .swap { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.mif .arrow { color: var(--ink-3); }
+.btn { height: 30px; padding: 0 12px; border-radius: var(--r-ctl); border: 1px solid var(--line); background: var(--sheet); cursor: pointer; font-weight: 500; transition: background-color 150ms ease, transform 160ms var(--ease-out); }
+.btn.primary { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+.note { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--sheet); border-radius: var(--r-card); color: var(--ink-2); border: 0; width: 100%; text-align: left; cursor: pointer; }
+.note b { color: var(--ink); font-weight: 500; }
+.listhead { display: flex; align-items: center; gap: 8px; padding: 4px 4px 0; }
+.tester { display: flex; gap: 8px; align-items: center; background: var(--sheet); border-radius: var(--r-card); padding: 6px 6px 6px 12px; }
+.tester input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; color: var(--ink); outline: none; height: 28px; }
+.lic { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); white-space: nowrap; flex: none; }
+.lic i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3); }
+.lic.free { color: var(--free); }
+.lic.free i { background: var(--free-dot); }
+.lic.paid { color: var(--paid); }
+.lic.paid i { background: var(--paid-dot); }
+.lic.unknown i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+.toast { position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%); background: var(--ink); color: var(--sheet); padding: 8px 14px; border-radius: 12px; font-size: 12.5px; z-index: 20; animation: toastin 200ms var(--ease-out); white-space: nowrap; }
+@keyframes toastin { from { opacity: 0; transform: translate(-50%, 8px); } }
+
+/* Version 1: Specimen. The font drawn large, one meta line, quiet icon actions. */
+.v-spec { display: flex; flex-direction: column; gap: 8px; }
+.v-spec .card { background: var(--sheet); border-radius: var(--r-card); padding: 14px 14px 8px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; border: 0; text-align: left; width: 100%; transition: background-color 150ms ease; }
+@media (hover: hover) and (pointer: fine) { .v-spec .card:hover { background: var(--hover); } }
+.v-spec .top { display: flex; align-items: baseline; gap: 8px; }
+.v-spec .name { font-weight: 500; font-size: 13px; flex: 1; min-width: 0; }
+.v-spec .spec { font-size: 30px; line-height: 1.15; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; padding: 4px 0; }
+.v-spec .meta { color: var(--ink-2); font-size: 12px; }
+.v-spec .acts { display: flex; align-items: center; gap: 2px; margin: 0 -6px; }
+.v-spec .acts .grow { flex: 1; }
+.v-spec .open { color: var(--ink-3); font-size: 12px; display: inline-flex; align-items: center; gap: 2px; padding-right: 4px; }
+
+/* Version 2: Index. One row per font, its name set in the font itself; actions on hover or focus. */
+.v-index { background: var(--sheet); border-radius: var(--r-card); overflow: hidden; }
+.v-index .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 10px 8px 10px 14px; border-top: 1px solid var(--line); cursor: pointer; position: relative; }
+.v-index .row:first-child { border-top: 0; }
+@media (hover: hover) and (pointer: fine) { .v-index .row:hover { background: var(--hover); } }
+.v-index .nm { font-size: 21px; line-height: 1.2; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.v-index .meta { grid-column: 1; color: var(--ink-2); font-size: 12px; }
+.v-index .right { grid-row: 1 / span 2; grid-column: 2; display: flex; align-items: center; gap: 4px; }
+.v-index .acts { display: flex; gap: 0; opacity: 0; transition: opacity 150ms ease; }
+.v-index .row:hover .acts, .v-index .row:focus-within .acts { opacity: 1; }
+@media (hover: none) { .v-index .acts { opacity: 1; } }
+.v-index .chev { color: var(--ink-3); display: inline-flex; }
+.v-index .sample { grid-column: 1 / -1; color: var(--ink-2); font-size: 15px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+/* Version 3: Proof. A proof sheet: specimen on the right, measured facts in a mono column, text-link actions. */
+.v-proof { display: flex; flex-direction: column; gap: 8px; }
+.v-proof .card { background: var(--sheet); border-radius: var(--r-card); padding: 0; cursor: pointer; overflow: hidden; }
+.v-proof .head { display: flex; align-items: baseline; gap: 8px; padding: 12px 14px 0; }
+.v-proof .idx { font: 12px var(--mono); color: var(--ink-3); }
+.v-proof .name { font-weight: 500; flex: 1; min-width: 0; }
+.v-proof .body { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; padding: 10px 14px 12px; }
+.v-proof dl { margin: 0; display: grid; grid-template-columns: 1fr; gap: 6px; align-content: start; }
+.v-proof dt { font: 11px var(--mono); color: var(--ink-3); }
+.v-proof dd { margin: 0; font-size: 12px; color: var(--ink); }
+.v-proof .aa { font-size: 64px; line-height: 0.95; border-left: 1px solid var(--line); padding-left: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; min-width: 0; }
+.v-proof .aa small { font-size: 15px; line-height: 1.3; color: var(--ink-2); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.v-proof .links { display: flex; gap: 16px; padding: 10px 14px; border-top: 1px solid var(--line); }
+.v-proof .links button { border: 0; background: none; padding: 0; color: var(--ink-2); cursor: pointer; font-size: 12.5px; }
+.v-proof .links button:hover, .v-proof .links button[aria-pressed="true"] { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.v-proof .links .grow { flex: 1; }
+.v-proof .links .open { color: var(--ink); font-weight: 500; }
+
+/* Version 4: Specimen+. Numbered like a proof, the pangram drawn large, actions that say what they do. */
+.v-plus { display: flex; flex-direction: column; gap: 8px; }
+.v-plus .card { background: var(--sheet); border-radius: var(--r-card); padding: 14px 14px 8px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; transition: background-color 150ms ease; }
+@media (hover: hover) and (pointer: fine) { .v-plus .card:hover { background: var(--hover); } }
+.v-plus .top { display: flex; align-items: baseline; gap: 8px; }
+.v-plus .idx { font: 12px var(--mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.v-plus .name { font-weight: 500; font-size: 13px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.v-plus .spec { font-size: 30px; line-height: 1.15; overflow-wrap: anywhere; padding: 2px 0; }
+.v-plus .meta { color: var(--ink-2); font-size: 12px; }
+.v-plus .acts { display: flex; align-items: center; gap: 0; margin: 0 -6px; flex-wrap: nowrap; border-top: 1px solid var(--line); padding-top: 6px; }
+.v-plus .act { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 6px; white-space: nowrap; flex: none; border: 0; border-radius: var(--r-ctl); background: transparent; color: var(--ink-2); cursor: pointer; font-size: 12.5px; transition: background-color 150ms ease, color 150ms ease, transform 160ms var(--ease-out); }
+.v-plus .act:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) { .v-plus .act:hover { background: var(--hover); color: var(--ink); } }
+.v-plus .act[aria-pressed="true"] { color: var(--ink); }
+.v-plus .act:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.v-plus .grow { flex: 1; }
+.v-plus .open { color: var(--ink); font-size: 12.5px; font-weight: 500; display: inline-flex; align-items: center; gap: 2px; padding-right: 4px; white-space: nowrap; flex: none; }
+@media (max-width: 360px) { .v-plus .act .lbl-long { display: none; } }
+
+/* Version 5: Quiet. Icons only, in the name row, with a label on hover or keyboard focus. */
+.v-quiet { display: flex; flex-direction: column; gap: 8px; }
+.v-quiet .card { background: var(--sheet); border-radius: var(--r-card); padding: 10px 10px 14px 14px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: background-color 150ms ease; }
+
+.v-quiet .top { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.v-quiet .idx { font: 12px var(--mono); color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.v-quiet .name { font-weight: 500; font-size: 13px; min-width: 0; overflow-wrap: anywhere; }
+.v-quiet .grow { flex: 1; }
+.v-quiet .tools { display: flex; gap: 0; color: var(--ink-3); }
+.v-quiet .tools .iconbtn { color: var(--ink-3); }
+@media (hover: hover) and (pointer: fine) { .v-quiet .card:hover .tools .iconbtn, .v-quiet .tools .iconbtn:focus-visible { color: var(--ink-2); } }
+.v-quiet .tools .iconbtn[aria-pressed="true"] { color: var(--ink); background: transparent; }
+.v-quiet .spec { font-size: 30px; line-height: 1.15; overflow-wrap: anywhere; padding-right: 4px; }
+.v-quiet .meta { color: var(--ink-3); font-size: 12px; display: flex; align-items: center; gap: 4px; padding-right: 4px; }
+.v-quiet .meta svg { margin-left: auto; color: var(--ink-3); }
+/* Tooltip: names the icon on hover or focus; from the button, short and quick. */
+.tip { position: relative; }
+.tip::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translate(-50%, 2px); transform-origin: bottom center; background: var(--ink); color: var(--sheet); font: 500 11.5px/1 var(--ui); padding: 6px 8px; border-radius: 9px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 120ms ease-out, transform 160ms var(--ease-out); z-index: 4; }
+.tip:hover::after, .tip:focus-visible::after { opacity: 1; transform: translate(-50%, 0); transition-delay: 250ms; }
+.tools:hover .tip:hover::after { transition-delay: 0ms; }
+
+/* Version 6: Stacked. Icon above a small label, in a slim row. */
+.v-stack .acts { display: grid; grid-template-columns: repeat(3, auto) 1fr; gap: 0 4px; margin: 2px -6px 0; align-items: end; }
+.v-stack .act { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 8px; border: 0; background: transparent; border-radius: var(--r-ctl); color: var(--ink-3); font-size: 10.5px; cursor: pointer; transition: background-color 150ms ease, color 150ms ease, transform 160ms var(--ease-out); }
+.v-stack .act svg { width: 16px; height: 16px; flex: none; }
+.v-stack .act { height: auto; }
+.v-stack .act:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) { .v-stack .act:hover { background: var(--hover); color: var(--ink); } }
+.v-stack .act[aria-pressed="true"] { color: var(--ink); }
+.v-stack .act:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.v-stack .chev { justify-self: end; color: var(--ink-3); padding: 0 6px 8px 0; display: inline-flex; }
+
+/* Page v2: the whole Page tab with room to breathe. One spacing scale: 16 between boxes, 16/18 inside, 12 between lines of a box. */
+body[data-full] .chrome { display: none; }
+body[data-full] .panel { padding: 0; gap: 0; }
+.p2 { display: flex; flex-direction: column; gap: 8px; padding: 12px 12px 120px; }
+.p2 .topbar { margin-bottom: 4px; }
+.p2 h2 { margin: 0; font: 500 14px/1.3 var(--ui); color: var(--ink); }
+.p2 .box { background: var(--sheet); border-radius: 18px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+.p2 .hair { height: 1px; background: var(--line); margin: 0 -18px; }
+.p2 .st1 { display: flex; align-items: flex-start; gap: 12px; }
+.p2 .st1 .live { margin-top: 5px; }
+.p2 .st1 .label, .p2 .st1 .switch { align-self: center; }
+.p2 .st1 .who { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.p2 .st1 .who span { font-size: 12px; color: var(--ink-3); }
+.p2 .st1 .who b { font-size: 14px; font-weight: 500; }
+.p2 .st2 { display: flex; align-items: center; gap: 4px; }
+.p2 .st2 .btn { display: inline-flex; align-items: center; gap: 8px; height: 32px; }
+.p2 .st2 .btn.primary svg { color: var(--sheet); }
+.p2 .st2 .btn.primary { min-width: 140px; justify-content: center; }
+.p2 .st2 .grow { flex: 1; }
+.p2 .t1 { display: flex; align-items: center; gap: 10px; color: var(--ink-3); }
+.p2 .t1 input[type=text] { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 13px; color: var(--ink); outline: none; height: 28px; }
+.p2 .t1 input[type=text]::placeholder { color: var(--ink-3); }
+.p2 .dd { position: relative; flex: none; }
+.p2 .ddbtn { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 0; border-radius: 10px; background: var(--field); color: var(--ink); font: 12.5px var(--ui); cursor: pointer; transition: background-color 150ms ease, transform 160ms var(--ease-out); }
+.p2 .ddbtn > svg:first-child { color: var(--ink-2); }
+.p2 .ddbtn:active { transform: scale(0.97); }
+.p2 .ddbtn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.p2 .ddbtn .chev { display: inline-flex; color: var(--ink-2); transition: transform 200ms var(--ease-out); }
+.p2 .ddbtn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.p2 .ddlist { position: absolute; right: 0; top: calc(100% + 6px); z-index: 6; min-width: 168px; max-height: 280px; overflow: auto; margin: 0; padding: 4px; list-style: none; background: var(--sheet); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.14); transform-origin: top right; animation: menuin 150ms var(--ease-out); }
+.p2 .ddlist li { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 32px; padding: 0 10px; border-radius: 10px; cursor: pointer; font-size: 13px; color: var(--ink); outline: none; }
+.p2 .ddlist li:hover, .p2 .ddlist li:focus { background: var(--hover); }
+.p2 .ddlist li .tick { display: inline-flex; color: var(--ink); visibility: hidden; }
+.p2 .ddlist li[aria-selected="true"] .tick { visibility: visible; }
+.p2 .langpick { position: relative; display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 8px; border-radius: 10px; color: var(--ink-2); background: var(--field); cursor: pointer; }
+.p2 .langpick select { -webkit-appearance: none; appearance: none; border: 0; background: transparent; font: inherit; font-size: 12.5px; color: var(--ink); outline: none; cursor: pointer; padding: 0 16px 0 0; margin-right: -16px; field-sizing: content; }
+.p2 .langpick select option { color: #141413; }
+.p2 .langpick > svg:last-child { pointer-events: none; color: var(--ink-2); }
+.p2 .langpick:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+.p2 .t1 .px { font: 12px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; width: 36px; text-align: right; }
+.p2 .t1 input[type=range] { width: 64px; accent-color: var(--ink); flex: none; }
+.p2 .t2 { display: flex; align-items: center; gap: 2px; }
+.p2 .seg { border: 0; background: transparent; height: 28px; padding: 0 8px; border-radius: 10px; color: var(--ink-3); cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+.p2 .seg[aria-pressed="true"] { color: var(--ink); background: var(--field); }
+.p2 .seg:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.p2 .t2 .grow { flex: 1; }
+.p2 .mf .info { margin: 0; color: var(--ink-2); font-size: 13px; background: var(--field); border-radius: 12px; padding: 10px 12px; }
+.p2 .mfrow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 10px; align-items: baseline; padding: 2px 0; }
+.p2 .mfrow .from { color: var(--ink-2); overflow-wrap: anywhere; }
+.p2 .mfrow .to { color: var(--ink-3); font-size: 12px; }
+.p2 .mfrow .got { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; text-align: right; min-width: 0; }
+.p2 .mfrow .got b { font-weight: 500; }
+.p2 .mfrow .got b span { font: 12px var(--mono); color: var(--ink-3); margin-left: 6px; }
+.p2 .mfrow .got .lic { display: block; white-space: normal; text-align: right; line-height: 1.4; }
+.p2 .mfrow .got .lic i { display: inline-block; margin-right: 6px; vertical-align: 1px; }
+.p2 .mflist { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.p2 .mflist li { display: grid; grid-template-columns: 4px minmax(0, 1fr) 16px minmax(0, 1fr); align-items: center; gap: 10px; font-size: 14px; }
+.p2 .mflist li::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--ink-3); }
+.p2 .mflist .from { color: var(--ink-2); overflow-wrap: anywhere; }
+.p2 .mflist .to { color: var(--ink-3); display: inline-flex; justify-content: center; }
+.p2 .mflist .dest { justify-self: end; text-align: right; }
+.p2 .mflist b { font-weight: 500; }
+.p2 .mflist .pct { font: 13px var(--mono); color: var(--ink-3); margin-left: 6px; }
+.p2 .mf .btn.primary { align-self: flex-start; height: 34px; padding: 0 14px; }
+.p2 .mf small { font-size: 12px; color: var(--ink-3); }
+.p2 .notice { display: flex; align-items: center; gap: 10px; padding: 14px 18px; background: var(--sheet); border-radius: 18px; border: 0; width: 100%; text-align: left; cursor: pointer; color: var(--ink-2); font: inherit; }
+.p2 .notice b { color: var(--ink); font-weight: 500; display: block; }
+.p2 .notice .sub { font-size: 12px; color: var(--ink-3); }
+.p2 .notice { align-items: flex-start; }
+.p2 .notice > svg:first-child { margin-top: 2px; flex: none; }
+.p2 .notice > svg:last-child { align-self: center; flex: none; color: var(--ink-3); }
+.p2 .notice .grow { flex: 1; }
+.p2 .cards { display: flex; flex-direction: column; gap: 8px; }
+.p2 .st1 .count { font-size: 12px; color: var(--ink-3); align-self: center; }
+.p2 .v-quiet .card { padding: 14px 12px 18px 18px; gap: 10px; border-radius: 18px; }
+.p2 .v-quiet .spec { line-height: 1.12; letter-spacing: -0.01em; padding: 2px 0; }
+.p2 .v-quiet .meta { justify-content: space-between; margin: -4px -6px -8px 0; }
+.p2 .v-quiet .meta .go { display: inline-flex; align-items: center; gap: 2px; height: 28px; padding: 0 4px 0 8px; border: 0; border-radius: var(--r-ctl); background: transparent; color: var(--ink-2); font: 500 12px var(--ui); cursor: pointer; flex: none; transition: background-color 150ms ease, color 150ms ease, transform 160ms var(--ease-out); }
+.p2 .v-quiet .meta .go svg { margin: 0; color: currentColor; }
+.p2 .v-quiet .meta .go:active { transform: scale(0.97); }
+.p2 .v-quiet .meta .go:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .p2 .v-quiet .meta .go:hover { background: var(--hover); color: var(--ink); } }
+.p2 .v-quiet .top { min-height: 28px; }
+.p2 .v-quiet .top .name { font-size: 13px; font-weight: 500; letter-spacing: 0; }
+.p2 .v-quiet .tools .iconbtn { width: 28px; height: 28px; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* The picker (harness chrome, verbatim spec) */
+.proto-picker { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 2147483647; display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: rgba(10, 10, 10, 0.82); -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset, 0 8px 24px rgba(0, 0, 0, 0.24), 0 2px 6px rgba(0, 0, 0, 0.12); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px; line-height: 1; -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; }
+.proto-picker-highlight { position: absolute; top: 4px; left: 0; height: 28px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); }
+.proto-picker[data-ready] .proto-picker-highlight { transition: transform 250ms cubic-bezier(0.23, 1, 0.32, 1), width 250ms cubic-bezier(0.23, 1, 0.32, 1); }
+@media (prefers-reduced-motion: reduce) { .proto-picker[data-ready] .proto-picker-highlight { transition: none; } }
+.proto-picker-item { position: relative; display: flex; align-items: center; height: 28px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: rgba(255, 255, 255, 0.55); font: inherit; cursor: pointer; transition: color 150ms ease-out, transform 160ms cubic-bezier(0.23, 1, 0.32, 1); }
+@media (hover: hover) and (pointer: fine) { .proto-picker-item:hover { color: rgba(255, 255, 255, 0.85); } }
+.proto-picker-item:active { transform: scale(0.97); }
+.proto-picker-item:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.4); outline-offset: 2px; }
+.proto-picker-item[data-active] { color: #fff; }
+.proto-picker-divider { width: 1px; height: 16px; margin: 0 4px; background: rgba(255, 255, 255, 0.12); }
+.proto-picker-replay { padding: 0 10px; font-size: 14px; }
+.proto-picker[data-position="top"] { bottom: auto; top: 24px; }
+
+/* ---- App shell: the whole side panel, linked together ---- */
+.proto-picker { display: none !important; }
+.topbar { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.topbar .brand { display: none; }
+.topbar .tabs { display: flex; flex: 1; gap: 2px; padding: 4px; background: var(--sheet); border-radius: 14px; }
+.topbar .tabs a { flex: 1; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; color: var(--ink-2); font: 500 13px var(--ui); text-decoration: none; transition: background-color 150ms ease, color 150ms ease; }
+.topbar .tabs a[aria-current="page"] { background: var(--field); color: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .topbar .tabs a:not([aria-current]):hover { color: var(--ink); } }
+.topbar .setbtn { width: 42px; height: 42px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; background: var(--sheet); color: var(--ink-2); text-decoration: none; transition: color 150ms ease, transform 160ms cubic-bezier(0.23,1,0.32,1); }
+.topbar .setbtn svg { width: 18px; height: 18px; }
+@media (hover: hover) and (pointer: fine) { .topbar .setbtn:hover { color: var(--ink); } }
+.topbar .tabs a:active, .topbar .setbtn:active { transform: scale(0.97); }
+.topbar a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* Buttons 4px taller everywhere */
+.btn { height: 38px !important; }
+.btn.sm { height: 34px !important; }
+.btn.wide, .btn.big { height: 44px !important; }
+/* Details back button: the same white container as Library and Settings */
+.topbar2 > .iconbtn:first-child { width: 40px; height: 40px; border-radius: 13px; background: var(--sheet); color: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .topbar2 > .iconbtn:first-child:hover { background: var(--hover); } }
+/* Floating section tabs, a little bigger */
+.floatnav { padding: 5px !important; border-radius: 14px !important; }
+.floatnav button { height: 34px !important; padding: 0 12px !important; font-size: 13px !important; border-radius: 10px !important; }
+.floatnav .hl { height: 34px !important; top: 5px !important; border-radius: 10px !important; }
+</style><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+
+<div class="desk">
+  <div class="panel" id="panel">
+   <div class="chrome" id="chrome">
+    <div class="topbar">
+      <span class="brand">Finder+</span>
+      <nav class="tabs" aria-label="Sections"><button aria-current="page">Page</button><button>Image</button><button>System</button><button>Library</button></nav>
+      <button class="iconbtn" aria-label="Settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 12C15.5 13.933 13.933 15.5 12 15.5C10.067 15.5 8.5 13.933 8.5 12C8.5 10.067 10.067 8.5 12 8.5C13.933 8.5 15.5 10.067 15.5 12Z" stroke="currentColor" stroke-width="1.5"></path><path d="M21.011 14.0965C21.5329 13.9558 21.7939 13.8854 21.8969 13.7508C22 13.6163 22 13.3998 22 12.9669V11.0332C22 10.6003 22 10.3838 21.8969 10.2493C21.7938 10.1147 21.5329 10.0443 21.011 9.90358C19.0606 9.37759 17.8399 7.33851 18.3433 5.40087C18.4817 4.86799 18.5509 4.60156 18.4848 4.44529C18.4187 4.28902 18.2291 4.18134 17.8497 3.96596L16.125 2.98673C15.7528 2.77539 15.5667 2.66972 15.3997 2.69222C15.2326 2.71472 15.0442 2.90273 14.6672 3.27873C13.208 4.73448 10.7936 4.73442 9.33434 3.27864C8.95743 2.90263 8.76898 2.71463 8.60193 2.69212C8.43489 2.66962 8.24877 2.77529 7.87653 2.98663L6.15184 3.96587C5.77253 4.18123 5.58287 4.28891 5.51678 4.44515C5.45068 4.6014 5.51987 4.86787 5.65825 5.4008C6.16137 7.3385 4.93972 9.37763 2.98902 9.9036C2.46712 10.0443 2.20617 10.1147 2.10308 10.2492C2 10.3838 2 10.6003 2 11.0332V12.9669C2 13.3998 2 13.6163 2.10308 13.7508C2.20615 13.8854 2.46711 13.9558 2.98902 14.0965C4.9394 14.6225 6.16008 16.6616 5.65672 18.5992C5.51829 19.1321 5.44907 19.3985 5.51516 19.5548C5.58126 19.7111 5.77092 19.8188 6.15025 20.0341L7.87495 21.0134C8.24721 21.2247 8.43334 21.3304 8.6004 21.3079C8.76746 21.2854 8.95588 21.0973 9.33271 20.7213C10.7927 19.2644 13.2088 19.2643 14.6689 20.7212C15.0457 21.0973 15.2341 21.2853 15.4012 21.3078C15.5682 21.3303 15.7544 21.2246 16.1266 21.0133L17.8513 20.034C18.2307 19.8187 18.4204 19.711 18.4864 19.5547C18.5525 19.3984 18.4833 19.132 18.3448 18.5991C17.8412 16.6616 19.0609 14.6226 21.011 14.0965Z" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"></path></svg></button>
+    </div>
+    <div class="status">
+      <span class="live" aria-hidden="true"></span>
+      <span class="host">thejournal.example</span>
+      <span class="muted">6 fonts</span>
+      <span style="flex:1"></span>
+      <button class="switch" role="switch" aria-checked="true" aria-label="Hover to inspect" id="sw"></button>
+      <button class="iconbtn" aria-label="Page actions" aria-haspopup="menu" aria-expanded="false" id="more"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6.00449 12.5V12M18.0045 12.5V12M12.0045 12.5V12M7.00449 12.5C7.00449 11.9477 6.55677 11.5 6.00449 11.5C5.4522 11.5 5.00449 11.9477 5.00449 12.5C5.00449 13.0523 5.4522 13.5 6.00449 13.5C6.55677 13.5 7.00449 13.0523 7.00449 12.5ZM19.0045 12.5C19.0045 11.9477 18.5568 11.5 18.0045 11.5C17.4522 11.5 17.0045 11.9477 17.0045 12.5C17.0045 13.0523 17.4522 13.5 18.0045 13.5C18.5568 13.5 19.0045 13.0523 19.0045 12.5ZM13.0045 12.5C13.0045 11.9477 12.5568 11.5 12.0045 11.5C11.4522 11.5 11.0045 11.9477 11.0045 12.5C11.0045 13.0523 11.4522 13.5 12.0045 13.5C12.5568 13.5 13.0045 13.0523 13.0045 12.5Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg></button>
+      <div class="menu" role="menu" id="menu" hidden>
+        <button role="menuitem" data-toast="Copied for the Figma plugin: 5 fonts and 7 text styles"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="15" cy="12" r="3" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5"></circle><path d="M9 21C10.6569 21 12 19.6569 12 18V15H9C7.34315 15 6 16.3431 6 18C6 19.6569 7.34315 21 9 21Z" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5"></path><path d="M12 9V15H9C7.34315 15 6 13.6569 6 12C6 10.3431 7.34315 9 9 9H12Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path><path d="M12 3V9H9C7.34315 9 6 7.65685 6 6C6 4.34315 7.34315 3 9 3H12Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path><path d="M12 3V9H15C16.6569 9 18 7.65685 18 6C18 4.34315 16.6569 3 15 3H12Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>Send to Figma</button>
+        <button role="menuitem" data-toast="Copied CSS for all 6 fonts"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M17 8L18.8398 9.85008C19.6133 10.6279 20 11.0168 20 11.5C20 11.9832 19.6133 12.3721 18.8398 13.1499L17 15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path><path d="M7 8L5.16019 9.85008C4.38673 10.6279 4 11.0168 4 11.5C4 11.9832 4.38673 12.3721 5.16019 13.1499L7 15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path><path d="M14.5 4L9.5 20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>Copy all CSS</button>
+        <button role="menuitem" data-toast="Share card ready"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 6.5C21 8.15685 19.6569 9.5 18 9.5C16.3431 9.5 15 8.15685 15 6.5C15 4.84315 16.3431 3.5 18 3.5C19.6569 3.5 21 4.84315 21 6.5Z" stroke="currentColor" stroke-width="1.5"></path><path d="M9 12C9 13.6569 7.65685 15 6 15C4.34315 15 3 13.6569 3 12C3 10.3431 4.34315 9 6 9C7.65685 9 9 10.3431 9 12Z" stroke="currentColor" stroke-width="1.5"></path><path d="M21 17.5C21 19.1569 19.6569 20.5 18 20.5C16.3431 20.5 15 19.1569 15 17.5C15 15.8431 16.3431 14.5 18 14.5C19.6569 14.5 21 15.8431 21 17.5Z" stroke="currentColor" stroke-width="1.5"></path><path d="M8.72852 10.7495L15.2285 7.75M8.72852 13.25L15.2285 16.2495" stroke="currentColor" stroke-width="1.5"></path></svg>Share card</button>
+        <button role="menuitem" data-toast="Read the page again: 6 fonts"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.5 5.5H9.5C5.78672 5.5 3 8.18503 3 12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path><path d="M3.5 18.5H14.5C18.2133 18.5 21 15.815 21 12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path><path d="M18.5 3C18.5 3 21 4.84122 21 5.50002C21 6.15882 18.5 8 18.5 8" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path><path d="M5.49998 16C5.49998 16 3.00001 17.8412 3 18.5C2.99999 19.1588 5.5 21 5.5 21" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>Scan again</button>
+      </div>
+    </div>
+    <section class="mif" aria-label="Make it free">
+      <div class="row1"><span class="label">[Make it free]</span><span style="flex:1"></span><button class="btn primary" data-toast="Showing Arimo instead of Helvetica Neue LT Pro">Swap on page</button></div>
+      <div class="swap"><span>Helvetica Neue LT Pro</span><span class="arrow">to</span><b style="font-weight:500">Arimo</b><span class="label">92%</span><span class="lic free"><i></i>Free</span></div>
+    </section>
+    <button class="note" data-toast="Opens the list: Söhne Test (Arial shows instead), Nonexistent Serif (Liberation Serif shows instead)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M13.9248 21H10.0752C5.44476 21 3.12955 21 2.27636 19.4939C1.42317 17.9879 2.60736 15.9914 4.97574 11.9985L6.90057 8.75333C9.17559 4.91778 10.3131 3 12 3C13.6869 3 14.8244 4.91777 17.0994 8.75332L19.0243 11.9985C21.3926 15.9914 22.5768 17.9879 21.7236 19.4939C20.8704 21 18.5552 21 13.9248 21Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path><path d="M12 9V13" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path><path d="M12.125 16.75H12M12.25 16.75C12.25 16.8881 12.1381 17 12 17C11.8619 17 11.75 16.8881 11.75 16.75C11.75 16.6119 11.8619 16.5 12 16.5C12.1381 16.5 12.25 16.6119 12.25 16.75Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg><span><b>2 fonts did not load.</b> Other fonts show instead.</span></button>
+    <div class="listhead"><span class="label">[Fonts on this page]</span><span style="flex:1"></span><button class="iconbtn" aria-label="Preview your own text" aria-pressed="false" id="aa"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 19L11.1069 10.7479C9.76348 6.91597 9.09177 5 8 5C6.90823 5 6.23652 6.91597 4.89309 10.7479L2 19M4.5 12H11.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path><path d="M21.9692 13.9392V18.4392M21.9692 13.9392C22.0164 13.1161 22.0182 12.4891 21.9194 11.9773C21.6864 10.7709 20.4258 10.0439 19.206 9.89599C18.0385 9.75447 17.1015 10.055 16.1535 11.4363M21.9692 13.9392L19.1256 13.9392C18.6887 13.9392 18.2481 13.9603 17.8272 14.0773C15.2545 14.7925 15.4431 18.4003 18.0233 18.845C18.3099 18.8944 18.6025 18.9156 18.8927 18.9026C19.5703 18.8724 20.1955 18.545 20.7321 18.1301C21.3605 17.644 21.9692 16.9655 21.9692 15.9392V13.9392Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg></button></div>
+    <div class="tester" id="tester" hidden><input id="tt" placeholder="Type to preview in every font" aria-label="Preview text"><button class="iconbtn" aria-label="Clear" id="ttx"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6L6.00081 17.9992M17.9992 18L6 6.00085" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg></button></div>
+   </div>
+    <div id="stage"></div>
+  </div>
+</div>
+
+<nav class="proto-picker" aria-label="Prototype variants">
+  <span class="proto-picker-highlight" aria-hidden="true"></span>
+  <button class="proto-picker-item" data-active aria-current="true">Specimen</button>
+  <button class="proto-picker-item">Index</button>
+  <button class="proto-picker-item">Proof</button>
+  <button class="proto-picker-item">Specimen+</button>
+  <button class="proto-picker-item">Quiet</button>
+  <button class="proto-picker-item">Stacked</button>
+  <button class="proto-picker-item">Page v2</button>
+</nav>
+
+<script>
+const ICON = {"ImageUploadIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 16L7.46967 11.5303C7.80923 11.1908 8.26978 11 8.75 11C9.23022 11 9.69077 11.1908 10.0303 11.5303L14 15.5M15.5 17L14 15.5M21 16L18.5303 13.5303C18.1908 13.1908 17.7302 13 17.25 13C16.7698 13 16.3092 13.1908 15.9697 13.5303L14 15.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 2.5C7.77027 2.5 5.6554 2.5 4.25276 3.69797C4.05358 3.86808 3.86808 4.05358 3.69797 4.25276C2.5 5.6554 2.5 7.77027 2.5 12C2.5 16.2297 2.5 18.3446 3.69797 19.7472C3.86808 19.9464 4.05358 20.1319 4.25276 20.302C5.6554 21.5 7.77027 21.5 12 21.5C16.2297 21.5 18.3446 21.5 19.7472 20.302C19.9464 20.1319 20.1319 19.9464 20.302 19.7472C21.5 18.3446 21.5 16.2297 21.5 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M15.5 5.5C16.0898 4.89316 17.6597 2.5 18.5 2.5C19.3403 2.5 20.9102 4.89316 21.5 5.5M18.5 3V9.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ScanImageIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M6.5 21.5C6.03563 21.5 5.80344 21.5 5.60812 21.478C3.98545 21.2952 2.70484 20.0145 2.52201 18.3919C2.5 18.1966 2.5 17.9644 2.5 17.5M17.5 21.5C17.9644 21.5 18.1966 21.5 18.3919 21.478C20.0145 21.2952 21.2952 20.0145 21.478 18.3919C21.5 18.1966 21.5 17.9644 21.5 17.5M6.5 2.5C6.03563 2.5 5.80344 2.5 5.60812 2.52201C3.98545 2.70484 2.70484 3.98545 2.52201 5.60812C2.5 5.80344 2.5 6.03563 2.5 6.5M17.5 2.5C17.9644 2.5 18.1966 2.5 18.3919 2.52201C20.0145 2.70484 21.2952 3.98545 21.478 5.60812C21.5 5.80344 21.5 6.03563 21.5 6.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M6.87868 6.87868C7.75736 6 9.17157 6 12 6C14.8284 6 16.2426 6 17.1213 6.87868C18 7.75736 18 9.17157 18 12C18 14.8284 18 16.2426 17.1213 17.1213C16.2426 18 14.8284 18 12 18C9.17157 18 7.75736 18 6.87868 17.1213C6 16.2426 6 14.8284 6 12C6 9.17157 6 7.75736 6.87868 6.87868Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M6.5 15.5L8.0333 13.8522C8.56719 13.2785 9.43281 13.2785 9.9667 13.8522C10.5259 14.4532 11.4415 14.4204 11.9623 13.7808L13.3711 12.0505C13.9688 11.3165 15.0312 11.3165 15.6289 12.0505L17.7603 14.6678\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M10.375 9.75H10.25M10.5 9.75C10.5 9.88807 10.3881 10 10.25 10C10.1119 10 10 9.88807 10 9.75C10 9.61193 10.1119 9.5 10.25 9.5C10.3881 9.5 10.5 9.61193 10.5 9.75Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ClipboardIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17.0235 3.03358L16.0689 2.77924C13.369 2.05986 12.019 1.70018 10.9555 2.31074C9.89196 2.9213 9.53023 4.26367 8.80678 6.94841L7.78366 10.7452C7.0602 13.4299 6.69848 14.7723 7.3125 15.8298C7.92652 16.8874 9.27651 17.247 11.9765 17.9664L12.9311 18.2208C15.631 18.9401 16.981 19.2998 18.0445 18.6893C19.108 18.0787 19.4698 16.7363 20.1932 14.0516L21.2163 10.2548C21.9398 7.57005 22.3015 6.22768 21.6875 5.17016C21.0735 4.11264 19.7235 3.75295 17.0235 3.03358Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M16.8538 7.43306C16.8538 8.24714 16.1901 8.90709 15.3714 8.90709C14.5527 8.90709 13.889 8.24714 13.889 7.43306C13.889 6.61898 14.5527 5.95904 15.3714 5.95904C16.1901 5.95904 16.8538 6.61898 16.8538 7.43306Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M12 20.9463L11.0477 21.2056C8.35403 21.9391 7.00722 22.3059 5.94619 21.6833C4.88517 21.0608 4.52429 19.6921 3.80253 16.9547L2.78182 13.0834C2.06006 10.346 1.69918 8.97731 2.31177 7.89904C2.84167 6.96631 4 7.00027 5.5 7.00015\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "ImageCropIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M22 20H10C7.17157 20 5.75736 20 4.87868 19.1213C4 18.2426 4 16.8284 4 14V2\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M6 20C9.68373 16.4365 13.8235 11.7106 20 15.2551\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M2 4L14 4C16.8284 4 18.2426 4 19.1213 4.87868C20 5.75736 20 7.17157 20 10L20 22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle></svg>", "Tick02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M5 14L8.5 17.5L19 6.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowDown01Icon": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 9.00005C18 9.00005 13.5811 15 12 15C10.4188 15 6 9 6 9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowRight01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9.00005 6C9.00005 6 15 10.4189 15 12C15 13.5812 9 18 9 18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowUpRight01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9 6.65032C9 6.65032 15.9383 6.10759 16.9154 7.08463C17.8924 8.06167 17.3496 15 17.3496 15M16.5 7.5L6.5 17.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Bookmark02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 17.9808V9.70753C4 6.07416 4 4.25748 5.17157 3.12874C6.34315 2 8.22876 2 12 2C15.7712 2 17.6569 2 18.8284 3.12874C20 4.25748 20 6.07416 20 9.70753V17.9808C20 20.2867 20 21.4396 19.2272 21.8523C17.7305 22.6514 14.9232 19.9852 13.59 19.1824C12.8168 18.7168 12.4302 18.484 12 18.484C11.5698 18.484 11.1832 18.7168 10.41 19.1824C9.0768 19.9852 6.26947 22.6514 4.77285 21.8523C4 21.4396 4 20.2867 4 17.9808Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "FolderAddIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13 21H12C7.28595 21 4.92893 21 3.46447 19.5355C2 18.0711 2 15.714 2 11V7.94427C2 6.1278 2 5.21956 2.38032 4.53806C2.65142 4.05227 3.05227 3.65142 3.53806 3.38032C4.21956 3 5.1278 3 6.94427 3C8.10802 3 8.6899 3 9.19926 3.19101C10.3622 3.62712 10.8418 4.68358 11.3666 5.73313L12 7M8 7H16.75C18.8567 7 19.91 7 20.6667 7.50559C20.9943 7.72447 21.2755 8.00572 21.4944 8.33329C21.9796 9.05942 21.9992 10.0588 22 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M18 13V21M22 17H14\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Search01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 17L21 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19C15.4183 19 19 15.4183 19 11Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Alert02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13.9248 21H10.0752C5.44476 21 3.12955 21 2.27636 19.4939C1.42317 17.9879 2.60736 15.9914 4.97574 11.9985L6.90057 8.75333C9.17559 4.91778 10.3131 3 12 3C13.6869 3 14.8244 4.91777 17.0994 8.75332L19.0243 11.9985C21.3926 15.9914 22.5768 17.9879 21.7236 19.4939C20.8704 21 18.5552 21 13.9248 21Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 9V13\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12.125 16.75H12M12.25 16.75C12.25 16.8881 12.1381 17 12 17C11.8619 17 11.75 16.8881 11.75 16.75C11.75 16.6119 11.8619 16.5 12 16.5C12.1381 16.5 12.25 16.6119 12.25 16.75Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Settings02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15.5 12C15.5 13.933 13.933 15.5 12 15.5C10.067 15.5 8.5 13.933 8.5 12C8.5 10.067 10.067 8.5 12 8.5C13.933 8.5 15.5 10.067 15.5 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M21.011 14.0965C21.5329 13.9558 21.7939 13.8854 21.8969 13.7508C22 13.6163 22 13.3998 22 12.9669V11.0332C22 10.6003 22 10.3838 21.8969 10.2493C21.7938 10.1147 21.5329 10.0443 21.011 9.90358C19.0606 9.37759 17.8399 7.33851 18.3433 5.40087C18.4817 4.86799 18.5509 4.60156 18.4848 4.44529C18.4187 4.28902 18.2291 4.18134 17.8497 3.96596L16.125 2.98673C15.7528 2.77539 15.5667 2.66972 15.3997 2.69222C15.2326 2.71472 15.0442 2.90273 14.6672 3.27873C13.208 4.73448 10.7936 4.73442 9.33434 3.27864C8.95743 2.90263 8.76898 2.71463 8.60193 2.69212C8.43489 2.66962 8.24877 2.77529 7.87653 2.98663L6.15184 3.96587C5.77253 4.18123 5.58287 4.28891 5.51678 4.44515C5.45068 4.6014 5.51987 4.86787 5.65825 5.4008C6.16137 7.3385 4.93972 9.37763 2.98902 9.9036C2.46712 10.0443 2.20617 10.1147 2.10308 10.2492C2 10.3838 2 10.6003 2 11.0332V12.9669C2 13.3998 2 13.6163 2.10308 13.7508C2.20615 13.8854 2.46711 13.9558 2.98902 14.0965C4.9394 14.6225 6.16008 16.6616 5.65672 18.5992C5.51829 19.1321 5.44907 19.3985 5.51516 19.5548C5.58126 19.7111 5.77092 19.8188 6.15025 20.0341L7.87495 21.0134C8.24721 21.2247 8.43334 21.3304 8.6004 21.3079C8.76746 21.2854 8.95588 21.0973 9.33271 20.7213C10.7927 19.2644 13.2088 19.2643 14.6689 20.7212C15.0457 21.0973 15.2341 21.2853 15.4012 21.3078C15.5682 21.3303 15.7544 21.2246 16.1266 21.0133L17.8513 20.034C18.2307 19.8187 18.4204 19.711 18.4864 19.5547C18.5525 19.3984 18.4833 19.132 18.3448 18.5991C17.8412 16.6616 19.0609 14.6226 21.011 14.0965Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "RotateClockwiseIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 2V5.13219C4 5.42605 4.36724 5.55908 4.55527 5.33333C6.3854 3.2875 9.04499 2 12.0051 2C17.5251 2 22 6.47715 22 12C22 15.9582 19.7015 19.3793 16.367 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M11.7347 22.0001C12.2016 22.0001 12.6611 21.9688 13.1111 21.9084M2.26537 8.66675C2.15297 9.06394 2.06477 9.46536 2 9.86901M2.03457 13.5381C2.10487 13.9381 2.19644 14.3343 2.30852 14.7245M3.83292 17.9963C4.07124 18.3497 4.3296 18.69 4.6071 19.0147M7.42857 21.3607C7.78228 21.5632 8.15042 21.7464 8.53228 21.9084\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ContrastIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle><path d=\"M12 22V2\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 7L20.5 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 17L20.5 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 12H22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowLeft01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15 6C15 6 9.00001 10.4189 9 12C8.99999 13.5812 15 18 15 18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "InformationCircleIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle><path d=\"M12 16V12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12.125 8.25H12M12.25 8.25C12.25 8.11193 12.1381 8 12 8C11.8619 8 11.75 8.11193 11.75 8.25C11.75 8.38807 11.8619 8.5 12 8.5C12.1381 8.5 12.25 8.38807 12.25 8.25Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Tick02Small": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M5 14L8.5 17.5L19 6.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowDownSmall": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 9.00005C18 9.00005 13.5811 15 12 15C10.4188 15 6 9 6 9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowUpRightSmall": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9 6.65032C9 6.65032 15.9383 6.10759 16.9154 7.08463C17.8924 8.06167 17.3496 15 17.3496 15M16.5 7.5L6.5 17.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Search01Small": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 17L21 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19C15.4183 19 19 15.4183 19 11Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "PerspectiveIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4.5 11.9999C4.5 9.51223 4.5 8.2684 5.17206 7.38465C5.24545 7.28814 5.32409 7.19589 5.40762 7.10833C6.17248 6.30646 7.38276 6.13056 9.8033 5.77875L12.1623 5.43589C15.5764 4.93968 17.2834 4.69157 18.3917 5.6695C19.5 6.64743 19.5 8.4018 19.5 11.9106V12.0892C19.5 15.598 19.5 17.3523 18.3917 18.3303C17.2834 19.3082 15.5764 19.0601 12.1623 18.5639L9.80329 18.221C7.38275 17.8692 6.17248 17.6933 5.40762 16.8914C5.32409 16.8039 5.24545 16.7116 5.17206 16.6151C4.5 15.7314 4.5 14.4875 4.5 11.9999Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M12 22L12 2M2 12H22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "ImageUploadBig": "<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 16L7.46967 11.5303C7.80923 11.1908 8.26978 11 8.75 11C9.23022 11 9.69077 11.1908 10.0303 11.5303L14 15.5M15.5 17L14 15.5M21 16L18.5303 13.5303C18.1908 13.1908 17.7302 13 17.25 13C16.7698 13 16.3092 13.1908 15.9697 13.5303L14 15.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 2.5C7.77027 2.5 5.6554 2.5 4.25276 3.69797C4.05358 3.86808 3.86808 4.05358 3.69797 4.25276C2.5 5.6554 2.5 7.77027 2.5 12C2.5 16.2297 2.5 18.3446 3.69797 19.7472C3.86808 19.9464 4.05358 20.1319 4.25276 20.302C5.6554 21.5 7.77027 21.5 12 21.5C16.2297 21.5 18.3446 21.5 19.7472 20.302C19.9464 20.1319 20.1319 19.9464 20.302 19.7472C21.5 18.3446 21.5 16.2297 21.5 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M15.5 5.5C16.0898 4.89316 17.6597 2.5 18.5 2.5C19.3403 2.5 20.9102 4.89316 21.5 5.5M18.5 3V9.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "InfoSmall": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle><path d=\"M12 16V12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12.125 8.25H12M12.25 8.25C12.25 8.11193 12.1381 8 12 8C11.8619 8 11.75 8.11193 11.75 8.25C11.75 8.38807 11.8619 8.5 12 8.5C12.1381 8.5 12.25 8.38807 12.25 8.25Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "FigmaIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"15\" cy=\"12\" r=\"3\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle><path d=\"M9 21C10.6569 21 12 19.6569 12 18V15H9C7.34315 15 6 16.3431 6 18C6 19.6569 7.34315 21 9 21Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 9V15H9C7.34315 15 6 13.6569 6 12C6 10.3431 7.34315 9 9 9H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 3V9H9C7.34315 9 6 7.65685 6 6C6 4.34315 7.34315 3 9 3H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 3V9H15C16.6569 9 18 7.65685 18 6C18 4.34315 16.6569 3 15 3H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "CodeIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M16 6.99998L19.0664 9.64296C20.3554 10.7541 21 11.3096 21 12C21 12.6903 20.3555 13.2459 19.0664 14.357L16 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M8 6.99998L4.93365 9.64296C3.64455 10.7541 3 11.3096 3 12C3 12.6903 3.64455 13.2459 4.93365 14.357L8 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Download01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2.99969 17.0002C2.99969 17.9302 2.99969 18.3952 3.10192 18.7767C3.37932 19.8119 4.18796 20.6206 5.22324 20.898C5.60474 21.0002 6.06972 21.0002 6.99969 21.0002L16.9997 21.0002C17.9297 21.0002 18.3947 21.0002 18.7762 20.898C19.8114 20.6206 20.6201 19.8119 20.8975 18.7767C20.9997 18.3952 20.9997 17.9302 20.9997 17.0002\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M16.4998 11.5002C16.4998 11.5002 13.1856 16.0002 11.9997 16.0002C10.8139 16.0002 7.49976 11.5002 7.49976 11.5002M11.9997 15.0002V3.00016\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Copy01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M7.5 14.5C7.5 11.2002 7.5 9.55025 8.52513 8.52513C9.55025 7.5 11.2002 7.5 14.5 7.5C17.7998 7.5 19.4497 7.5 20.4749 8.52513C21.5 9.55025 21.5 11.2002 21.5 14.5C21.5 17.7998 21.5 19.4497 20.4749 20.4749C19.4497 21.5 17.7998 21.5 14.5 21.5C11.2002 21.5 9.55025 21.5 8.52513 20.4749C7.5 19.4497 7.5 17.7998 7.5 14.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M7.5 16.5C6.10355 16.5 5.40533 16.5 4.84402 16.3036C3.83866 15.9518 3.0482 15.1613 2.69641 14.156C2.5 13.5947 2.5 12.8964 2.5 11.5V9.5C2.5 6.20017 2.5 4.55025 3.52513 3.52513C4.55025 2.5 6.20017 2.5 9.5 2.5H11.5C12.8964 2.5 13.5947 2.5 14.156 2.69641C15.1613 3.0482 15.9518 3.83866 16.3036 4.84402C16.5 5.40533 16.5 6.10355 16.5 7.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Target02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M14 2.20004C13.3538 2.06886 12.6849 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 11.3151 21.9311 10.6462 21.8 10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M12.0303 11.9625L16.5832 7.4096M19.7404 4.34462L19.1872 2.35748C19.0853 2.03011 18.6914 1.89965 18.4259 2.11662C16.9898 3.29018 15.4254 4.87091 16.703 7.36419C19.2771 8.56455 20.7466 6.94584 21.8733 5.5853C22.0975 5.3146 21.9623 4.90767 21.6247 4.81005L19.7404 4.34462Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "GitCompareIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M19 17L19 11C19 8.17157 19 6.75736 18.1213 5.87868C17.2426 5 15.8284 5 13 5H10M10 5C10 4.29977 11.9943 2.99153 12.5 2.5M10 5C10 5.70023 11.9943 7.00847 12.5 7.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M5 7.5L5 13.5C5 16.3284 5 17.7426 5.87868 18.6213C6.75736 19.5 8.17157 19.5 11 19.5H14M14 19.5C14 20.2002 12.0057 21.5085 11.5 22M14 19.5C14 18.7998 12.0057 17.4915 11.5 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><circle cx=\"19\" cy=\"19\" r=\"2\" stroke=\"currentColor\" stroke-width=\"1.5\"></circle><circle cx=\"5\" cy=\"5\" r=\"2\" stroke=\"currentColor\" stroke-width=\"1.5\"></circle></svg>", "RefreshIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M20.0092 2V5.13219C20.0092 5.42605 19.6418 5.55908 19.4537 5.33333C17.6226 3.2875 14.9617 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "TextFontIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M14 19L11.1069 10.7479C9.76348 6.91597 9.09177 5 8 5C6.90823 5 6.23652 6.91597 4.89309 10.7479L2 19M4.5 12H11.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M21.9692 13.9392V18.4392M21.9692 13.9392C22.0164 13.1161 22.0182 12.4891 21.9194 11.9773C21.6864 10.7709 20.4258 10.0439 19.206 9.89599C18.0385 9.75447 17.1015 10.055 16.1535 11.4363M21.9692 13.9392L19.1256 13.9392C18.6887 13.9392 18.2481 13.9603 17.8272 14.0773C15.2545 14.7925 15.4431 18.4003 18.0233 18.845C18.3099 18.8944 18.6025 18.9156 18.8927 18.9026C19.5703 18.8724 20.1955 18.545 20.7321 18.1301C21.3605 17.644 21.9692 16.9655 21.9692 15.9392V13.9392Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "DashboardSpeed01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13.5 13L17 9M14 15C14 16.1046 13.1046 17 12 17C10.8954 17 10 16.1046 10 15C10 13.8954 10.8954 13 12 13C13.1046 13 14 13.8954 14 15Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M6 12C6 8.68629 8.68629 6 12 6C13.0929 6 14.1175 6.29218 15 6.80269\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M2.50006 12.0001C2.50006 7.52172 2.50006 5.28255 3.8913 3.8913C5.28255 2.50006 7.52172 2.50006 12.0001 2.50006C16.4784 2.50006 18.7176 2.50006 20.1088 3.8913C21.5001 5.28255 21.5001 7.52172 21.5001 12.0001C21.5001 16.4784 21.5001 18.7176 20.1088 20.1088C18.7176 21.5001 16.4784 21.5001 12.0001 21.5001C7.52172 21.5001 5.28255 21.5001 3.8913 20.1088C2.50006 18.7176 2.50006 16.4784 2.50006 12.0001Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path></svg>", "ViewIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M21.544 11.045C21.848 11.4713 22 11.6845 22 12C22 12.3155 21.848 12.5287 21.544 12.955C20.1779 14.8706 16.6892 19 12 19C7.31078 19 3.8221 14.8706 2.45604 12.955C2.15201 12.5287 2 12.3155 2 12C2 11.6845 2.15201 11.4713 2.45604 11.045C3.8221 9.12944 7.31078 5 12 5C16.6892 5 20.1779 9.12944 21.544 11.045Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path></svg>", "CopySmall": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M7.5 14.5C7.5 11.2002 7.5 9.55025 8.52513 8.52513C9.55025 7.5 11.2002 7.5 14.5 7.5C17.7998 7.5 19.4497 7.5 20.4749 8.52513C21.5 9.55025 21.5 11.2002 21.5 14.5C21.5 17.7998 21.5 19.4497 20.4749 20.4749C19.4497 21.5 17.7998 21.5 14.5 21.5C11.2002 21.5 9.55025 21.5 8.52513 20.4749C7.5 19.4497 7.5 17.7998 7.5 14.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M7.5 16.5C6.10355 16.5 5.40533 16.5 4.84402 16.3036C3.83866 15.9518 3.0482 15.1613 2.69641 14.156C2.5 13.5947 2.5 12.8964 2.5 11.5V9.5C2.5 6.20017 2.5 4.55025 3.52513 3.52513C4.55025 2.5 6.20017 2.5 9.5 2.5H11.5C12.8964 2.5 13.5947 2.5 14.156 2.69641C15.1613 3.0482 15.9518 3.83866 16.3036 4.84402C16.5 5.40533 16.5 6.10355 16.5 7.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ChevR": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9.00005 6C9.00005 6 15 10.4189 15 12C15 13.5812 9 18 9 18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ChevD": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 9.00005C18 9.00005 13.5811 15 12 15C10.4188 15 6 9 6 9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "FilterHorizontalIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 7H6\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M3 17H9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M18 17L21 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M15 7L21 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M6 7C6 6.06812 6 5.60218 6.15224 5.23463C6.35523 4.74458 6.74458 4.35523 7.23463 4.15224C7.60218 4 8.06812 4 9 4C9.93188 4 10.3978 4 10.7654 4.15224C11.2554 4.35523 11.6448 4.74458 11.8478 5.23463C12 5.60218 12 6.06812 12 7C12 7.93188 12 8.39782 11.8478 8.76537C11.6448 9.25542 11.2554 9.64477 10.7654 9.84776C10.3978 10 9.93188 10 9 10C8.06812 10 7.60218 10 7.23463 9.84776C6.74458 9.64477 6.35523 9.25542 6.15224 8.76537C6 8.39782 6 7.93188 6 7Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M12 17C12 16.0681 12 15.6022 12.1522 15.2346C12.3552 14.7446 12.7446 14.3552 13.2346 14.1522C13.6022 14 14.0681 14 15 14C15.9319 14 16.3978 14 16.7654 14.1522C17.2554 14.3552 17.6448 14.7446 17.8478 15.2346C18 15.6022 18 16.0681 18 17C18 17.9319 18 18.3978 17.8478 18.7654C17.6448 19.2554 17.2554 19.6448 16.7654 19.8478C16.3978 20 15.9319 20 15 20C14.0681 20 13.6022 20 13.2346 19.8478C12.7446 19.6448 12.3552 19.2554 12.1522 18.7654C12 18.3978 12 17.9319 12 17Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path></svg>", "Menu01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 5L20 5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M4 12L20 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M4 19L20 19\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "GridViewIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3.88884 9.66294C4.39329 10 5.09552 10 6.49998 10C7.90445 10 8.60668 10 9.11113 9.66294C9.32951 9.51702 9.51701 9.32952 9.66292 9.11114C9.99998 8.60669 9.99998 7.90446 9.99998 6.5C9.99998 5.09554 9.99998 4.39331 9.66292 3.88886C9.51701 3.67048 9.32951 3.48298 9.11113 3.33706C8.60668 3 7.90445 3 6.49998 3C5.09552 3 4.39329 3 3.88884 3.33706C3.67046 3.48298 3.48296 3.67048 3.33705 3.88886C2.99998 4.39331 2.99998 5.09554 2.99998 6.5C2.99998 7.90446 2.99998 8.60669 3.33705 9.11114C3.48296 9.32952 3.67046 9.51702 3.88884 9.66294Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M14.8888 9.66294C15.3933 10 16.0955 10 17.5 10C18.9044 10 19.6067 10 20.1111 9.66294C20.3295 9.51702 20.517 9.32952 20.6629 9.11114C21 8.60669 21 7.90446 21 6.5C21 5.09554 21 4.39331 20.6629 3.88886C20.517 3.67048 20.3295 3.48298 20.1111 3.33706C19.6067 3 18.9044 3 17.5 3C16.0955 3 15.3933 3 14.8888 3.33706C14.6705 3.48298 14.483 3.67048 14.337 3.88886C14 4.39331 14 5.09554 14 6.5C14 7.90446 14 8.60669 14.337 9.11114C14.483 9.32952 14.6705 9.51702 14.8888 9.66294Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M3.88884 20.6629C4.39329 21 5.09552 21 6.49998 21C7.90445 21 8.60668 21 9.11113 20.6629C9.32951 20.517 9.51701 20.3295 9.66292 20.1111C9.99998 19.6067 9.99998 18.9045 9.99998 17.5C9.99998 16.0955 9.99998 15.3933 9.66292 14.8889C9.51701 14.6705 9.32951 14.483 9.11113 14.3371C8.60668 14 7.90445 14 6.49998 14C5.09552 14 4.39329 14 3.88884 14.3371C3.67046 14.483 3.48296 14.6705 3.33705 14.8889C2.99998 15.3933 2.99998 16.0955 2.99998 17.5C2.99998 18.9045 2.99998 19.6067 3.33705 20.1111C3.48296 20.3295 3.67046 20.517 3.88884 20.6629Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M14.8888 20.6629C15.3933 21 16.0955 21 17.5 21C18.9044 21 19.6067 21 20.1111 20.6629C20.3295 20.517 20.517 20.3295 20.6629 20.1111C21 19.6067 21 18.9045 21 17.5C21 16.0955 21 15.3933 20.6629 14.8889C20.517 14.6705 20.3295 14.483 20.1111 14.3371C19.6067 14 18.9044 14 17.5 14C16.0955 14 15.3933 14 14.8888 14.3371C14.6705 14.483 14.483 14.6705 14.337 14.8889C14 15.3933 14 16.0955 14 17.5C14 18.9045 14 19.6067 14.337 20.1111C14.483 20.3295 14.6705 20.517 14.8888 20.6629Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "DashboardSquare01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13.6903 19.4567C13.5 18.9973 13.5 18.4149 13.5 17.25C13.5 16.0851 13.5 15.5027 13.6903 15.0433C13.944 14.4307 14.4307 13.944 15.0433 13.6903C15.5027 13.5 16.0851 13.5 17.25 13.5C18.4149 13.5 18.9973 13.5 19.4567 13.6903C20.0693 13.944 20.556 14.4307 20.8097 15.0433C21 15.5027 21 16.0851 21 17.25C21 18.4149 21 18.9973 20.8097 19.4567C20.556 20.0693 20.0693 20.556 19.4567 20.8097C18.9973 21 18.4149 21 17.25 21C16.0851 21 15.5027 21 15.0433 20.8097C14.4307 20.556 13.944 20.0693 13.6903 19.4567Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M13.6903 8.95671C13.5 8.49728 13.5 7.91485 13.5 6.75C13.5 5.58515 13.5 5.00272 13.6903 4.54329C13.944 3.93072 14.4307 3.44404 15.0433 3.1903C15.5027 3 16.0851 3 17.25 3C18.4149 3 18.9973 3 19.4567 3.1903C20.0693 3.44404 20.556 3.93072 20.8097 4.54329C21 5.00272 21 5.58515 21 6.75C21 7.91485 21 8.49728 20.8097 8.95671C20.556 9.56928 20.0693 10.056 19.4567 10.3097C18.9973 10.5 18.4149 10.5 17.25 10.5C16.0851 10.5 15.5027 10.5 15.0433 10.3097C14.4307 10.056 13.944 9.56928 13.6903 8.95671Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M3.1903 19.4567C3 18.9973 3 18.4149 3 17.25C3 16.0851 3 15.5027 3.1903 15.0433C3.44404 14.4307 3.93072 13.944 4.54329 13.6903C5.00272 13.5 5.58515 13.5 6.75 13.5C7.91485 13.5 8.49728 13.5 8.95671 13.6903C9.56928 13.944 10.056 14.4307 10.3097 15.0433C10.5 15.5027 10.5 16.0851 10.5 17.25C10.5 18.4149 10.5 18.9973 10.3097 19.4567C10.056 20.0693 9.56928 20.556 8.95671 20.8097C8.49728 21 7.91485 21 6.75 21C5.58515 21 5.00272 21 4.54329 20.8097C3.93072 20.556 3.44404 20.0693 3.1903 19.4567Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M3.1903 8.95671C3 8.49728 3 7.91485 3 6.75C3 5.58515 3 5.00272 3.1903 4.54329C3.44404 3.93072 3.93072 3.44404 4.54329 3.1903C5.00272 3 5.58515 3 6.75 3C7.91485 3 8.49728 3 8.95671 3.1903C9.56928 3.44404 10.056 3.93072 10.3097 4.54329C10.5 5.00272 10.5 5.58515 10.5 6.75C10.5 7.91485 10.5 8.49728 10.3097 8.95671C10.056 9.56928 9.56928 10.056 8.95671 10.3097C8.49728 10.5 7.91485 10.5 6.75 10.5C5.58515 10.5 5.00272 10.5 4.54329 10.3097C3.93072 10.056 3.44404 9.56928 3.1903 8.95671Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Clock01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"1.5\"></circle><path d=\"M12 8V12L14 14\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Upload01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2.99994 17C2.99994 17.93 2.99994 18.395 3.10216 18.7765C3.37956 19.8117 4.18821 20.6204 5.22348 20.8978C5.60498 21 6.06997 21 6.99994 21L16.9999 21C17.9299 21 18.3949 21 18.7764 20.8978C19.8117 20.6204 20.6203 19.8117 20.8977 18.7765C20.9999 18.395 20.9999 17.93 20.9999 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M16.5 7.49993C16.5 7.49993 13.1858 2.99997 12 2.99996C10.8141 2.99995 7.50002 7.49996 7.50002 7.49996M12 3.99996V16\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "MoreHorizontalIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M6.00449 12.5V12M18.0045 12.5V12M12.0045 12.5V12M7.00449 12.5C7.00449 11.9477 6.55677 11.5 6.00449 11.5C5.4522 11.5 5.00449 11.9477 5.00449 12.5C5.00449 13.0523 5.4522 13.5 6.00449 13.5C6.55677 13.5 7.00449 13.0523 7.00449 12.5ZM19.0045 12.5C19.0045 11.9477 18.5568 11.5 18.0045 11.5C17.4522 11.5 17.0045 11.9477 17.0045 12.5C17.0045 13.0523 17.4522 13.5 18.0045 13.5C18.5568 13.5 19.0045 13.0523 19.0045 12.5ZM13.0045 12.5C13.0045 11.9477 12.5568 11.5 12.0045 11.5C11.4522 11.5 11.0045 11.9477 11.0045 12.5C11.0045 13.0523 11.4522 13.5 12.0045 13.5C12.5568 13.5 13.0045 13.0523 13.0045 12.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "PlusSignIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M12 4V20M20 12H4\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Folder01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M8 7H16.75C18.8567 7 19.91 7 20.6667 7.50559C20.9943 7.72447 21.2755 8.00572 21.4944 8.33329C22 9.08996 22 10.1433 22 12.25C22 15.7612 22 17.5167 21.1573 18.7779C20.7926 19.3238 20.3238 19.7926 19.7779 20.1573C18.5167 21 16.7612 21 13.25 21H12C7.28595 21 4.92893 21 3.46447 19.5355C2 18.0711 2 15.714 2 11V7.94427C2 6.1278 2 5.21956 2.38032 4.53806C2.65142 4.05227 3.05227 3.65142 3.53806 3.38032C4.21956 3 5.1278 3 6.94427 3C8.10802 3 8.6899 3 9.19926 3.19101C10.3622 3.62712 10.8418 4.68358 11.3666 5.73313L12 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "PauseIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 7C4 5.58579 4 4.87868 4.43934 4.43934C4.87868 4 5.58579 4 7 4C8.41421 4 9.12132 4 9.56066 4.43934C10 4.87868 10 5.58579 10 7V17C10 18.4142 10 19.1213 9.56066 19.5607C9.12132 20 8.41421 20 7 20C5.58579 20 4.87868 20 4.43934 19.5607C4 19.1213 4 18.4142 4 17V7Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M14 7C14 5.58579 14 4.87868 14.4393 4.43934C14.8787 4 15.5858 4 17 4C18.4142 4 19.1213 4 19.5607 4.43934C20 4.87868 20 5.58579 20 7V17C20 18.4142 20 19.1213 19.5607 19.5607C19.1213 20 18.4142 20 17 20C15.5858 20 14.8787 20 14.4393 19.5607C14 19.1213 14 18.4142 14 17V7Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path></svg>", "PlayIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18.8906 12.846C18.5371 14.189 16.8667 15.138 13.5257 17.0361C10.296 18.8709 8.6812 19.7884 7.37983 19.4196C6.8418 19.2671 6.35159 18.9776 5.95624 18.5787C5 17.6139 5 15.7426 5 12C5 8.2574 5 6.3861 5.95624 5.42132C6.35159 5.02245 6.8418 4.73288 7.37983 4.58042C8.6812 4.21165 10.296 5.12907 13.5257 6.96393C16.8667 8.86197 18.5371 9.811 18.8906 11.154C19.0365 11.7084 19.0365 12.2916 18.8906 12.846Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Delete02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M19.5 5.5L18.8803 15.5251C18.7219 18.0864 18.6428 19.3671 18.0008 20.2879C17.6833 20.7431 17.2747 21.1273 16.8007 21.416C15.8421 22 14.559 22 11.9927 22C9.42312 22 8.1383 22 7.17905 21.4149C6.7048 21.1257 6.296 20.7408 5.97868 20.2848C5.33688 19.3626 5.25945 18.0801 5.10461 15.5152L4.5 5.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M3 5.5H21M16.0557 5.5L15.3731 4.09173C14.9196 3.15626 14.6928 2.68852 14.3017 2.39681C14.215 2.3321 14.1231 2.27454 14.027 2.2247C13.5939 2 13.0741 2 12.0345 2C10.9688 2 10.436 2 9.99568 2.23412C9.8981 2.28601 9.80498 2.3459 9.71729 2.41317C9.32164 2.7167 9.10063 3.20155 8.65861 4.17126L8.05292 5.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M9.5 16.5L9.5 10.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M14.5 16.5L14.5 10.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "Cancel01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 6L6.00081 17.9992M17.9992 18L6 6.00085\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Edit02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M14.0737 3.88545C14.8189 3.07808 15.1915 2.6744 15.5874 2.43893C16.5427 1.87076 17.7191 1.85309 18.6904 2.39232C19.0929 2.6158 19.4769 3.00812 20.245 3.79276C21.0131 4.5774 21.3972 4.96972 21.6159 5.38093C22.1438 6.37312 22.1265 7.57479 21.5703 8.5507C21.3398 8.95516 20.9446 9.33578 20.1543 10.097L10.7506 19.1543C9.25288 20.5969 8.504 21.3182 7.56806 21.6837C6.63212 22.0493 5.6032 22.0224 3.54536 21.9686L3.26538 21.9613C2.63891 21.9449 2.32567 21.9367 2.14359 21.73C1.9615 21.5234 1.98636 21.2043 2.03608 20.5662L2.06308 20.2197C2.20301 18.4235 2.27297 17.5255 2.62371 16.7182C2.97444 15.9109 3.57944 15.2555 4.78943 13.9445L14.0737 3.88545Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M13 4L20 11\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M14 22L22 22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Sun03Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7C14.7614 7 17 9.23858 17 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M12 2V3.5M12 20.5V22M19.0708 19.0713L18.0101 18.0106M5.98926 5.98926L4.9286 4.9286M22 12H20.5M3.5 12H2M19.0713 4.92871L18.0106 5.98937M5.98975 18.0107L4.92909 19.0714\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "Moon02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M21.5 14.0784C20.3003 14.7189 18.9301 15.0821 17.4751 15.0821C12.7491 15.0821 8.91792 11.2509 8.91792 6.52485C8.91792 5.06986 9.28105 3.69968 9.92163 2.5C5.66765 3.49698 2.5 7.31513 2.5 11.8731C2.5 17.1899 6.8101 21.5 12.1269 21.5C16.6849 21.5 20.503 18.3324 21.5 14.0784Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ComputerIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M14 21H16M14 21C13.1716 21 12.5 20.3284 12.5 19.5V17L12 17M14 21H10M10 21H8M10 21C10.8284 21 11.5 20.3284 11.5 19.5V17L12 17M12 17V21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M16 3H8C5.17157 3 3.75736 3 2.87868 3.87868C2 4.75736 2 6.17157 2 9V11C2 13.8284 2 15.2426 2.87868 16.1213C3.75736 17 5.17157 17 8 17H16C18.8284 17 20.2426 17 21.1213 16.1213C22 15.2426 22 13.8284 22 11V9C22 6.17157 22 4.75736 21.1213 3.87868C20.2426 3 18.8284 3 16 3Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ViewOffIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M22 8C22 8 18 14 12 14C6 14 2 8 2 8\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M15 13.5L16.5 16\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M20 11L22 13\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M2 13L4 11\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M9 13.5L7.5 16\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Globe02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"1.5\"></circle><path d=\"M8 12C8 18 12 22 12 22C12 22 16 18 16 12C16 6 12 2 12 2C12 2 8 6 8 12Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M21 15H3\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M21 9H3\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "HelpCircleIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle><path d=\"M9.5 9.5C9.5 8.11929 10.6193 7 12 7C13.3807 7 14.5 8.11929 14.5 9.5C14.5 10.3569 14.0689 11.1131 13.4117 11.5636C12.7283 12.0319 12 12.6716 12 13.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12.125 16.75H12M12.25 16.75C12.25 16.8881 12.1381 17 12 17C11.8619 17 11.75 16.8881 11.75 16.75C11.75 16.6119 11.8619 16.5 12 16.5C12.1381 16.5 12.25 16.6119 12.25 16.75Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Key01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15.5 14.5C18.8137 14.5 21.5 11.8137 21.5 8.5C21.5 5.18629 18.8137 2.5 15.5 2.5C12.1863 2.5 9.5 5.18629 9.5 8.5C9.5 9.38041 9.68962 10.2165 10.0303 10.9697L2.5 18.5V21.5H5.5V19.5H7.5V17.5H9.5L13.0303 13.9697C13.7835 14.3104 14.6196 14.5 15.5 14.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M17.5 6.5L16.5 7.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "SecurityLockIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18.7088 3.49534C16.8165 2.55382 14.5009 2 12 2C9.4991 2 7.1835 2.55382 5.29116 3.49534C4.36318 3.95706 3.89919 4.18792 3.4496 4.91378C3 5.63965 3 6.34248 3 7.74814V11.2371C3 16.9205 7.54236 20.0804 10.173 21.4338C10.9067 21.8113 11.2735 22 12 22C12.7265 22 13.0933 21.8113 13.8269 21.4338C16.4576 20.0804 21 16.9205 21 11.2371L21 7.74814C21 6.34249 21 5.63966 20.5504 4.91378C20.1008 4.18791 19.6368 3.95706 18.7088 3.49534Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M10 10V8.5C10 7.39543 10.8954 6.5 12 6.5C13.1046 6.5 14 7.39543 14 8.5V10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M14 10H10C9.17157 10 8.5 10.6716 8.5 11.5V13C8.5 13.8284 9.17157 14.5 10 14.5H14C14.8284 14.5 15.5 13.8284 15.5 13V11.5C15.5 10.6716 14.8284 10 14 10Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "CheckmarkCircle02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M8 12.5L10.5 15L16 9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "BookOpen01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M7.99978 3.5H6.60021C4.43183 3.5 3.34764 3.5 2.67399 4.17362C2.00034 4.84724 2.00029 5.93144 2.00021 8.09982L2 13.3998C1.99992 15.5684 1.99987 16.6526 2.67353 17.3263C3.34719 18 4.43146 18 6.6 18H8.95042C10.4329 18 11.7092 19.0464 11.9999 20.5V5.5C11.0556 4.24097 9.99989 3.5 7.99978 3.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M16.0001 3.5H17.3997C19.5681 3.5 20.6523 3.5 21.3259 4.17362C21.9996 4.84724 21.9996 5.93144 21.9997 8.09982L21.9999 13.3998C22 15.5684 22 16.6526 21.3264 17.3263C20.6527 18 19.5684 18 17.3999 18H15.0495C13.567 18 12.2907 19.0464 12 20.5V5.5C12.9443 4.24097 14 3.5 16.0001 3.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Mail01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2 6L8.91302 9.91697C11.4616 11.361 12.5384 11.361 15.087 9.91697L22 6\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M2.01577 13.4756C2.08114 16.5412 2.11383 18.0739 3.24496 19.2094C4.37608 20.3448 5.95033 20.3843 9.09883 20.4634C11.0393 20.5122 12.9607 20.5122 14.9012 20.4634C18.0497 20.3843 19.6239 20.3448 20.7551 19.2094C21.8862 18.0739 21.9189 16.5412 21.9842 13.4756C22.0053 12.4899 22.0053 11.5101 21.9842 10.5244C21.9189 7.45886 21.8862 5.92609 20.7551 4.79066C19.6239 3.65523 18.0497 3.61568 14.9012 3.53657C12.9607 3.48781 11.0393 3.48781 9.09882 3.53656C5.95033 3.61566 4.37608 3.65521 3.24495 4.79065C2.11382 5.92608 2.08114 7.45885 2.01576 10.5244C1.99474 11.5101 1.99475 12.4899 2.01577 13.4756Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Shield01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18.7088 3.49534C16.8165 2.55382 14.5009 2 12 2C9.4991 2 7.1835 2.55382 5.29116 3.49534C4.36318 3.95706 3.89919 4.18792 3.4496 4.91378C3 5.63965 3 6.34248 3 7.74814V11.2371C3 16.9205 7.54236 20.0804 10.173 21.4338C10.9067 21.8113 11.2735 22 12 22C12.7265 22 13.0933 21.8113 13.8269 21.4338C16.4576 20.0804 21 16.9205 21 11.2371L21 7.74814C21 6.34249 21 5.63966 20.5504 4.91378C20.1008 4.18791 19.6368 3.95706 18.7088 3.49534Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "LinkSquare02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M11.0991 3.00012C7.45013 3.00669 5.53932 3.09629 4.31817 4.31764C3.00034 5.63568 3.00034 7.75704 3.00034 11.9997C3.00034 16.2424 3.00034 18.3638 4.31817 19.6818C5.63599 20.9999 7.75701 20.9999 11.9991 20.9999C16.241 20.9999 18.3621 20.9999 19.6799 19.6818C20.901 18.4605 20.9906 16.5493 20.9972 12.8998\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M20.556 3.49612L11.0487 13.0586M20.556 3.49612C20.062 3.00151 16.7343 3.04761 16.0308 3.05762M20.556 3.49612C21.05 3.99074 21.0039 7.32273 20.9939 8.02714\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "SourceCodeIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 8L18.8398 9.85008C19.6133 10.6279 20 11.0168 20 11.5C20 11.9832 19.6133 12.3721 18.8398 13.1499L17 15\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M7 8L5.16019 9.85008C4.38673 10.6279 4 11.0168 4 11.5C4 11.9832 4.38673 12.3721 5.16019 13.1499L7 15\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M14.5 4L9.5 20\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Share08Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M21 6.5C21 8.15685 19.6569 9.5 18 9.5C16.3431 9.5 15 8.15685 15 6.5C15 4.84315 16.3431 3.5 18 3.5C19.6569 3.5 21 4.84315 21 6.5Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M9 12C9 13.6569 7.65685 15 6 15C4.34315 15 3 13.6569 3 12C3 10.3431 4.34315 9 6 9C7.65685 9 9 10.3431 9 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M21 17.5C21 19.1569 19.6569 20.5 18 20.5C16.3431 20.5 15 19.1569 15 17.5C15 15.8431 16.3431 14.5 18 14.5C19.6569 14.5 21 15.8431 21 17.5Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M8.72852 10.7495L15.2285 7.75M8.72852 13.25L15.2285 16.2495\" stroke=\"currentColor\" stroke-width=\"1.5\"></path></svg>", "ArrowReloadHorizontalIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M20.5 5.5H9.5C5.78672 5.5 3 8.18503 3 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M3.5 18.5H14.5C18.2133 18.5 21 15.815 21 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M18.5 3C18.5 3 21 4.84122 21 5.50002C21 6.15882 18.5 8 18.5 8\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M5.49998 16C5.49998 16 3.00001 17.8412 3 18.5C2.99999 19.1588 5.5 21 5.5 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "PencilEdit01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15.2141 5.98239L16.6158 4.58063C17.39 3.80646 18.6452 3.80646 19.4194 4.58063C20.1935 5.3548 20.1935 6.60998 19.4194 7.38415L18.0176 8.78591M15.2141 5.98239L6.98023 14.2163C5.93493 15.2616 5.41226 15.7842 5.05637 16.4211C4.70047 17.058 4.3424 18.5619 4 20C5.43809 19.6576 6.94199 19.2995 7.57889 18.9436C8.21579 18.5877 8.73844 18.0651 9.78375 17.0198L18.0176 8.78591M15.2141 5.98239L18.0176 8.78591\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M11 20H17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "TextAlignLeftIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 3H21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M3 9H11\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M3 15H21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M3 21H11\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "TextAlignCenterIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 3H21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M8 9H16\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M3 15H21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M8 21H16\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "LanguageSquareIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M7 8.37931H11.5M17 8.37931H14.5M11.5 8.37931H14.5M11.5 8.37931V7M14.5 8.37931C13.9725 10.2656 12.8679 12.0487 11.6071 13.6158M8.39286 17C9.41205 16.0628 10.5631 14.9134 11.6071 13.6158M11.6071 13.6158C10.9643 12.8621 10.0643 11.6426 9.80714 11.0909M11.6071 13.6158L13.5357 15.6207\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M2.5 12C2.5 7.52166 2.5 5.28249 3.89124 3.89124C5.28249 2.5 7.52166 2.5 12 2.5C16.4783 2.5 18.7175 2.5 20.1088 3.89124C21.5 5.28249 21.5 7.52166 21.5 12C21.5 16.4783 21.5 18.7175 20.1088 20.1088C18.7175 21.5 16.4783 21.5 12 21.5C7.52166 21.5 5.28249 21.5 3.89124 20.1088C2.5 18.7175 2.5 16.4783 2.5 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path></svg>", "ArrowRight02Icon": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18.5 12L4.99997 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M13 18C13 18 19 13.5811 19 12C19 10.4188 13 6 13 6\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>"};
+const FONTS = [
+  { name: 'Fraunces', css: "'Fraunces', serif", w: 600, lic: 'free', kind: 'Serif', src: 'Google Fonts', roles: 'Headings, links', n: 48, weights: '600, 400 italic', size: '48 / 32px' },
+  { name: 'Inter', css: "'Inter', sans-serif", w: 400, lic: 'free', kind: 'Sans', src: 'Google Fonts', roles: 'Body, navigation', n: 312, weights: '400, 600', size: '17 / 15px' },
+  { name: 'Helvetica Neue LT Pro', css: "'Helvetica Neue', 'Arimo', sans-serif", w: 500, lic: 'paid', kind: 'Sans', src: 'Self-hosted', roles: 'Buttons, captions', n: 27, weights: '500', size: '14 / 12px' },
+  { name: 'Geist Mono', css: "'Geist Mono', monospace", w: 400, lic: 'free', kind: 'Mono', src: 'Self-hosted, on Google Fonts', roles: 'Code', n: 9, weights: '400', size: '14px' },
+  { name: 'Acme Mono', css: "'Geist Mono', monospace", w: 400, lic: 'unknown', kind: 'Mono', src: 'Self-hosted', roles: 'Captions', n: 4, weights: '400', size: '12px' },
+  { name: 'Lobster', css: "'Lobster', cursive", w: 400, lic: 'free', kind: 'Script', src: 'Google Fonts', roles: 'One heading', n: 1, weights: '400', size: '24px' },
+];
+const LIC = { free: 'Free', paid: 'Paid', unknown: 'Unknown' };
+const LANGS = { en: ['English', 'The quick brown fox jumps over the lazy dog'], yo: ['Yorùbá', 'Ẹ kú àárọ̀. Ọjọ́ dára, ẹ jẹ́ ká lọ'], ig: ['Igbo', 'Ụtụtụ ọma. Kedụ ka ị mere?'], ha: ['Hausa', 'Barka da safiya. Ina kwana?'], fr: ['French', 'Portez ce vieux whisky au juge blond qui fume'], de: ['German', 'Victor jagt zwölf Boxkämpfer quer über den Sylter Deich'], vi: ['Vietnamese', 'Đặng Thị Ngọc Hân viết tiếng Việt có dấu'], el: ['Greek', 'Γαζέες καὶ μυρτιὲς δὲν θὰ βρῶ πιὰ'], ru: ['Russian', 'Съешь же ещё этих мягких французских булок'], ar: ['Arabic', 'نص تجريبي باللغة العربية'] };
+const st = { saved: new Set(['Inter']), shown: null, text: '', mode: 'text', lang: 'en', size: 30, align: 'left', inspect: true };
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const sample = (f) => esc(st.text || (f.kind === 'Mono' ? 'const total = price * 1.2;' : f.kind === 'Script' ? 'A late arrival' : 'Good type rarely announces itself'));
+const plural = (n) => `${n.toLocaleString()} ${n === 1 ? 'element' : 'elements'}`;
+const lic = (f) => `<span class="lic ${f.lic}"><i></i>${LIC[f.lic]}</span>`;
+const acts = (f) => `
+  <button class="iconbtn" data-act="show" data-f="${f.name}" aria-pressed="${st.shown === f.name}" aria-label="Show ${f.name} on the page" title="Show on page">${ICON.Target02Icon}</button>
+  <button class="iconbtn" data-act="css" data-f="${f.name}" aria-label="Copy CSS for ${f.name}" title="Copy CSS">${ICON.SourceCodeIcon}</button>
+  <button class="iconbtn" data-act="save" data-f="${f.name}" aria-pressed="${st.saved.has(f.name)}" aria-label="${st.saved.has(f.name) ? 'Saved' : 'Save'} ${f.name}" title="${st.saved.has(f.name) ? 'Saved' : 'Save'}">${st.saved.has(f.name) ? ICON.Bookmark02Icon.replace(/<path /, '<path fill="currentColor" ') : ICON.Bookmark02Icon}</button>`;
+
+const variants = [
+  () => `<div class="v-spec">${FONTS.map((f) => `
+    <div class="card" role="button" tabindex="0" data-open="${f.name}" aria-label="${f.name}, ${LIC[f.lic]}. Open details">
+      <div class="top"><span class="name">${f.name}</span>${lic(f)}</div>
+      <div class="spec" style="font-family:${f.css};font-weight:${f.w}">${sample(f)}</div>
+      <div class="meta">${f.kind} · ${f.roles} · ${plural(f.n)}</div>
+      <div class="acts">${acts(f)}<span class="grow"></span><span class="open">Details ${ICON.ArrowRight01Icon}</span></div>
+    </div>`).join('')}</div>`,
+  () => `<div class="v-index" role="list">${FONTS.map((f) => `
+    <div class="row" role="listitem" tabindex="0" data-open="${f.name}" aria-label="${f.name}, ${LIC[f.lic]}. Open details">
+      <span class="nm" style="font-family:${f.css};font-weight:${f.w}">${f.name}</span>
+      <span class="right"><span class="acts">${acts(f)}</span>${lic(f)}<span class="chev">${ICON.ArrowRight01Icon}</span></span>
+      <span class="meta">${f.kind} · ${f.roles} · ${plural(f.n)}</span>
+      ${st.text ? `<span class="sample" style="font-family:${f.css};font-weight:${f.w}">${sample(f)}</span>` : ''}
+    </div>`).join('')}</div>`,
+  () => `<div class="v-proof">${FONTS.map((f, i) => `
+    <div class="card" role="button" tabindex="0" data-open="${f.name}" aria-label="${f.name}, ${LIC[f.lic]}. Open details">
+      <div class="head"><span class="idx">${String(i + 1).padStart(2, '0')}</span><span class="name">${f.name}</span>${lic(f)}</div>
+      <div class="body">
+        <dl><div><dt>Used for</dt><dd>${f.roles}</dd></div><div><dt>Size</dt><dd>${f.size}</dd></div><div><dt>Weights</dt><dd>${f.weights}</dd></div><div><dt>From</dt><dd>${f.src}</dd></div></dl>
+        <div class="aa" style="font-family:${f.css};font-weight:${f.w}">Aa<small>${sample(f)}</small></div>
+      </div>
+      <div class="links">
+        <button data-act="show" data-f="${f.name}" aria-pressed="${st.shown === f.name}">${st.shown === f.name ? 'Shown on page' : 'Show on page'}</button>
+        <button data-act="css" data-f="${f.name}">Copy CSS</button>
+        <button data-act="save" data-f="${f.name}" aria-pressed="${st.saved.has(f.name)}">${st.saved.has(f.name) ? 'Saved' : 'Save'}</button>
+        <span class="grow"></span><button class="open">Details</button>
+      </div>
+    </div>`).join('')}</div>`,
+  () => `<div class="v-plus">${FONTS.map((f, i) => {
+    const saved = st.saved.has(f.name), shown = st.shown === f.name;
+    return `
+    <div class="card" role="button" tabindex="0" data-open="${f.name}" aria-label="${f.name}, ${LIC[f.lic]}. Open details">
+      <div class="top"><span class="idx">${String(i + 1).padStart(2, '0')}</span><span class="name">${f.name}</span>${lic(f)}</div>
+      <div class="spec" style="font-family:${f.css};font-weight:${f.w}">${esc(st.text || 'The quick brown fox jumps over the lazy dog')}</div>
+      <div class="meta">${f.kind} · ${f.roles} · ${plural(f.n)}</div>
+      <div class="acts">
+        <button class="act" data-act="show" data-f="${f.name}" aria-pressed="${shown}">${ICON.Target02Icon}${shown ? 'Shown on page' : 'Show on page'}</button>
+        <button class="act" data-act="css" data-f="${f.name}">${ICON.SourceCodeIcon}Copy CSS</button>
+        <button class="act" data-act="save" data-f="${f.name}" aria-pressed="${saved}">${saved ? ICON.Bookmark02Icon.replace(/<path /, '<path fill="currentColor" ') : ICON.Bookmark02Icon}${saved ? 'Saved' : 'Save'}</button>
+        <span class="grow"></span><span class="open">Details ${ICON.ArrowRight01Icon}</span>
+      </div>
+    </div>`; }).join('')}</div>`,
+  () => `<div class="v-quiet">${FONTS.map((f, i) => {
+    const saved = st.saved.has(f.name), shown = st.shown === f.name;
+    return `
+    <div class="card" role="button" tabindex="0" data-open="${f.name}" aria-label="${f.name}, ${LIC[f.lic]}. Open details">
+      <div class="top"><span class="idx">${String(i + 1).padStart(2, '0')}</span><span class="name">${f.name}</span>${lic(f)}<span class="grow"></span>
+        <span class="tools">
+          <button class="iconbtn tip" data-act="show" data-f="${f.name}" aria-pressed="${shown}" aria-label="${shown ? 'Hide outlines' : 'Show on page'}" data-tip="${shown ? 'Hide outlines' : 'Show on page'}">${ICON.Target02Icon}</button>
+          <button class="iconbtn tip" data-copy aria-label="Copy CSS" data-tip="Copy CSS">${ICON.SourceCodeIcon}</button>
+          <button class="iconbtn tip" data-act="save" data-f="${f.name}" aria-pressed="${saved}" aria-label="${saved ? 'Saved, click to remove' : 'Save to library'}" data-tip="${saved ? 'Saved' : 'Save'}">${saved ? ICON.Bookmark02Icon.replace(/<path /, '<path fill="currentColor" ') : ICON.Bookmark02Icon}</button>
+        </span></div>
+      <div class="spec" style="font-family:${f.css};font-weight:${f.w}">${esc(st.text || 'The quick brown fox jumps over the lazy dog')}</div>
+      <div class="meta">${f.kind} · ${f.roles} · ${plural(f.n)}${ICON.ArrowRight01Icon}</div>
+    </div>`; }).join('')}</div>`,
+  () => `<div class="v-plus v-stack">${FONTS.map((f, i) => {
+    const saved = st.saved.has(f.name), shown = st.shown === f.name;
+    return `
+    <div class="card" role="button" tabindex="0" data-open="${f.name}" aria-label="${f.name}, ${LIC[f.lic]}. Open details">
+      <div class="top"><span class="idx">${String(i + 1).padStart(2, '0')}</span><span class="name">${f.name}</span>${lic(f)}</div>
+      <div class="spec" style="font-family:${f.css};font-weight:${f.w}">${esc(st.text || 'The quick brown fox jumps over the lazy dog')}</div>
+      <div class="meta">${f.kind} · ${f.roles} · ${plural(f.n)}</div>
+      <div class="acts">
+        <button class="act" data-act="show" data-f="${f.name}" aria-pressed="${shown}">${ICON.Target02Icon}${shown ? 'Shown' : 'Show'}</button>
+        <button class="act" data-act="css" data-f="${f.name}">${ICON.SourceCodeIcon}CSS</button>
+        <button class="act" data-act="save" data-f="${f.name}" aria-pressed="${saved}">${saved ? ICON.Bookmark02Icon.replace(/<path /, '<path fill="currentColor" ') : ICON.Bookmark02Icon}${saved ? 'Saved' : 'Save'}</button>
+        <span class="chev">${ICON.ArrowRight01Icon}</span>
+      </div>
+    </div>`; }).join('')}</div>`,
+  () => {
+    const specText = (f) => esc(st.text || LANGS[st.lang][1]);
+    const cards = FONTS.map((f, i) => {
+      const saved = st.saved.has(f.name), shown = st.shown === f.name;
+      return `
+      <div class="card" role="button" tabindex="0" data-open="${f.name}" aria-label="${f.name}, ${LIC[f.lic]}. Open details">
+        <div class="top"><span class="idx">${String(i + 1).padStart(2, '0')}</span><span class="name">${f.name}</span>${lic(f)}<span class="grow"></span>
+          <span class="tools">
+            <button class="iconbtn tip" data-act="show" data-f="${f.name}" aria-pressed="${shown}" aria-label="${shown ? 'Hide outlines' : 'Show on page'}" data-tip="${shown ? 'Hide outlines' : 'Show on page'}">${ICON.Target02Icon}</button>
+            <button class="iconbtn tip" data-copy aria-label="Copy CSS" data-tip="Copy CSS">${ICON.SourceCodeIcon}</button>
+            <button class="iconbtn tip" data-act="save" data-f="${f.name}" aria-pressed="${saved}" aria-label="${saved ? 'Saved, click to remove' : 'Save to library'}" data-tip="${saved ? 'Saved' : 'Save'}">${saved ? ICON.Bookmark02Icon.replace(/<path /, '<path fill="currentColor" ') : ICON.Bookmark02Icon}</button>
+          </span></div>
+        <div class="spec v7spec" data-f="${i}" style="font-family:${f.css};font-weight:${f.w};font-size:${st.size}px;">${specText(f)}</div>
+        <div class="meta"><span>${f.kind} · ${f.roles} · ${plural(f.n)}</span><button class="go" data-open="${f.name}" aria-label="Details for ${f.name}">Details${ICON.ArrowRight01Icon}</button></div>
+      </div>`; }).join('');
+    return `<div class="p2">
+      <div class="topbar">
+        <span class="brand">Finder+</span>
+        <nav class="tabs" aria-label="Sections"><button aria-current="page">Page</button><button>Image</button><button>System</button><button>Library</button></nav>
+        <button class="iconbtn tip" aria-label="Settings" data-tip="Settings">${ICON.Settings02Icon}</button>
+      </div>
+      <section class="box" aria-label="This page">
+        <div class="st1">
+          <span class="live" aria-hidden="true"></span>
+          <span class="who"><span>${st.inspect ? 'Inspecting · hover any text' : 'Paused · turn on to hover'}</span><b>thejournal.example</b></span>
+          <span class="count">6 fonts</span>
+          <button class="switch" role="switch" aria-checked="${st.inspect}" aria-label="Hover to inspect" data-p2="inspect"></button>
+        </div>
+        <div class="hair"></div>
+        <div class="st2">
+          <button class="btn primary" data-copy data-copy-note="Open the Font Finder Plus plugin in Figma and paste">${ICON.FigmaIcon}Copy for Figma</button>
+          <span class="grow"></span>
+          <button class="iconbtn tip" data-tip="Copy all CSS" aria-label="Copy all CSS" data-copy>${ICON.SourceCodeIcon}</button>
+          <button class="iconbtn tip" data-tip="Share card" aria-label="Share card" data-toast="Share card ready">${ICON.Share08Icon}</button>
+          <button class="iconbtn tip" data-tip="Scan again" aria-label="Scan again" data-toast="Read the page again: 6 fonts">${ICON.ArrowReloadHorizontalIcon}</button>
+        </div>
+      </section>
+      <section class="box" aria-label="Preview text">
+        <div class="t1">${ICON.PencilEdit01Icon}<input type="text" id="t2" placeholder="Type your own text" value="${esc(st.text)}" aria-label="Your text">
+          <div class="dd">
+            <button class="ddbtn" id="ddbtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="ddlist" aria-label="Language sample: ${LANGS[st.lang][0]}">${ICON.LanguageSquareIcon}<span>${LANGS[st.lang][0]}</span><span class="chev">${ICON.ArrowDown01Icon}</span></button>
+            <ul class="ddlist" id="ddlist" role="listbox" aria-label="Language sample" hidden>${Object.entries(LANGS).map(([k, v]) => `<li role="option" tabindex="-1" data-lang="${k}" aria-selected="${st.lang === k}">${v[0]}<span class="tick">${ICON.Tick02Small}</span></li>`).join('')}</ul>
+          </div>
+          <input type="range" id="t2size" title="Size: ${st.size}px" min="14" max="64" value="${st.size}" aria-label="Preview size"></div>
+      </section>
+      <section class="box mf" aria-label="Make it free">
+        <h2>Make it free</h2>
+        <p class="info">2 fonts here are paid or have an unknown licence. Each has a free match from Google Fonts.</p>
+        <ul class="mflist">
+          <li><span class="from">Helvetica Neue LT Pro</span><span class="to" aria-label="to">${ICON.ArrowRight02Icon}</span><span class="dest"><b>Arimo</b><span class="pct">92%</span></span></li>
+          <li><span class="from">Acme Mono</span><span class="to" aria-label="to">${ICON.ArrowRight02Icon}</span><span class="dest"><b>Geist Mono</b><span class="pct">88%</span></span></li>
+        </ul>
+        <button class="btn primary" data-toast="Showing Arimo and Geist Mono instead. Reload the page to undo.">Swap all on the page</button>
+      </section>
+      <button class="notice" data-toast="Opens the list: Söhne Test (Arial shows instead), Nonexistent Serif (Liberation Serif shows instead)">${ICON.Alert02Icon}<span class="grow"><b>2 fonts did not load</b><span class="sub">Other fonts show instead</span></span>${ICON.ArrowRight01Icon}</button>
+      <div class="cards v-quiet">${cards}</div>
+    </div>`;
+  },
+];
+
+const TICK = ICON.Tick02Icon;
+// Copy buttons say so: a tick and "Copied" for a moment, then back.
+function copied(btn) {
+  if (btn.dataset.busy) return;
+  btn.dataset.busy = '1';
+  const html = btn.innerHTML, tip = btn.dataset.tip, label = btn.getAttribute('aria-label');
+  const iconOnly = btn.classList.contains('iconbtn');
+  btn.innerHTML = TICK + (iconOnly ? '' : '<span>Copied</span>');
+  if (tip) btn.dataset.tip = 'Copied';
+  if (label) btn.setAttribute('aria-label', 'Copied');
+  btn.classList.add('copied');
+  setTimeout(() => { btn.innerHTML = html; if (tip) btn.dataset.tip = tip; if (label) btn.setAttribute('aria-label', label); btn.classList.remove('copied'); delete btn.dataset.busy; }, 1600);
+}
+document.addEventListener('click', (e) => {
+  const c = e.target.closest('[data-copy]');
+  if (c) { e.preventDefault(); e.stopImmediatePropagation(); copied(c); if (c.dataset.copyNote) toast(c.dataset.copyNote); }
+}, true);
+
+let toastTimer;
+function toast(m) {
+  document.querySelector('.toast')?.remove();
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.setAttribute('role', 'status');
+  t.textContent = m;
+  document.body.appendChild(t);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.remove(), 2200);
+}
+function rerender() { stage.innerHTML = variants[current](); }
+
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('[data-act]');
+  if (a) {
+    e.stopPropagation();
+    const f = a.dataset.f;
+    if (a.dataset.act === 'save') { st.saved.has(f) ? st.saved.delete(f) : st.saved.add(f); toast(st.saved.has(f) ? `Saved ${f} to your library` : `Removed ${f} from your library`); }
+    if (a.dataset.act === 'css') toast(`Copied CSS for ${f}`);
+    if (a.dataset.act === 'show') { st.shown = st.shown === f ? null : f; toast(st.shown ? `Outlined ${f === 'Lobster' ? '1 element' : 'every element'} in ${f}` : 'Outlines removed'); }
+    rerender();
+    return;
+  }
+  const o = e.target.closest('[data-open]');
+  if (o) { toast(`Opens Details for ${o.dataset.open}`); return; }
+  const t = e.target.closest('[data-toast]');
+  if (t) { toast(t.dataset.toast); closeMenu(); return; }
+  if (e.target.closest('#more')) { const m = document.getElementById('menu'); const open = m.hidden; m.hidden = !open; document.getElementById('more').setAttribute('aria-expanded', String(open)); if (open) m.querySelector('button').focus(); return; }
+  if (!e.target.closest('#menu')) closeMenu();
+  if (e.target.closest('#sw')) { const s = document.getElementById('sw'); s.setAttribute('aria-checked', String(s.getAttribute('aria-checked') !== 'true')); }
+  if (e.target.closest('#aa')) { const b = document.getElementById('aa'); const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(on)); document.getElementById('tester').hidden = !on; if (on) document.getElementById('tt').focus(); else { st.text = ''; document.getElementById('tt').value = ''; rerender(); } }
+  if (e.target.closest('#ttx')) { st.text = ''; document.getElementById('tt').value = ''; rerender(); }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeMenu();
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-open]')) { e.preventDefault(); toast(`Opens Details for ${e.target.dataset.open}`); }
+});
+document.addEventListener('click', (e) => {
+  const m = e.target.closest('[data-mode]');
+  if (m) { st.mode = m.dataset.mode; rerender(); return; }
+  const a = e.target.closest('[data-align]');
+  if (a) { st.align = a.dataset.align; rerender(); return; }
+  if (e.target.closest('[data-p2="inspect"]')) { st.inspect = !st.inspect; rerender(); }
+});
+document.addEventListener('input', (e) => {
+  if (e.target.id === 't2') {
+    st.text = e.target.value;
+    document.querySelectorAll('.v7spec').forEach((n) => (n.textContent = st.text || LANGS[st.lang][1]));
+    
+  }
+  if (e.target.id === 't2lang') { st.lang = e.target.value; st.text = ''; const ti = document.getElementById('t2'); if (ti) ti.value = ''; document.querySelectorAll('.v7spec').forEach((n) => (n.textContent = LANGS[st.lang][1])); }
+  if (e.target.id === 't2size') {
+    st.size = Number(e.target.value);
+    e.target.title = 'Size: ' + st.size + 'px';
+    document.querySelectorAll('.v7spec').forEach((n) => (n.style.fontSize = st.size + 'px'));
+  }
+});
+function ddOpen(open) {
+  const b = document.getElementById('ddbtn'), l = document.getElementById('ddlist');
+  if (!b || !l) return;
+  b.setAttribute('aria-expanded', String(open));
+  l.hidden = !open;
+  if (open) (l.querySelector('[aria-selected="true"]') || l.firstElementChild).focus();
+}
+function ddPick(k) {
+  st.lang = k; st.text = '';
+  const ti = document.getElementById('t2'); if (ti) ti.value = '';
+  document.querySelectorAll('.v7spec').forEach((n) => (n.textContent = LANGS[k][1]));
+  const b = document.getElementById('ddbtn');
+  b.querySelector('span').textContent = LANGS[k][0];
+  b.setAttribute('aria-label', 'Language sample: ' + LANGS[k][0]);
+  document.querySelectorAll('#ddlist li').forEach((li) => li.setAttribute('aria-selected', String(li.dataset.lang === k)));
+  ddOpen(false); b.focus();
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#ddbtn')) { e.stopPropagation(); ddOpen(document.getElementById('ddlist').hidden); return; }
+  const li = e.target.closest('#ddlist li');
+  if (li) { e.stopPropagation(); ddPick(li.dataset.lang); return; }
+  if (!e.target.closest('.dd')) ddOpen(false);
+}, true);
+document.addEventListener('keydown', (e) => {
+  const l = document.getElementById('ddlist');
+  if (!l) return;
+  if (e.target.id === 'ddbtn' && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); ddOpen(true); return; }
+  if (!l.hidden && e.target.closest('#ddlist')) {
+    const items = [...l.children], i = items.indexOf(e.target);
+    if (e.key === 'ArrowDown') { e.preventDefault(); items[Math.min(items.length - 1, i + 1)].focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); items[Math.max(0, i - 1)].focus(); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ddPick(e.target.dataset.lang); }
+    else if (e.key === 'Escape' || e.key === 'Tab') { ddOpen(false); document.getElementById('ddbtn').focus(); }
+    e.stopPropagation();
+  }
+}, true);
+function closeMenu() { const m = document.getElementById('menu'); if (!m.hidden) { m.hidden = true; document.getElementById('more').setAttribute('aria-expanded', 'false'); } }
+document.getElementById('tt').addEventListener('input', (e) => { st.text = e.target.value; rerender(); });
+
+// Picker wiring (verbatim behaviour)
+const stage = document.getElementById('stage');
+const picker = document.querySelector('.proto-picker');
+const highlight = picker.querySelector('.proto-picker-highlight');
+const items = [...picker.querySelectorAll('.proto-picker-item:not(.proto-picker-replay)')];
+const replay = picker.querySelector('.proto-picker-replay');
+let current = 0;
+function moveHighlight() { const el = items[current]; highlight.style.width = el.offsetWidth + 'px'; highlight.style.transform = `translateX(${el.offsetLeft}px)`; }
+function mount(i) { stage.innerHTML = ''; requestAnimationFrame(() => { stage.innerHTML = variants[i](); }); }
+function setActive(i) {
+  if (i < 0 || i >= variants.length) return;
+  current = i;
+  items.forEach((el, j) => { el.toggleAttribute('data-active', j === i); if (j === i) el.setAttribute('aria-current', 'true'); else el.removeAttribute('aria-current'); });
+  moveHighlight();
+  document.body.toggleAttribute('data-full', i === variants.length - 1);
+  try { const url = new URL(location); url.searchParams.set('v', i + 1); history.replaceState(null, '', url); } catch (err) {}
+  mount(i);
+}
+items.forEach((el, i) => el.addEventListener('click', () => setActive(i)));
+replay?.addEventListener('click', () => mount(current));
+window.addEventListener('resize', moveHighlight);
+document.addEventListener('keydown', (e) => {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const num = parseInt(e.key, 10);
+  if (num >= 1 && num <= variants.length) setActive(num - 1);
+  else if (e.key === 'ArrowRight') setActive((current + 1) % variants.length);
+  else if (e.key === 'ArrowLeft') setActive((current - 1 + variants.length) % variants.length);
+  else if (e.key === 'r' || e.key === 'R') mount(current);
+});
+let requested = 7;
+try { requested = parseInt(new URLSearchParams(location.search).get('v'), 10) || requested; } catch (err) {}
+setActive(requested >= 1 && requested <= variants.length ? requested - 1 : 0);
+requestAnimationFrame(() => requestAnimationFrame(() => picker.setAttribute('data-ready', '')));
+</script>
+
+<script>
+(() => {
+  const CUR = "page";
+  const TABS = [['page', 'Page', 'index.html'], ['image', 'Image', 'image.html'], ['system', 'System', 'system.html'], ['library', 'Library', 'library.html']];
+  const GEAR = "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15.5 12C15.5 13.933 13.933 15.5 12 15.5C10.067 15.5 8.5 13.933 8.5 12C8.5 10.067 10.067 8.5 12 8.5C13.933 8.5 15.5 10.067 15.5 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M21.011 14.0965C21.5329 13.9558 21.7939 13.8854 21.8969 13.7508C22 13.6163 22 13.3998 22 12.9669V11.0332C22 10.6003 22 10.3838 21.8969 10.2493C21.7938 10.1147 21.5329 10.0443 21.011 9.90358C19.0606 9.37759 17.8399 7.33851 18.3433 5.40087C18.4817 4.86799 18.5509 4.60156 18.4848 4.44529C18.4187 4.28902 18.2291 4.18134 17.8497 3.96596L16.125 2.98673C15.7528 2.77539 15.5667 2.66972 15.3997 2.69222C15.2326 2.71472 15.0442 2.90273 14.6672 3.27873C13.208 4.73448 10.7936 4.73442 9.33434 3.27864C8.95743 2.90263 8.76898 2.71463 8.60193 2.69212C8.43489 2.66962 8.24877 2.77529 7.87653 2.98663L6.15184 3.96587C5.77253 4.18123 5.58287 4.28891 5.51678 4.44515C5.45068 4.6014 5.51987 4.86787 5.65825 5.4008C6.16137 7.3385 4.93972 9.37763 2.98902 9.9036C2.46712 10.0443 2.20617 10.1147 2.10308 10.2492C2 10.3838 2 10.6003 2 11.0332V12.9669C2 13.3998 2 13.6163 2.10308 13.7508C2.20615 13.8854 2.46711 13.9558 2.98902 14.0965C4.9394 14.6225 6.16008 16.6616 5.65672 18.5992C5.51829 19.1321 5.44907 19.3985 5.51516 19.5548C5.58126 19.7111 5.77092 19.8188 6.15025 20.0341L7.87495 21.0134C8.24721 21.2247 8.43334 21.3304 8.6004 21.3079C8.76746 21.2854 8.95588 21.0973 9.33271 20.7213C10.7927 19.2644 13.2088 19.2643 14.6689 20.7212C15.0457 21.0973 15.2341 21.2853 15.4012 21.3078C15.5682 21.3303 15.7544 21.2246 16.1266 21.0133L17.8513 20.034C18.2307 19.8187 18.4204 19.711 18.4864 19.5547C18.5525 19.3984 18.4833 19.132 18.3448 18.5991C17.8412 16.6616 19.0609 14.6226 21.011 14.0965Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>";
+  const patch = () => {
+    document.querySelectorAll('.topbar:not([data-app])').forEach((tb) => {
+      tb.dataset.app = '1';
+      tb.innerHTML = '<nav class="tabs" aria-label="Sections">' + TABS.map(([k, l, h]) => '<a href="' + h + '"' + (k === CUR ? ' aria-current="page"' : '') + '>' + l + '</a>').join('') + '</nav><a class="setbtn" href="settings.html" aria-label="Settings">' + GEAR + '</a>';
+    });
+    const sub = document.querySelector('.subtop'); const tb = document.querySelector('.topbar');
+    if (tb && CUR === 'library') tb.hidden = !!sub;
+  };
+  new MutationObserver(patch).observe(document.documentElement, { childList: true, subtree: true });
+  patch();
+  const go = (h) => { location.href = h; };
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    const href = t.closest('[data-href]'); if (href) { e.preventDefault(); e.stopImmediatePropagation(); return go(href.dataset.href); }
+    if (t.closest('[data-goback]')) { e.preventDefault(); e.stopImmediatePropagation(); return history.length > 1 ? history.back() : go('index.html'); }
+    if (CUR === 'page' && t.closest('[data-open]')) { e.preventDefault(); e.stopImmediatePropagation(); return go('details.html'); }
+    if (CUR === 'details' && t.closest('[data-toast="Back to the Page tab"]')) { e.preventDefault(); e.stopImmediatePropagation(); return go('index.html'); }
+    const dt = t.closest('[data-toast]');
+    if (dt && /^Opens Details/.test(dt.dataset.toast)) { e.preventDefault(); e.stopImmediatePropagation(); return go('details.html'); }
+    if (CUR === 'library' && t.closest('[data-open]') && !t.closest('button')) { e.preventDefault(); e.stopImmediatePropagation(); return go('details.html'); }
+  }, true);
+})();
+</script>

@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Font Finder Plus</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Inter:wght@400;500&family=Fraunces:opsz,wght@9..144,400&family=Instrument+Serif&family=Space+Grotesk:wght@400&family=Arimo&family=Playfair+Display&family=DM+Mono&family=Lobster&family=Oswald:wght@500&display=swap">
+<style>
+:root {
+  --desk: #e5e5e5; --bg: #f2f2f2; --sheet: #ffffff; --ink: #171717; --ink-2: #525252; --ink-3: #737373;
+  --line: rgba(0,0,0,0.08); --field: #f2f2f2; --hover: #e5e5e5; --field-2: #e5e5e5;
+  --free: #0b7a37; --free-dot: #19a35a; --paid: #8a5a00; --paid-dot: #e39b12;
+  --ui: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, Menlo, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --r-card: 18px; --r-ctl: 11px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --desk: #050505; --bg: #0d0d0d; --sheet: #171717; --ink: #f2f2f2; --ink-2: #a3a3a3; --ink-3: #8a8a8a;
+  --line: rgba(255,255,255,0.08); --field: #262626; --hover: #333333; --field-2: #333333;
+  --free: #6be29c; --free-dot: #3ad47a; --paid: #f2be6b; --paid-dot: #e39b12; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --desk: #050505; --bg: #0d0d0d; --sheet: #171717; --ink: #f2f2f2; --ink-2: #a3a3a3; --ink-3: #8a8a8a;
+  --line: rgba(255,255,255,0.08); --field: #262626; --hover: #333333; --field-2: #333333;
+  --free: #6be29c; --free-dot: #3ad47a; --paid: #f2be6b; --paid-dot: #e39b12; color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--desk); color: var(--ink); font: 13px/1.45 var(--ui); -webkit-font-smoothing: antialiased; }
+.desk { min-height: 100vh; display: flex; justify-content: center; padding-left: max(0px, env(safe-area-inset-left, 0px)); padding-right: max(0px, env(safe-area-inset-right, 0px)); }
+.panel { width: 400px; max-width: 100%; background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; gap: 8px; padding: 12px 12px 120px; }
+button { font: inherit; color: inherit; }
+h2 { margin: 0; font: 500 14px/1.3 var(--ui); }
+p { margin: 0; }
+.box { background: var(--sheet); border-radius: var(--r-card); padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+.faint { color: var(--ink-3); }
+.topbar { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.brand { font-weight: 600; font-size: 13px; padding: 0 4px; }
+.tabs { display: flex; gap: 2px; padding: 3px; background: var(--sheet); border-radius: 13px; flex: 1; }
+.tabs button { flex: 1; height: 28px; border: 0; background: transparent; border-radius: 10px; color: var(--ink-2); cursor: pointer; }
+.tabs button[aria-current] { background: var(--field); color: var(--ink); }
+.iconbtn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: var(--r-ctl); background: transparent; color: var(--ink-3); cursor: pointer; flex: none; transition: background-color 150ms ease, color 150ms ease, transform 160ms var(--ease-out); }
+@media (hover: hover) and (pointer: fine) { .iconbtn:hover { background: var(--hover); color: var(--ink); } }
+.iconbtn[aria-pressed="true"] { color: var(--ink); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: var(--r-ctl); border: 0; background: var(--field); cursor: pointer; font-weight: 500; color: var(--ink); white-space: nowrap; text-decoration: none; transition: background-color 150ms ease, opacity 150ms ease, transform 160ms var(--ease-out); }
+.btn.primary { background: var(--ink); color: var(--sheet); }
+.btn.sm { height: 30px; padding: 0 10px; font-size: 12.5px; }
+@media (hover: hover) and (pointer: fine) { .btn:not(.primary):hover { background: var(--field-2); } .btn.primary:hover { opacity: 0.88; } }
+.on-grey .btn:not(.primary) { background: var(--sheet); }
+@media (hover: hover) and (pointer: fine) { .on-grey .btn:not(.primary):hover { background: var(--hover); } }
+.iconbtn:active, .btn:active { transform: scale(0.97); }
+:is(.iconbtn, .btn, .tabs button, .row, .link, .chip):focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.link { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; padding: 0; color: var(--ink-2); font-weight: 500; font-size: 12.5px; cursor: pointer; text-decoration: none; }
+.link:hover { color: var(--ink); }
+.lic { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; flex: none; }
+.lic i { width: 6px; height: 6px; border-radius: 50%; }
+.lic.free { color: var(--free); } .lic.free i { background: var(--free-dot); }
+.lic.paid { color: var(--paid); } .lic.paid i { background: var(--paid-dot); }
+.lic.unknown { color: var(--ink-3); } .lic.unknown i { box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+.tip { position: relative; }
+.tip::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translate(-50%, 2px); background: var(--ink); color: var(--sheet); font: 500 11.5px/1 var(--ui); padding: 6px 8px; border-radius: 9px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 120ms ease-out, transform 160ms var(--ease-out); z-index: 4; }
+.tip:hover::after, .tip:focus-visible::after { opacity: 1; transform: translate(-50%, 0); transition-delay: 250ms; }
+.toast { position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%); background: var(--ink); color: var(--sheet); padding: 8px 14px; border-radius: 12px; font-size: 12.5px; z-index: 20; animation: toastin 200ms var(--ease-out); white-space: nowrap; }
+@keyframes toastin { from { opacity: 0; transform: translate(-50%, 8px); } }
+@keyframes fadein { from { opacity: 0; transform: translateY(4px); } }
+
+
+/* Library. Same tokens as Page v2, Details, Image and System. Inner boxes use the lighter --inset grey. */
+:root { --inset: #f8f8f8; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --inset: #212121; } }
+:root[data-theme="dark"] { --inset: #212121; }
+.sechead { display: flex; align-items: baseline; gap: 8px; }
+.sechead .count { color: var(--ink-3); font-size: 12px; }
+.sechead .grow { flex: 1; }
+.sub { font-size: 12.5px; color: var(--ink-3); }
+.chev { display: inline-flex; color: var(--ink-3); transition: transform 200ms var(--ease-out); }
+
+/* Search row */
+.searchbar { display: flex; align-items: center; gap: 6px; background: var(--sheet); border-radius: 16px; padding: 6px 6px 6px 14px; }
+.searchbar .s { color: var(--ink-3); flex: none; display: inline-flex; align-items: center; }
+.searchbar input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; color: var(--ink); height: 30px; outline: none; padding-left: 4px; }
+.searchbar input::placeholder { color: var(--ink-3); }
+.searchbar .iconbtn { position: relative; }
+.searchbar .iconbtn[aria-expanded="true"], .searchbar .iconbtn.on { background: var(--field); color: var(--ink); }
+.dotbadge { position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+.seg2 { display: flex; padding: 2px; background: var(--field); border-radius: 11px; }
+.seg2 button { width: 28px; height: 26px; border: 0; border-radius: 9px; background: transparent; color: var(--ink-3); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.seg2 button[aria-pressed="true"] { background: var(--sheet); color: var(--ink); }
+
+/* Filters, opened from the filter button */
+.filters { gap: 14px; animation: fadein 200ms var(--ease-out); }
+.fgroup { display: flex; flex-direction: column; gap: 8px; }
+.fgroup > span { font-size: 12px; color: var(--ink-3); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 10px; border: 0; background: var(--field); cursor: pointer; font-size: 12.5px; color: var(--ink-2); white-space: nowrap; transition: background-color 150ms ease, transform 160ms var(--ease-out); flex: none; }
+@media (hover: hover) and (pointer: fine) { .chip:not([aria-pressed="true"]):hover { background: var(--field-2); } }
+.chip:active { transform: scale(0.97); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
+.chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.chip .n { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.chip[aria-pressed="true"] .n { color: var(--sheet); opacity: 0.6; }
+.chip .sw { width: 8px; height: 8px; border-radius: 3px; flex: none; }
+.ffoot { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--line); }
+
+/* Collections: one line that scrolls sideways, never a wall of chips */
+.colrow { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px; mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 24px), transparent); }
+.colrow::-webkit-scrollbar { display: none; }
+.colrow .chip { background: var(--sheet); }
+.colrow .chip[aria-pressed="true"] { background: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .colrow .chip:not([aria-pressed="true"]):hover { background: var(--hover); } }
+.colbar { display: flex; align-items: center; gap: 12px; padding: 12px 14px 12px 18px; }
+.colbar b { font-weight: 500; flex: 1; }
+
+/* The tester, as approved on Page v2 */
+.tester { display: flex; align-items: center; gap: 10px; background: var(--sheet); border-radius: 16px; padding: 6px 14px; }
+.tester svg { color: var(--ink-3); flex: none; }
+.tester input[type=text] { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; color: var(--ink); height: 32px; outline: none; }
+.tester input[type=text]::placeholder { color: var(--ink-3); }
+.tester .px { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; width: 34px; text-align: right; }
+.tester input[type=range] { width: 84px; accent-color: var(--ink); }
+
+/* Font cards */
+.grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px; }
+.fcard { background: var(--sheet); border-radius: var(--r-card); padding: 8px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; min-width: 0; position: relative; }
+.fcard .spec { background: var(--inset); border-radius: 12px; height: 96px; display: flex; align-items: center; padding: 0 12px; overflow: hidden; color: var(--ink); line-height: 1.05; overflow-wrap: anywhere; }
+.fcard .spec span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fcard .meta { display: flex; flex-direction: column; gap: 3px; padding: 0 6px 6px; min-width: 0; }
+.fcard .nm { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.fcard .nm b { font-weight: 500; flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fcard .sm2 { font-size: 12px; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
+.fcard .more { position: absolute; top: 12px; right: 12px; background: var(--sheet); opacity: 0; transition: opacity 150ms ease; }
+@media (hover: hover) and (pointer: fine) { .fcard:hover .more, .fcard:focus-within .more, .lrow:hover .more, .lrow:focus-within .more { opacity: 1; } }
+@media (hover: none) { .fcard .more { opacity: 1; } }
+.list { display: flex; flex-direction: column; gap: 8px; }
+.lrow { background: var(--sheet); border-radius: var(--r-card); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; position: relative; }
+.lrow .nm { display: flex; align-items: center; gap: 8px; }
+.lrow .nm b { font-weight: 500; }
+.lrow .nm .s { font-size: 12px; color: var(--ink-3); flex: 1; }
+.lrow .spec { line-height: 1.15; overflow-wrap: anywhere; color: var(--ink); }
+.lrow .more { opacity: 0; transition: opacity 150ms ease; }
+.pin { position: absolute; z-index: 6; }
+.menu { position: absolute; right: 0; top: calc(100% + 4px); min-width: 210px; padding: 4px; background: var(--sheet); border-radius: 14px; box-shadow: 0 0 0 1px var(--line), 0 10px 28px rgba(0,0,0,0.14); z-index: 10; transform-origin: top right; animation: ddin 160ms var(--ease-out); }
+@keyframes ddin { from { opacity: 0; transform: scale(0.97); } }
+.menu button, .menu label { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; cursor: pointer; text-align: left; font-size: 13px; color: var(--ink); }
+.menu button:hover, .menu label:hover { background: var(--field); }
+.menu svg { color: var(--ink-2); flex: none; }
+.menu .sep { height: 1px; background: var(--line); margin: 4px 6px; }
+.menu .mlbl { font-size: 11.5px; color: var(--ink-3); padding: 6px 10px 2px; }
+.menu .tick { margin-left: auto; color: var(--ink); }
+.anchor { position: relative; }
+
+/* Shortcuts to Boards and Fonts I've seen */
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tile { all: unset; box-sizing: border-box; background: var(--sheet); border-radius: var(--r-card); padding: 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: transform 160ms var(--ease-out); }
+.tile:active { transform: scale(0.98); }
+.tile:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.tile .ic { width: 32px; height: 32px; border-radius: 11px; background: var(--inset); display: inline-flex; align-items: center; justify-content: center; color: var(--ink-2); flex: none; }
+.tile .t { display: flex; flex-direction: column; min-width: 0; }
+.tile .t b { font-weight: 500; }
+.tile .t span { font-size: 12px; color: var(--ink-3); }
+
+/* Version 2: Folders. Collections are the home; fonts live inside them. */
+.rows { display: flex; flex-direction: column; }
+.go { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 36px 1fr auto 14px; gap: 12px; align-items: center; padding: 12px 18px; cursor: pointer; transition: background-color 150ms ease; }
+.go + .go { border-top: 1px solid var(--line); }
+@media (hover: hover) and (pointer: fine) { .go:hover { background: var(--inset); } }
+.go:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.go .ic { width: 36px; height: 36px; border-radius: 12px; background: var(--inset); display: inline-flex; align-items: center; justify-content: center; color: var(--ink-2); overflow: hidden; font-size: 17px; }
+.go .t { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.go .t b { font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.go .t span { font-size: 12px; color: var(--ink-3); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.go .v { font-size: 12.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.listbox { padding: 6px 0; gap: 0; overflow: hidden; }
+.listbox .sechead { padding: 10px 18px 6px; }
+.back { all: unset; display: inline-flex; align-items: center; gap: 4px; color: var(--ink-2); font-weight: 500; cursor: pointer; padding: 4px 6px; border-radius: 10px; align-self: flex-start; }
+.back:hover { color: var(--ink); }
+.back:focus-visible { outline: 2px solid var(--ink); }
+.pagehead { display: flex; align-items: center; gap: 8px; }
+.pagehead .grow { flex: 1; }
+
+/* Version 3: Sections. Saved, Seen and Boards side by side as one control. */
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 3px; background: var(--sheet); border-radius: 13px; }
+.seg button { height: 30px; border: 0; border-radius: 10px; background: transparent; color: var(--ink-2); cursor: pointer; font-size: 12.5px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.seg button .n { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.seg button[aria-current] { background: var(--field); color: var(--ink); }
+.seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+/* Fonts I've seen */
+.recbar { display: flex; align-items: center; gap: 10px; padding: 12px 14px 12px 18px; }
+.recdot { width: 8px; height: 8px; border-radius: 50%; background: var(--free-dot); flex: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--free-dot) 20%, transparent); }
+.recdot.off { background: var(--ink-3); box-shadow: none; }
+.recbar span { flex: 1; font-size: 12.5px; color: var(--ink-2); }
+.seen { display: flex; flex-direction: column; }
+.seenrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 14px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.seenrow:first-child { border-top: 0; padding-top: 4px; }
+.seenrow .n { font-size: 19px; line-height: 1.2; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.seenrow .w { font-size: 12px; color: var(--ink-3); grid-column: 1 / -1; }
+.seenrow .w a { color: var(--ink-2); text-decoration: none; }
+.sites { display: flex; flex-direction: column; }
+.site { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 12.5px; }
+.site:first-child { border-top: 0; }
+.site b { font-weight: 500; flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.site span { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.site.paused b { color: var(--ink-3); }
+.danger { color: #b42318; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .danger { color: #ff8a80; } }
+
+/* Boards */
+.boards { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px; }
+.board { all: unset; box-sizing: border-box; min-width: 0; background: var(--sheet); border-radius: var(--r-card); padding: 8px; display: flex; flex-direction: column; gap: 10px; cursor: pointer; }
+.board:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.board .thumb { border-radius: 12px; height: 104px; padding: 12px; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; }
+.board .thumb.light { background: var(--inset); color: var(--ink); }
+.board .thumb.dark { background: #171717; color: #f2f2f2; box-shadow: inset 0 0 0 1px var(--line); }
+.board .thumb span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; }
+.board .meta { padding: 0 6px 6px; display: flex; flex-direction: column; gap: 2px; }
+.board .meta b { font-weight: 500; }
+.board .meta span { font-size: 12px; color: var(--ink-3); }
+.board.new .thumb { background: transparent; border: 1.5px dashed var(--field-2); align-items: center; color: var(--ink-2); gap: 6px; }
+
+.empty { align-items: flex-start; }
+.empty p { color: var(--ink-2); }
+
+/* Sub pages: the back button sits in its own container, as in the old design */
+.subtop { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.backbtn { width: 40px; height: 40px; border-radius: 14px; border: 0; background: var(--sheet); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; transition: background-color 150ms ease, transform 160ms var(--ease-out); }
+@media (hover: hover) and (pointer: fine) { .backbtn:hover { background: var(--hover); } }
+.backbtn:active { transform: scale(0.97); }
+.backbtn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.crumb { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-size: 13px; overflow: hidden; white-space: nowrap; }
+.crumb span { color: var(--ink-3); flex: none; }
+.crumb .sl { color: var(--field-2); }
+.crumb b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+.newcol { color: var(--ink) !important; }
+
+/* Board image: what the PNG looks like */
+.bimg { border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; position: relative; min-height: 120px; }
+.bimg.light { background: #ffffff; color: #171717; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
+.bimg.dark { background: #141414; color: #f2f2f2; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
+.bline { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bline .bt { font-size: 28px; line-height: 1.1; overflow-wrap: anywhere; }
+.bline .bn { font-size: 11px; opacity: 0.55; font-family: var(--ui); }
+.bmark { font-size: 10.5px; opacity: 0.45; align-self: flex-end; }
+.bimg.small { padding: 12px; gap: 6px; height: 112px; min-height: 0; overflow: hidden; }
+.bimg.small .bt { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.bimg.small .bn { display: none; }
+.bempty { align-items: center; justify-content: center; font-size: 12.5px; opacity: 0.6; }
+.bempty span { opacity: 0.8; }
+.board .bimg.light { background: var(--inset); box-shadow: none; }
+.fld { display: flex; flex-direction: column; gap: 6px; }
+.fld > span { font-size: 12px; color: var(--ink-3); }
+.fld input { height: 36px; border: 0; border-radius: var(--r-ctl); background: var(--inset); padding: 0 12px; font: inherit; color: var(--ink); outline: none; box-shadow: inset 0 0 0 1px var(--line); }
+.fld input:focus { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.seg3 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.seg3 button { height: 36px; border: 0; border-radius: var(--r-ctl); background: var(--inset); box-shadow: inset 0 0 0 1px var(--line); display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; color: var(--ink-2); font-weight: 500; }
+.seg3 button[aria-checked="true"] { box-shadow: inset 0 0 0 1.5px var(--ink); color: var(--ink); background: var(--sheet); }
+.sw2 { width: 14px; height: 14px; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(127,127,127,0.4); }
+.sw2.light { background: #fff; } .sw2.dark { background: #141414; }
+.inv2 { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; border-top: 1px solid var(--line); }
+.bfonts { display: flex; flex-direction: column; }
+.bfont { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--line); }
+.bfont:first-child { border-top: 0; padding-top: 0; }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.switch { width: 34px; height: 20px; border-radius: 12px; background: var(--field-2); border: 0; position: relative; cursor: pointer; flex: none; transition: background-color 150ms ease; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--sheet); box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 160ms var(--ease-out); }
+.switch[aria-checked="true"] { background: var(--ink); }
+.switch[aria-checked="true"]::after { transform: translateX(14px); }
+.switch:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.bimg.small { justify-content: center; }
+
+/* Anything that deletes is red, icon included */
+.danger, .menu .danger, .menu .danger svg, .iconbtn.danger, .btn.danger { color: #b42318; }
+.danger svg { color: currentColor; }
+@media (hover: hover) and (pointer: fine) { .iconbtn.danger:hover { color: #b42318; background: #fdecea; } }
+.btn.dangerfill { background: #d92d20; color: #fff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) :is(.danger, .menu .danger, .menu .danger svg, .iconbtn.danger, .btn.danger) { color: #ff8a80; } :root:not([data-theme="light"]) .iconbtn.danger:hover { background: rgba(240,96,90,0.16); color: #ff8a80; } }
+.ptag { font-size: 11px; font-weight: 500; padding: 1px 7px; border-radius: 99px; background: var(--field); color: var(--ink-2) !important; }
+
+/* Heading then its text: always 8px apart */
+.box > .sechead + .sub, .box > .sechead + p { margin-top: -8px; }
+.fhead { display: flex; align-items: center; justify-content: space-between; margin: -6px -6px -4px 0; }
+.link:disabled { opacity: 0.4; cursor: default; }
+.activef { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.activef .chip { background: var(--ink); color: var(--sheet); gap: 4px; padding-right: 8px; }
+.activef .chip svg { width: 14px; height: 14px; opacity: 0.7; }
+.activef .link { margin-left: 4px; }
+.colbar b { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.colbar b .n { font-weight: 400; font-size: 12px; color: var(--ink-3); }
+.colbar { gap: 10px; }
+.danger svg { width: 15px; height: 15px; }
+/* Collection editor */
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatches button { width: 28px; height: 28px; border-radius: 11px; border: 0; background: var(--c); cursor: pointer; box-shadow: 0 0 0 2px var(--sheet), 0 0 0 2px transparent; transition: box-shadow 150ms ease, transform 160ms var(--ease-out); }
+.swatches button[aria-checked="true"] { box-shadow: 0 0 0 2px var(--sheet), 0 0 0 4px var(--ink); }
+.swatches button:active { transform: scale(0.94); }
+.picklist { display: flex; flex-direction: column; margin: 0 -8px; }
+.pick { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border: 0; background: transparent; border-radius: 12px; cursor: pointer; text-align: left; color: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .pick:hover { background: var(--inset); } }
+.pick:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.pick .box2 { width: 18px; height: 18px; border-radius: 7px; box-shadow: inset 0 0 0 1.5px var(--field-2); display: inline-flex; align-items: center; justify-content: center; color: transparent; flex: none; transition: background-color 120ms ease; }
+.pick[aria-checked="true"] .box2 { background: var(--ink); box-shadow: none; color: var(--sheet); }
+.pick .box2 svg { width: 12px; height: 12px; }
+.pick .pn { flex: 1; font-size: 17px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.box.colbar { flex-direction: row; align-items: center; }
+
+/* Collection names stay on one line: short names (28 characters at most), long ones end in … */
+.colbar b { flex-wrap: nowrap; white-space: nowrap; }
+.colbar b .cn { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.colbar b .n { flex: none; }
+.colrow .chip .cn { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.fl { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-3); }
+.cc { font-variant-numeric: tabular-nums; }
+
+/* Add fonts: pills with a plus that turns into a tick, as in the old design */
+.addpills .chip { height: 32px; padding: 0 12px 0 9px; gap: 6px; color: var(--ink); }
+.addpills .chip svg { width: 14px; height: 14px; flex: none; color: var(--ink-3); }
+.addpills .chip[aria-pressed="true"] svg { color: var(--sheet); }
+.addpills .chip[aria-pressed="true"] { color: var(--sheet); }
+.addpills .pf { font-size: 15px; line-height: 1; }
+
+/* Bigger inputs, as in Settings */
+.fld input { height: 44px; border-radius: 13px; padding: 0 14px; font-size: 13.5px; }
+.searchbar { padding: 7px 7px 7px 16px; }
+.searchbar input { height: 32px; font-size: 13.5px; }
+.tester { padding: 8px 16px; }
+.tester input[type=text] { height: 32px; font-size: 13.5px; }
+
+/* radius+2 */
+
+.btn.wide { width: 100%; height: 40px; border-radius: 13px; }
+.btn.danger { background: #fdecea; }
+@media (hover: hover) and (pointer: fine) { .btn.danger:hover { background: #fbd9d5; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.danger { background: rgba(240,96,90,0.16); } }
+.bacts { display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+.menu button.mcol { align-items: flex-start; }
+.menu .mdot { width: 8px; height: 8px; border-radius: 3px; flex: none; margin-top: 5px; }
+.menu button.mcol .tick { align-self: center; }
+
+/* No strokes on fields, previews or choices: fills only (focus ring stays) */
+.fld input { box-shadow: none; background: var(--inset); }
+.fld input:focus { box-shadow: 0 0 0 2px var(--ink); }
+.bimg.light, .bimg.dark { box-shadow: none; }
+.bimg.light { background: var(--inset); }
+.seg3 button { box-shadow: none; background: var(--inset); }
+.seg3 button[aria-checked="true"] { background: var(--ink); color: var(--sheet); box-shadow: none; }
+.sw2 { box-shadow: none; }
+.seg3 button[aria-checked="true"] .sw2.dark { box-shadow: 0 0 0 1px rgba(255,255,255,0.35); }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+/* The picker (harness chrome, verbatim spec) */
+.proto-picker { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 2147483647; display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: rgba(10, 10, 10, 0.82); -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset, 0 8px 24px rgba(0, 0, 0, 0.24), 0 2px 6px rgba(0, 0, 0, 0.12); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px; line-height: 1; -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; }
+.proto-picker-highlight { position: absolute; top: 4px; left: 0; height: 28px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); }
+.proto-picker[data-ready] .proto-picker-highlight { transition: transform 250ms cubic-bezier(0.23, 1, 0.32, 1), width 250ms cubic-bezier(0.23, 1, 0.32, 1); }
+@media (prefers-reduced-motion: reduce) { .proto-picker[data-ready] .proto-picker-highlight { transition: none; } }
+.proto-picker-item { position: relative; display: flex; align-items: center; height: 28px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: rgba(255, 255, 255, 0.55); font: inherit; cursor: pointer; transition: color 150ms ease-out, transform 160ms cubic-bezier(0.23, 1, 0.32, 1); }
+@media (hover: hover) and (pointer: fine) { .proto-picker-item:hover { color: rgba(255, 255, 255, 0.85); } }
+.proto-picker-item:active { transform: scale(0.97); }
+.proto-picker-item:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.4); outline-offset: 2px; }
+.proto-picker-item[data-active] { color: #fff; }
+.proto-picker-divider { width: 1px; height: 16px; margin: 0 4px; background: rgba(255, 255, 255, 0.12); }
+.proto-picker-replay { padding: 0 10px; font-size: 14px; }
+.proto-picker[data-position="top"] { bottom: auto; top: 24px; }
+
+
+/* ---- App shell: the whole side panel, linked together ---- */
+.proto-picker { display: none !important; }
+.topbar { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.topbar .brand { display: none; }
+.topbar .tabs { display: flex; flex: 1; gap: 2px; padding: 4px; background: var(--sheet); border-radius: 14px; }
+.topbar .tabs a { flex: 1; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; color: var(--ink-2); font: 500 13px var(--ui); text-decoration: none; transition: background-color 150ms ease, color 150ms ease; }
+.topbar .tabs a[aria-current="page"] { background: var(--field); color: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .topbar .tabs a:not([aria-current]):hover { color: var(--ink); } }
+.topbar .setbtn { width: 42px; height: 42px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; background: var(--sheet); color: var(--ink-2); text-decoration: none; transition: color 150ms ease, transform 160ms cubic-bezier(0.23,1,0.32,1); }
+.topbar .setbtn svg { width: 18px; height: 18px; }
+@media (hover: hover) and (pointer: fine) { .topbar .setbtn:hover { color: var(--ink); } }
+.topbar .tabs a:active, .topbar .setbtn:active { transform: scale(0.97); }
+.topbar a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* Buttons 4px taller everywhere */
+.btn { height: 38px !important; }
+.btn.sm { height: 34px !important; }
+.btn.wide, .btn.big { height: 44px !important; }
+/* Details back button: the same white container as Library and Settings */
+.topbar2 > .iconbtn:first-child { width: 40px; height: 40px; border-radius: 13px; background: var(--sheet); color: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .topbar2 > .iconbtn:first-child:hover { background: var(--hover); } }
+/* Floating section tabs, a little bigger */
+.floatnav { padding: 5px !important; border-radius: 14px !important; }
+.floatnav button { height: 34px !important; padding: 0 12px !important; font-size: 13px !important; border-radius: 10px !important; }
+.floatnav .hl { height: 34px !important; top: 5px !important; border-radius: 10px !important; }
+</style><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<div class="desk"><div class="panel">
+  <div class="topbar">
+    <nav class="tabs" aria-label="Sections"><button>Page</button><button>Image</button><button>System</button><button aria-current="page">Library</button></nav>
+    <button class="iconbtn tip" aria-label="Settings" data-tip="Settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15.5 12C15.5 13.933 13.933 15.5 12 15.5C10.067 15.5 8.5 13.933 8.5 12C8.5 10.067 10.067 8.5 12 8.5C13.933 8.5 15.5 10.067 15.5 12Z" stroke="currentColor" stroke-width="1.5"></path><path d="M21.011 14.0965C21.5329 13.9558 21.7939 13.8854 21.8969 13.7508C22 13.6163 22 13.3998 22 12.9669V11.0332C22 10.6003 22 10.3838 21.8969 10.2493C21.7938 10.1147 21.5329 10.0443 21.011 9.90358C19.0606 9.37759 17.8399 7.33851 18.3433 5.40087C18.4817 4.86799 18.5509 4.60156 18.4848 4.44529C18.4187 4.28902 18.2291 4.18134 17.8497 3.96596L16.125 2.98673C15.7528 2.77539 15.5667 2.66972 15.3997 2.69222C15.2326 2.71472 15.0442 2.90273 14.6672 3.27873C13.208 4.73448 10.7936 4.73442 9.33434 3.27864C8.95743 2.90263 8.76898 2.71463 8.60193 2.69212C8.43489 2.66962 8.24877 2.77529 7.87653 2.98663L6.15184 3.96587C5.77253 4.18123 5.58287 4.28891 5.51678 4.44515C5.45068 4.6014 5.51987 4.86787 5.65825 5.4008C6.16137 7.3385 4.93972 9.37763 2.98902 9.9036C2.46712 10.0443 2.20617 10.1147 2.10308 10.2492C2 10.3838 2 10.6003 2 11.0332V12.9669C2 13.3998 2 13.6163 2.10308 13.7508C2.20615 13.8854 2.46711 13.9558 2.98902 14.0965C4.9394 14.6225 6.16008 16.6616 5.65672 18.5992C5.51829 19.1321 5.44907 19.3985 5.51516 19.5548C5.58126 19.7111 5.77092 19.8188 6.15025 20.0341L7.87495 21.0134C8.24721 21.2247 8.43334 21.3304 8.6004 21.3079C8.76746 21.2854 8.95588 21.0973 9.33271 20.7213C10.7927 19.2644 13.2088 19.2643 14.6689 20.7212C15.0457 21.0973 15.2341 21.2853 15.4012 21.3078C15.5682 21.3303 15.7544 21.2246 16.1266 21.0133L17.8513 20.034C18.2307 19.8187 18.4204 19.711 18.4864 19.5547C18.5525 19.3984 18.4833 19.132 18.3448 18.5991C17.8412 16.6616 19.0609 14.6226 21.011 14.0965Z" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"></path></svg></button>
+  </div>
+  <div id="stage" style="display:flex;flex-direction:column;gap:8px"></div>
+</div></div>
+<script>
+const ICON = {"ImageUploadIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 16L7.46967 11.5303C7.80923 11.1908 8.26978 11 8.75 11C9.23022 11 9.69077 11.1908 10.0303 11.5303L14 15.5M15.5 17L14 15.5M21 16L18.5303 13.5303C18.1908 13.1908 17.7302 13 17.25 13C16.7698 13 16.3092 13.1908 15.9697 13.5303L14 15.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 2.5C7.77027 2.5 5.6554 2.5 4.25276 3.69797C4.05358 3.86808 3.86808 4.05358 3.69797 4.25276C2.5 5.6554 2.5 7.77027 2.5 12C2.5 16.2297 2.5 18.3446 3.69797 19.7472C3.86808 19.9464 4.05358 20.1319 4.25276 20.302C5.6554 21.5 7.77027 21.5 12 21.5C16.2297 21.5 18.3446 21.5 19.7472 20.302C19.9464 20.1319 20.1319 19.9464 20.302 19.7472C21.5 18.3446 21.5 16.2297 21.5 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M15.5 5.5C16.0898 4.89316 17.6597 2.5 18.5 2.5C19.3403 2.5 20.9102 4.89316 21.5 5.5M18.5 3V9.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ScanImageIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M6.5 21.5C6.03563 21.5 5.80344 21.5 5.60812 21.478C3.98545 21.2952 2.70484 20.0145 2.52201 18.3919C2.5 18.1966 2.5 17.9644 2.5 17.5M17.5 21.5C17.9644 21.5 18.1966 21.5 18.3919 21.478C20.0145 21.2952 21.2952 20.0145 21.478 18.3919C21.5 18.1966 21.5 17.9644 21.5 17.5M6.5 2.5C6.03563 2.5 5.80344 2.5 5.60812 2.52201C3.98545 2.70484 2.70484 3.98545 2.52201 5.60812C2.5 5.80344 2.5 6.03563 2.5 6.5M17.5 2.5C17.9644 2.5 18.1966 2.5 18.3919 2.52201C20.0145 2.70484 21.2952 3.98545 21.478 5.60812C21.5 5.80344 21.5 6.03563 21.5 6.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M6.87868 6.87868C7.75736 6 9.17157 6 12 6C14.8284 6 16.2426 6 17.1213 6.87868C18 7.75736 18 9.17157 18 12C18 14.8284 18 16.2426 17.1213 17.1213C16.2426 18 14.8284 18 12 18C9.17157 18 7.75736 18 6.87868 17.1213C6 16.2426 6 14.8284 6 12C6 9.17157 6 7.75736 6.87868 6.87868Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M6.5 15.5L8.0333 13.8522C8.56719 13.2785 9.43281 13.2785 9.9667 13.8522C10.5259 14.4532 11.4415 14.4204 11.9623 13.7808L13.3711 12.0505C13.9688 11.3165 15.0312 11.3165 15.6289 12.0505L17.7603 14.6678\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M10.375 9.75H10.25M10.5 9.75C10.5 9.88807 10.3881 10 10.25 10C10.1119 10 10 9.88807 10 9.75C10 9.61193 10.1119 9.5 10.25 9.5C10.3881 9.5 10.5 9.61193 10.5 9.75Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ClipboardIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17.0235 3.03358L16.0689 2.77924C13.369 2.05986 12.019 1.70018 10.9555 2.31074C9.89196 2.9213 9.53023 4.26367 8.80678 6.94841L7.78366 10.7452C7.0602 13.4299 6.69848 14.7723 7.3125 15.8298C7.92652 16.8874 9.27651 17.247 11.9765 17.9664L12.9311 18.2208C15.631 18.9401 16.981 19.2998 18.0445 18.6893C19.108 18.0787 19.4698 16.7363 20.1932 14.0516L21.2163 10.2548C21.9398 7.57005 22.3015 6.22768 21.6875 5.17016C21.0735 4.11264 19.7235 3.75295 17.0235 3.03358Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M16.8538 7.43306C16.8538 8.24714 16.1901 8.90709 15.3714 8.90709C14.5527 8.90709 13.889 8.24714 13.889 7.43306C13.889 6.61898 14.5527 5.95904 15.3714 5.95904C16.1901 5.95904 16.8538 6.61898 16.8538 7.43306Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M12 20.9463L11.0477 21.2056C8.35403 21.9391 7.00722 22.3059 5.94619 21.6833C4.88517 21.0608 4.52429 19.6921 3.80253 16.9547L2.78182 13.0834C2.06006 10.346 1.69918 8.97731 2.31177 7.89904C2.84167 6.96631 4 7.00027 5.5 7.00015\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "ImageCropIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M22 20H10C7.17157 20 5.75736 20 4.87868 19.1213C4 18.2426 4 16.8284 4 14V2\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M6 20C9.68373 16.4365 13.8235 11.7106 20 15.2551\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M2 4L14 4C16.8284 4 18.2426 4 19.1213 4.87868C20 5.75736 20 7.17157 20 10L20 22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle></svg>", "Tick02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M5 14L8.5 17.5L19 6.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowDown01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 9.00005C18 9.00005 13.5811 15 12 15C10.4188 15 6 9 6 9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowRight01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9.00005 6C9.00005 6 15 10.4189 15 12C15 13.5812 9 18 9 18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowUpRight01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9 6.65032C9 6.65032 15.9383 6.10759 16.9154 7.08463C17.8924 8.06167 17.3496 15 17.3496 15M16.5 7.5L6.5 17.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Bookmark02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 17.9808V9.70753C4 6.07416 4 4.25748 5.17157 3.12874C6.34315 2 8.22876 2 12 2C15.7712 2 17.6569 2 18.8284 3.12874C20 4.25748 20 6.07416 20 9.70753V17.9808C20 20.2867 20 21.4396 19.2272 21.8523C17.7305 22.6514 14.9232 19.9852 13.59 19.1824C12.8168 18.7168 12.4302 18.484 12 18.484C11.5698 18.484 11.1832 18.7168 10.41 19.1824C9.0768 19.9852 6.26947 22.6514 4.77285 21.8523C4 21.4396 4 20.2867 4 17.9808Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "FolderAddIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13 21H12C7.28595 21 4.92893 21 3.46447 19.5355C2 18.0711 2 15.714 2 11V7.94427C2 6.1278 2 5.21956 2.38032 4.53806C2.65142 4.05227 3.05227 3.65142 3.53806 3.38032C4.21956 3 5.1278 3 6.94427 3C8.10802 3 8.6899 3 9.19926 3.19101C10.3622 3.62712 10.8418 4.68358 11.3666 5.73313L12 7M8 7H16.75C18.8567 7 19.91 7 20.6667 7.50559C20.9943 7.72447 21.2755 8.00572 21.4944 8.33329C21.9796 9.05942 21.9992 10.0588 22 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M18 13V21M22 17H14\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Search01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 17L21 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19C15.4183 19 19 15.4183 19 11Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Alert02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13.9248 21H10.0752C5.44476 21 3.12955 21 2.27636 19.4939C1.42317 17.9879 2.60736 15.9914 4.97574 11.9985L6.90057 8.75333C9.17559 4.91778 10.3131 3 12 3C13.6869 3 14.8244 4.91777 17.0994 8.75332L19.0243 11.9985C21.3926 15.9914 22.5768 17.9879 21.7236 19.4939C20.8704 21 18.5552 21 13.9248 21Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 9V13\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12.125 16.75H12M12.25 16.75C12.25 16.8881 12.1381 17 12 17C11.8619 17 11.75 16.8881 11.75 16.75C11.75 16.6119 11.8619 16.5 12 16.5C12.1381 16.5 12.25 16.6119 12.25 16.75Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Settings02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15.5 12C15.5 13.933 13.933 15.5 12 15.5C10.067 15.5 8.5 13.933 8.5 12C8.5 10.067 10.067 8.5 12 8.5C13.933 8.5 15.5 10.067 15.5 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M21.011 14.0965C21.5329 13.9558 21.7939 13.8854 21.8969 13.7508C22 13.6163 22 13.3998 22 12.9669V11.0332C22 10.6003 22 10.3838 21.8969 10.2493C21.7938 10.1147 21.5329 10.0443 21.011 9.90358C19.0606 9.37759 17.8399 7.33851 18.3433 5.40087C18.4817 4.86799 18.5509 4.60156 18.4848 4.44529C18.4187 4.28902 18.2291 4.18134 17.8497 3.96596L16.125 2.98673C15.7528 2.77539 15.5667 2.66972 15.3997 2.69222C15.2326 2.71472 15.0442 2.90273 14.6672 3.27873C13.208 4.73448 10.7936 4.73442 9.33434 3.27864C8.95743 2.90263 8.76898 2.71463 8.60193 2.69212C8.43489 2.66962 8.24877 2.77529 7.87653 2.98663L6.15184 3.96587C5.77253 4.18123 5.58287 4.28891 5.51678 4.44515C5.45068 4.6014 5.51987 4.86787 5.65825 5.4008C6.16137 7.3385 4.93972 9.37763 2.98902 9.9036C2.46712 10.0443 2.20617 10.1147 2.10308 10.2492C2 10.3838 2 10.6003 2 11.0332V12.9669C2 13.3998 2 13.6163 2.10308 13.7508C2.20615 13.8854 2.46711 13.9558 2.98902 14.0965C4.9394 14.6225 6.16008 16.6616 5.65672 18.5992C5.51829 19.1321 5.44907 19.3985 5.51516 19.5548C5.58126 19.7111 5.77092 19.8188 6.15025 20.0341L7.87495 21.0134C8.24721 21.2247 8.43334 21.3304 8.6004 21.3079C8.76746 21.2854 8.95588 21.0973 9.33271 20.7213C10.7927 19.2644 13.2088 19.2643 14.6689 20.7212C15.0457 21.0973 15.2341 21.2853 15.4012 21.3078C15.5682 21.3303 15.7544 21.2246 16.1266 21.0133L17.8513 20.034C18.2307 19.8187 18.4204 19.711 18.4864 19.5547C18.5525 19.3984 18.4833 19.132 18.3448 18.5991C17.8412 16.6616 19.0609 14.6226 21.011 14.0965Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "RotateClockwiseIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 2V5.13219C4 5.42605 4.36724 5.55908 4.55527 5.33333C6.3854 3.2875 9.04499 2 12.0051 2C17.5251 2 22 6.47715 22 12C22 15.9582 19.7015 19.3793 16.367 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M11.7347 22.0001C12.2016 22.0001 12.6611 21.9688 13.1111 21.9084M2.26537 8.66675C2.15297 9.06394 2.06477 9.46536 2 9.86901M2.03457 13.5381C2.10487 13.9381 2.19644 14.3343 2.30852 14.7245M3.83292 17.9963C4.07124 18.3497 4.3296 18.69 4.6071 19.0147M7.42857 21.3607C7.78228 21.5632 8.15042 21.7464 8.53228 21.9084\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ContrastIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle><path d=\"M12 22V2\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 7L20.5 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 17L20.5 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 12H22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowLeft01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15 6C15 6 9.00001 10.4189 9 12C8.99999 13.5812 15 18 15 18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "InformationCircleIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle><path d=\"M12 16V12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12.125 8.25H12M12.25 8.25C12.25 8.11193 12.1381 8 12 8C11.8619 8 11.75 8.11193 11.75 8.25C11.75 8.38807 11.8619 8.5 12 8.5C12.1381 8.5 12.25 8.38807 12.25 8.25Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Tick02Small": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M5 14L8.5 17.5L19 6.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowDownSmall": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 9.00005C18 9.00005 13.5811 15 12 15C10.4188 15 6 9 6 9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ArrowUpRightSmall": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9 6.65032C9 6.65032 15.9383 6.10759 16.9154 7.08463C17.8924 8.06167 17.3496 15 17.3496 15M16.5 7.5L6.5 17.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Search01Small": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 17L21 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19C15.4183 19 19 15.4183 19 11Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "PerspectiveIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4.5 11.9999C4.5 9.51223 4.5 8.2684 5.17206 7.38465C5.24545 7.28814 5.32409 7.19589 5.40762 7.10833C6.17248 6.30646 7.38276 6.13056 9.8033 5.77875L12.1623 5.43589C15.5764 4.93968 17.2834 4.69157 18.3917 5.6695C19.5 6.64743 19.5 8.4018 19.5 11.9106V12.0892C19.5 15.598 19.5 17.3523 18.3917 18.3303C17.2834 19.3082 15.5764 19.0601 12.1623 18.5639L9.80329 18.221C7.38275 17.8692 6.17248 17.6933 5.40762 16.8914C5.32409 16.8039 5.24545 16.7116 5.17206 16.6151C4.5 15.7314 4.5 14.4875 4.5 11.9999Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M12 22L12 2M2 12H22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "ImageUploadBig": "<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 16L7.46967 11.5303C7.80923 11.1908 8.26978 11 8.75 11C9.23022 11 9.69077 11.1908 10.0303 11.5303L14 15.5M15.5 17L14 15.5M21 16L18.5303 13.5303C18.1908 13.1908 17.7302 13 17.25 13C16.7698 13 16.3092 13.1908 15.9697 13.5303L14 15.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 2.5C7.77027 2.5 5.6554 2.5 4.25276 3.69797C4.05358 3.86808 3.86808 4.05358 3.69797 4.25276C2.5 5.6554 2.5 7.77027 2.5 12C2.5 16.2297 2.5 18.3446 3.69797 19.7472C3.86808 19.9464 4.05358 20.1319 4.25276 20.302C5.6554 21.5 7.77027 21.5 12 21.5C16.2297 21.5 18.3446 21.5 19.7472 20.302C19.9464 20.1319 20.1319 19.9464 20.302 19.7472C21.5 18.3446 21.5 16.2297 21.5 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M15.5 5.5C16.0898 4.89316 17.6597 2.5 18.5 2.5C19.3403 2.5 20.9102 4.89316 21.5 5.5M18.5 3V9.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "InfoSmall": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle><path d=\"M12 16V12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12.125 8.25H12M12.25 8.25C12.25 8.11193 12.1381 8 12 8C11.8619 8 11.75 8.11193 11.75 8.25C11.75 8.38807 11.8619 8.5 12 8.5C12.1381 8.5 12.25 8.38807 12.25 8.25Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "FigmaIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"15\" cy=\"12\" r=\"3\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></circle><path d=\"M9 21C10.6569 21 12 19.6569 12 18V15H9C7.34315 15 6 16.3431 6 18C6 19.6569 7.34315 21 9 21Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 9V15H9C7.34315 15 6 13.6569 6 12C6 10.3431 7.34315 9 9 9H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 3V9H9C7.34315 9 6 7.65685 6 6C6 4.34315 7.34315 3 9 3H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M12 3V9H15C16.6569 9 18 7.65685 18 6C18 4.34315 16.6569 3 15 3H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "CodeIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M16 6.99998L19.0664 9.64296C20.3554 10.7541 21 11.3096 21 12C21 12.6903 20.3555 13.2459 19.0664 14.357L16 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M8 6.99998L4.93365 9.64296C3.64455 10.7541 3 11.3096 3 12C3 12.6903 3.64455 13.2459 4.93365 14.357L8 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Download01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2.99969 17.0002C2.99969 17.9302 2.99969 18.3952 3.10192 18.7767C3.37932 19.8119 4.18796 20.6206 5.22324 20.898C5.60474 21.0002 6.06972 21.0002 6.99969 21.0002L16.9997 21.0002C17.9297 21.0002 18.3947 21.0002 18.7762 20.898C19.8114 20.6206 20.6201 19.8119 20.8975 18.7767C20.9997 18.3952 20.9997 17.9302 20.9997 17.0002\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M16.4998 11.5002C16.4998 11.5002 13.1856 16.0002 11.9997 16.0002C10.8139 16.0002 7.49976 11.5002 7.49976 11.5002M11.9997 15.0002V3.00016\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Copy01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M7.5 14.5C7.5 11.2002 7.5 9.55025 8.52513 8.52513C9.55025 7.5 11.2002 7.5 14.5 7.5C17.7998 7.5 19.4497 7.5 20.4749 8.52513C21.5 9.55025 21.5 11.2002 21.5 14.5C21.5 17.7998 21.5 19.4497 20.4749 20.4749C19.4497 21.5 17.7998 21.5 14.5 21.5C11.2002 21.5 9.55025 21.5 8.52513 20.4749C7.5 19.4497 7.5 17.7998 7.5 14.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M7.5 16.5C6.10355 16.5 5.40533 16.5 4.84402 16.3036C3.83866 15.9518 3.0482 15.1613 2.69641 14.156C2.5 13.5947 2.5 12.8964 2.5 11.5V9.5C2.5 6.20017 2.5 4.55025 3.52513 3.52513C4.55025 2.5 6.20017 2.5 9.5 2.5H11.5C12.8964 2.5 13.5947 2.5 14.156 2.69641C15.1613 3.0482 15.9518 3.83866 16.3036 4.84402C16.5 5.40533 16.5 6.10355 16.5 7.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Target02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M14 2.20004C13.3538 2.06886 12.6849 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 11.3151 21.9311 10.6462 21.8 10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M12.0303 11.9625L16.5832 7.4096M19.7404 4.34462L19.1872 2.35748C19.0853 2.03011 18.6914 1.89965 18.4259 2.11662C16.9898 3.29018 15.4254 4.87091 16.703 7.36419C19.2771 8.56455 20.7466 6.94584 21.8733 5.5853C22.0975 5.3146 21.9623 4.90767 21.6247 4.81005L19.7404 4.34462Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "GitCompareIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M19 17L19 11C19 8.17157 19 6.75736 18.1213 5.87868C17.2426 5 15.8284 5 13 5H10M10 5C10 4.29977 11.9943 2.99153 12.5 2.5M10 5C10 5.70023 11.9943 7.00847 12.5 7.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M5 7.5L5 13.5C5 16.3284 5 17.7426 5.87868 18.6213C6.75736 19.5 8.17157 19.5 11 19.5H14M14 19.5C14 20.2002 12.0057 21.5085 11.5 22M14 19.5C14 18.7998 12.0057 17.4915 11.5 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><circle cx=\"19\" cy=\"19\" r=\"2\" stroke=\"currentColor\" stroke-width=\"1.5\"></circle><circle cx=\"5\" cy=\"5\" r=\"2\" stroke=\"currentColor\" stroke-width=\"1.5\"></circle></svg>", "RefreshIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M20.0092 2V5.13219C20.0092 5.42605 19.6418 5.55908 19.4537 5.33333C17.6226 3.2875 14.9617 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "TextFontIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M14 19L11.1069 10.7479C9.76348 6.91597 9.09177 5 8 5C6.90823 5 6.23652 6.91597 4.89309 10.7479L2 19M4.5 12H11.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M21.9692 13.9392V18.4392M21.9692 13.9392C22.0164 13.1161 22.0182 12.4891 21.9194 11.9773C21.6864 10.7709 20.4258 10.0439 19.206 9.89599C18.0385 9.75447 17.1015 10.055 16.1535 11.4363M21.9692 13.9392L19.1256 13.9392C18.6887 13.9392 18.2481 13.9603 17.8272 14.0773C15.2545 14.7925 15.4431 18.4003 18.0233 18.845C18.3099 18.8944 18.6025 18.9156 18.8927 18.9026C19.5703 18.8724 20.1955 18.545 20.7321 18.1301C21.3605 17.644 21.9692 16.9655 21.9692 15.9392V13.9392Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "DashboardSpeed01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13.5 13L17 9M14 15C14 16.1046 13.1046 17 12 17C10.8954 17 10 16.1046 10 15C10 13.8954 10.8954 13 12 13C13.1046 13 14 13.8954 14 15Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M6 12C6 8.68629 8.68629 6 12 6C13.0929 6 14.1175 6.29218 15 6.80269\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M2.50006 12.0001C2.50006 7.52172 2.50006 5.28255 3.8913 3.8913C5.28255 2.50006 7.52172 2.50006 12.0001 2.50006C16.4784 2.50006 18.7176 2.50006 20.1088 3.8913C21.5001 5.28255 21.5001 7.52172 21.5001 12.0001C21.5001 16.4784 21.5001 18.7176 20.1088 20.1088C18.7176 21.5001 16.4784 21.5001 12.0001 21.5001C7.52172 21.5001 5.28255 21.5001 3.8913 20.1088C2.50006 18.7176 2.50006 16.4784 2.50006 12.0001Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path></svg>", "ViewIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M21.544 11.045C21.848 11.4713 22 11.6845 22 12C22 12.3155 21.848 12.5287 21.544 12.955C20.1779 14.8706 16.6892 19 12 19C7.31078 19 3.8221 14.8706 2.45604 12.955C2.15201 12.5287 2 12.3155 2 12C2 11.6845 2.15201 11.4713 2.45604 11.045C3.8221 9.12944 7.31078 5 12 5C16.6892 5 20.1779 9.12944 21.544 11.045Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path></svg>", "CopySmall": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M7.5 14.5C7.5 11.2002 7.5 9.55025 8.52513 8.52513C9.55025 7.5 11.2002 7.5 14.5 7.5C17.7998 7.5 19.4497 7.5 20.4749 8.52513C21.5 9.55025 21.5 11.2002 21.5 14.5C21.5 17.7998 21.5 19.4497 20.4749 20.4749C19.4497 21.5 17.7998 21.5 14.5 21.5C11.2002 21.5 9.55025 21.5 8.52513 20.4749C7.5 19.4497 7.5 17.7998 7.5 14.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M7.5 16.5C6.10355 16.5 5.40533 16.5 4.84402 16.3036C3.83866 15.9518 3.0482 15.1613 2.69641 14.156C2.5 13.5947 2.5 12.8964 2.5 11.5V9.5C2.5 6.20017 2.5 4.55025 3.52513 3.52513C4.55025 2.5 6.20017 2.5 9.5 2.5H11.5C12.8964 2.5 13.5947 2.5 14.156 2.69641C15.1613 3.0482 15.9518 3.83866 16.3036 4.84402C16.5 5.40533 16.5 6.10355 16.5 7.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ChevR": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9.00005 6C9.00005 6 15 10.4189 15 12C15 13.5812 9 18 9 18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "ChevD": "<svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 9.00005C18 9.00005 13.5811 15 12 15C10.4188 15 6 9 6 9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "FilterHorizontalIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 7H6\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M3 17H9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M18 17L21 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M15 7L21 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M6 7C6 6.06812 6 5.60218 6.15224 5.23463C6.35523 4.74458 6.74458 4.35523 7.23463 4.15224C7.60218 4 8.06812 4 9 4C9.93188 4 10.3978 4 10.7654 4.15224C11.2554 4.35523 11.6448 4.74458 11.8478 5.23463C12 5.60218 12 6.06812 12 7C12 7.93188 12 8.39782 11.8478 8.76537C11.6448 9.25542 11.2554 9.64477 10.7654 9.84776C10.3978 10 9.93188 10 9 10C8.06812 10 7.60218 10 7.23463 9.84776C6.74458 9.64477 6.35523 9.25542 6.15224 8.76537C6 8.39782 6 7.93188 6 7Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M12 17C12 16.0681 12 15.6022 12.1522 15.2346C12.3552 14.7446 12.7446 14.3552 13.2346 14.1522C13.6022 14 14.0681 14 15 14C15.9319 14 16.3978 14 16.7654 14.1522C17.2554 14.3552 17.6448 14.7446 17.8478 15.2346C18 15.6022 18 16.0681 18 17C18 17.9319 18 18.3978 17.8478 18.7654C17.6448 19.2554 17.2554 19.6448 16.7654 19.8478C16.3978 20 15.9319 20 15 20C14.0681 20 13.6022 20 13.2346 19.8478C12.7446 19.6448 12.3552 19.2554 12.1522 18.7654C12 18.3978 12 17.9319 12 17Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path></svg>", "Menu01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 5L20 5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M4 12L20 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M4 19L20 19\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "GridViewIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3.88884 9.66294C4.39329 10 5.09552 10 6.49998 10C7.90445 10 8.60668 10 9.11113 9.66294C9.32951 9.51702 9.51701 9.32952 9.66292 9.11114C9.99998 8.60669 9.99998 7.90446 9.99998 6.5C9.99998 5.09554 9.99998 4.39331 9.66292 3.88886C9.51701 3.67048 9.32951 3.48298 9.11113 3.33706C8.60668 3 7.90445 3 6.49998 3C5.09552 3 4.39329 3 3.88884 3.33706C3.67046 3.48298 3.48296 3.67048 3.33705 3.88886C2.99998 4.39331 2.99998 5.09554 2.99998 6.5C2.99998 7.90446 2.99998 8.60669 3.33705 9.11114C3.48296 9.32952 3.67046 9.51702 3.88884 9.66294Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M14.8888 9.66294C15.3933 10 16.0955 10 17.5 10C18.9044 10 19.6067 10 20.1111 9.66294C20.3295 9.51702 20.517 9.32952 20.6629 9.11114C21 8.60669 21 7.90446 21 6.5C21 5.09554 21 4.39331 20.6629 3.88886C20.517 3.67048 20.3295 3.48298 20.1111 3.33706C19.6067 3 18.9044 3 17.5 3C16.0955 3 15.3933 3 14.8888 3.33706C14.6705 3.48298 14.483 3.67048 14.337 3.88886C14 4.39331 14 5.09554 14 6.5C14 7.90446 14 8.60669 14.337 9.11114C14.483 9.32952 14.6705 9.51702 14.8888 9.66294Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M3.88884 20.6629C4.39329 21 5.09552 21 6.49998 21C7.90445 21 8.60668 21 9.11113 20.6629C9.32951 20.517 9.51701 20.3295 9.66292 20.1111C9.99998 19.6067 9.99998 18.9045 9.99998 17.5C9.99998 16.0955 9.99998 15.3933 9.66292 14.8889C9.51701 14.6705 9.32951 14.483 9.11113 14.3371C8.60668 14 7.90445 14 6.49998 14C5.09552 14 4.39329 14 3.88884 14.3371C3.67046 14.483 3.48296 14.6705 3.33705 14.8889C2.99998 15.3933 2.99998 16.0955 2.99998 17.5C2.99998 18.9045 2.99998 19.6067 3.33705 20.1111C3.48296 20.3295 3.67046 20.517 3.88884 20.6629Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M14.8888 20.6629C15.3933 21 16.0955 21 17.5 21C18.9044 21 19.6067 21 20.1111 20.6629C20.3295 20.517 20.517 20.3295 20.6629 20.1111C21 19.6067 21 18.9045 21 17.5C21 16.0955 21 15.3933 20.6629 14.8889C20.517 14.6705 20.3295 14.483 20.1111 14.3371C19.6067 14 18.9044 14 17.5 14C16.0955 14 15.3933 14 14.8888 14.3371C14.6705 14.483 14.483 14.6705 14.337 14.8889C14 15.3933 14 16.0955 14 17.5C14 18.9045 14 19.6067 14.337 20.1111C14.483 20.3295 14.6705 20.517 14.8888 20.6629Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "DashboardSquare01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13.6903 19.4567C13.5 18.9973 13.5 18.4149 13.5 17.25C13.5 16.0851 13.5 15.5027 13.6903 15.0433C13.944 14.4307 14.4307 13.944 15.0433 13.6903C15.5027 13.5 16.0851 13.5 17.25 13.5C18.4149 13.5 18.9973 13.5 19.4567 13.6903C20.0693 13.944 20.556 14.4307 20.8097 15.0433C21 15.5027 21 16.0851 21 17.25C21 18.4149 21 18.9973 20.8097 19.4567C20.556 20.0693 20.0693 20.556 19.4567 20.8097C18.9973 21 18.4149 21 17.25 21C16.0851 21 15.5027 21 15.0433 20.8097C14.4307 20.556 13.944 20.0693 13.6903 19.4567Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M13.6903 8.95671C13.5 8.49728 13.5 7.91485 13.5 6.75C13.5 5.58515 13.5 5.00272 13.6903 4.54329C13.944 3.93072 14.4307 3.44404 15.0433 3.1903C15.5027 3 16.0851 3 17.25 3C18.4149 3 18.9973 3 19.4567 3.1903C20.0693 3.44404 20.556 3.93072 20.8097 4.54329C21 5.00272 21 5.58515 21 6.75C21 7.91485 21 8.49728 20.8097 8.95671C20.556 9.56928 20.0693 10.056 19.4567 10.3097C18.9973 10.5 18.4149 10.5 17.25 10.5C16.0851 10.5 15.5027 10.5 15.0433 10.3097C14.4307 10.056 13.944 9.56928 13.6903 8.95671Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M3.1903 19.4567C3 18.9973 3 18.4149 3 17.25C3 16.0851 3 15.5027 3.1903 15.0433C3.44404 14.4307 3.93072 13.944 4.54329 13.6903C5.00272 13.5 5.58515 13.5 6.75 13.5C7.91485 13.5 8.49728 13.5 8.95671 13.6903C9.56928 13.944 10.056 14.4307 10.3097 15.0433C10.5 15.5027 10.5 16.0851 10.5 17.25C10.5 18.4149 10.5 18.9973 10.3097 19.4567C10.056 20.0693 9.56928 20.556 8.95671 20.8097C8.49728 21 7.91485 21 6.75 21C5.58515 21 5.00272 21 4.54329 20.8097C3.93072 20.556 3.44404 20.0693 3.1903 19.4567Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M3.1903 8.95671C3 8.49728 3 7.91485 3 6.75C3 5.58515 3 5.00272 3.1903 4.54329C3.44404 3.93072 3.93072 3.44404 4.54329 3.1903C5.00272 3 5.58515 3 6.75 3C7.91485 3 8.49728 3 8.95671 3.1903C9.56928 3.44404 10.056 3.93072 10.3097 4.54329C10.5 5.00272 10.5 5.58515 10.5 6.75C10.5 7.91485 10.5 8.49728 10.3097 8.95671C10.056 9.56928 9.56928 10.056 8.95671 10.3097C8.49728 10.5 7.91485 10.5 6.75 10.5C5.58515 10.5 5.00272 10.5 4.54329 10.3097C3.93072 10.056 3.44404 9.56928 3.1903 8.95671Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Clock01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"1.5\"></circle><path d=\"M12 8V12L14 14\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Upload01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2.99994 17C2.99994 17.93 2.99994 18.395 3.10216 18.7765C3.37956 19.8117 4.18821 20.6204 5.22348 20.8978C5.60498 21 6.06997 21 6.99994 21L16.9999 21C17.9299 21 18.3949 21 18.7764 20.8978C19.8117 20.6204 20.6203 19.8117 20.8977 18.7765C20.9999 18.395 20.9999 17.93 20.9999 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M16.5 7.49993C16.5 7.49993 13.1858 2.99997 12 2.99996C10.8141 2.99995 7.50002 7.49996 7.50002 7.49996M12 3.99996V16\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "MoreHorizontalIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M6.00449 12.5V12M18.0045 12.5V12M12.0045 12.5V12M7.00449 12.5C7.00449 11.9477 6.55677 11.5 6.00449 11.5C5.4522 11.5 5.00449 11.9477 5.00449 12.5C5.00449 13.0523 5.4522 13.5 6.00449 13.5C6.55677 13.5 7.00449 13.0523 7.00449 12.5ZM19.0045 12.5C19.0045 11.9477 18.5568 11.5 18.0045 11.5C17.4522 11.5 17.0045 11.9477 17.0045 12.5C17.0045 13.0523 17.4522 13.5 18.0045 13.5C18.5568 13.5 19.0045 13.0523 19.0045 12.5ZM13.0045 12.5C13.0045 11.9477 12.5568 11.5 12.0045 11.5C11.4522 11.5 11.0045 11.9477 11.0045 12.5C11.0045 13.0523 11.4522 13.5 12.0045 13.5C12.5568 13.5 13.0045 13.0523 13.0045 12.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "PlusSignIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M12 4V20M20 12H4\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Folder01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M8 7H16.75C18.8567 7 19.91 7 20.6667 7.50559C20.9943 7.72447 21.2755 8.00572 21.4944 8.33329C22 9.08996 22 10.1433 22 12.25C22 15.7612 22 17.5167 21.1573 18.7779C20.7926 19.3238 20.3238 19.7926 19.7779 20.1573C18.5167 21 16.7612 21 13.25 21H12C7.28595 21 4.92893 21 3.46447 19.5355C2 18.0711 2 15.714 2 11V7.94427C2 6.1278 2 5.21956 2.38032 4.53806C2.65142 4.05227 3.05227 3.65142 3.53806 3.38032C4.21956 3 5.1278 3 6.94427 3C8.10802 3 8.6899 3 9.19926 3.19101C10.3622 3.62712 10.8418 4.68358 11.3666 5.73313L12 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "PauseIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 7C4 5.58579 4 4.87868 4.43934 4.43934C4.87868 4 5.58579 4 7 4C8.41421 4 9.12132 4 9.56066 4.43934C10 4.87868 10 5.58579 10 7V17C10 18.4142 10 19.1213 9.56066 19.5607C9.12132 20 8.41421 20 7 20C5.58579 20 4.87868 20 4.43934 19.5607C4 19.1213 4 18.4142 4 17V7Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M14 7C14 5.58579 14 4.87868 14.4393 4.43934C14.8787 4 15.5858 4 17 4C18.4142 4 19.1213 4 19.5607 4.43934C20 4.87868 20 5.58579 20 7V17C20 18.4142 20 19.1213 19.5607 19.5607C19.1213 20 18.4142 20 17 20C15.5858 20 14.8787 20 14.4393 19.5607C14 19.1213 14 18.4142 14 17V7Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path></svg>", "PlayIcon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18.8906 12.846C18.5371 14.189 16.8667 15.138 13.5257 17.0361C10.296 18.8709 8.6812 19.7884 7.37983 19.4196C6.8418 19.2671 6.35159 18.9776 5.95624 18.5787C5 17.6139 5 15.7426 5 12C5 8.2574 5 6.3861 5.95624 5.42132C6.35159 5.02245 6.8418 4.73288 7.37983 4.58042C8.6812 4.21165 10.296 5.12907 13.5257 6.96393C16.8667 8.86197 18.5371 9.811 18.8906 11.154C19.0365 11.7084 19.0365 12.2916 18.8906 12.846Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Delete02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M19.5 5.5L18.8803 15.5251C18.7219 18.0864 18.6428 19.3671 18.0008 20.2879C17.6833 20.7431 17.2747 21.1273 16.8007 21.416C15.8421 22 14.559 22 11.9927 22C9.42312 22 8.1383 22 7.17905 21.4149C6.7048 21.1257 6.296 20.7408 5.97868 20.2848C5.33688 19.3626 5.25945 18.0801 5.10461 15.5152L4.5 5.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M3 5.5H21M16.0557 5.5L15.3731 4.09173C14.9196 3.15626 14.6928 2.68852 14.3017 2.39681C14.215 2.3321 14.1231 2.27454 14.027 2.2247C13.5939 2 13.0741 2 12.0345 2C10.9688 2 10.436 2 9.99568 2.23412C9.8981 2.28601 9.80498 2.3459 9.71729 2.41317C9.32164 2.7167 9.10063 3.20155 8.65861 4.17126L8.05292 5.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M9.5 16.5L9.5 10.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path><path d=\"M14.5 16.5L14.5 10.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>", "Cancel01Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 6L6.00081 17.9992M17.9992 18L6 6.00085\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>", "Edit02Icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M14.0737 3.88545C14.8189 3.07808 15.1915 2.6744 15.5874 2.43893C16.5427 1.87076 17.7191 1.85309 18.6904 2.39232C19.0929 2.6158 19.4769 3.00812 20.245 3.79276C21.0131 4.5774 21.3972 4.96972 21.6159 5.38093C22.1438 6.37312 22.1265 7.57479 21.5703 8.5507C21.3398 8.95516 20.9446 9.33578 20.1543 10.097L10.7506 19.1543C9.25288 20.5969 8.504 21.3182 7.56806 21.6837C6.63212 22.0493 5.6032 22.0224 3.54536 21.9686L3.26538 21.9613C2.63891 21.9449 2.32567 21.9367 2.14359 21.73C1.9615 21.5234 1.98636 21.2043 2.03608 20.5662L2.06308 20.2197C2.20301 18.4235 2.27297 17.5255 2.62371 16.7182C2.97444 15.9109 3.57944 15.2555 4.78943 13.9445L14.0737 3.88545Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M13 4L20 11\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path><path d=\"M14 22L22 22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"></path></svg>"};
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+const FONTS = [
+  { n: 'Fraunces', css: "'Fraunces', serif", cls: 'Serif', lic: 'free', col: [1] },
+  { n: 'Instrument Serif', css: "'Instrument Serif', serif", cls: 'Serif', lic: 'free', col: [1] },
+  { n: 'Inter', css: "'Inter', sans-serif", cls: 'Sans', lic: 'free', col: [2] },
+  { n: 'Space Grotesk', css: "'Space Grotesk', sans-serif", cls: 'Sans', lic: 'free', col: [2] },
+  { n: 'Helvetica Neue', css: "'Arimo', sans-serif", cls: 'Sans', lic: 'paid', col: [3] },
+  { n: 'Playfair Display', css: "'Playfair Display', serif", cls: 'Serif', lic: 'free', col: [1] },
+  { n: 'DM Mono', css: "'DM Mono', monospace", cls: 'Mono', lic: 'free', col: [2] },
+  { n: 'Lobster', css: "'Lobster', cursive", cls: 'Script', lic: 'free', col: [] },
+  { n: 'Oswald', css: "'Oswald', sans-serif", cls: 'Display', lic: 'free', col: [1] },
+  { n: 'Söhne', css: "'Inter', sans-serif", cls: 'Sans', lic: 'paid', col: [3] },
+];
+const COLS = [
+  { id: 1, n: 'Editorial', c: '#3b5bdb' },
+  { id: 2, n: 'Client: Northwind rebrand', c: '#2f9e44' },
+  { id: 3, n: 'Maybe later (paid)', c: '#e8590c' },
+];
+const SEEN = [
+  ['Lobster', "'Lobster', cursive", 'free', 'slow-type.studio', 'today', 'heading'],
+  ['Inter', "'Inter', sans-serif", 'free', 'linear.app', 'today', 'body, nav'],
+  ['Söhne', "'Inter', sans-serif", 'paid', 'stripe.com', 'yesterday', 'body'],
+  ['Instrument Serif', "'Instrument Serif', serif", 'free', 'read.cv', '3 days ago', 'heading'],
+  ['DM Mono', "'DM Mono', monospace", 'free', 'vercel.com', 'last week', 'code'],
+  ['Playfair Display', "'Playfair Display', serif", 'free', 'nytimes.com', 'last week', 'heading'],
+];
+const SITES = [['slow-type.studio', 4], ['linear.app', 3], ['stripe.com', 2], ['read.cv', 5], ['vercel.com', 3]];
+const BOARDS = [
+  { n: 'Northwind pitch', text: 'Make it plain', fonts: ['Space Grotesk', 'Inter'], theme: 'light', mark: true, when: 'Edited today' },
+  { n: 'Editorial serifs', text: 'Notes on slow typography', fonts: ['Fraunces', 'Instrument Serif', 'Playfair Display'], theme: 'dark', mark: true, when: 'Edited 2 days ago' },
+  { n: 'Display ideas', text: 'Open late', fonts: ['Oswald', 'Lobster'], theme: 'light', mark: false, when: 'Edited last week' },
+];
+const LIC = { free: 'Free', paid: 'Paid', unknown: 'Unknown' };
+const SWATCHES = ['#3b5bdb','#2f9e44','#e8590c','#c2255c','#7048e8','#0c8599','#e67700','#495057'];
+const st = { edit: null,  q: '', filters: false, f: { cls: 'All', lic: 'Any', src: 'Any' }, view: 'grid', col: 0, menu: null, page: null, seg: 'saved', text: '', size: 32, paused: new Set(), rec: true, confirm: false };
+
+const lic = (l) => `<span class="lic ${l}"><i></i>${LIC[l]}</span>`;
+const fcss = (n) => FONTS.find((f) => f.n === n)?.css || "'Inter', sans-serif";
+const visible = () => FONTS.filter((f) =>
+  (!st.col || f.col.includes(st.col)) &&
+  (st.f.cls === 'All' || f.cls === st.f.cls) &&
+  (st.f.lic === 'Any' || (st.f.lic === 'Free' ? f.lic === 'free' : f.lic === 'paid')) &&
+  (!st.q || (f.n + ' ' + f.cls).toLowerCase().includes(st.q.toLowerCase())));
+const nFilters = () => ['cls', 'lic', 'src'].filter((k) => !['All', 'Any'].includes(st.f[k])).length;
+
+// ------------------------------------------------ pieces
+const moreMenu = () => st.menu === 'lib' ? `<div class="menu" role="menu">
+  <button data-toast="Exported 10 fonts, 3 collections and 3 boards">${ICON.Download01Icon}Export library</button>
+  <button data-toast="Pick a library file to import">${ICON.Upload01Icon}Import a library file</button>
+  <div class="sep"></div>
+  <button data-newcol>${ICON.PlusSignIcon}New collection</button></div>` : '';
+const searchbar = (ph = `Search ${FONTS.length} saved fonts`, withView = true) => `
+  <div class="searchbar">
+    <span class="s">${ICON.Search01Small}</span>
+    <input type="text" placeholder="${ph}" value="${esc(st.q)}" data-q aria-label="Search">
+    <button class="iconbtn tip ${st.filters || nFilters() ? 'on' : ''}" data-filters aria-expanded="${st.filters}" aria-label="Filters" data-tip="Filters">${ICON.FilterHorizontalIcon}${nFilters() ? '<span class="dotbadge"></span>' : ''}</button>
+    ${withView ? `<div class="seg2" role="group" aria-label="Layout"><button aria-pressed="${st.view === 'grid'}" data-view="grid" aria-label="Grid">${ICON.GridViewIcon}</button><button aria-pressed="${st.view === 'list'}" data-view="list" aria-label="Wide list">${ICON.Menu01Icon}</button></div>` : ''}
+    <span class="anchor"><button class="iconbtn tip" data-menu="lib" aria-label="More" data-tip="More" aria-expanded="${st.menu === 'lib'}">${ICON.MoreHorizontalIcon}</button>${moreMenu()}</span>
+  </div>`;
+const fgroup = (k, label, opts) => `<div class="fgroup"><span>${label}</span><div class="chips">${opts.map((o) => `<button class="chip" data-f="${k}" data-v="${o}" aria-pressed="${st.f[k] === o}">${o}</button>`).join('')}</div></div>`;
+const FLBL = { cls: 'Style', lic: 'Licence', src: 'Source' };
+const activeFilters = () => !st.filters && nFilters() ? `<div class="activef">${['cls', 'lic', 'src'].filter((k) => !['All', 'Any'].includes(st.f[k])).map((k) => `<button class="chip on" data-unf="${k}" aria-label="Remove filter ${st.f[k]}">${st.f[k]}${ICON.Cancel01Icon}</button>`).join('')}<button class="link" data-clear>Clear all</button></div>` : '';
+const filters = () => st.filters ? `<section class="box filters">
+  <div class="fhead"><h2>Filters</h2><button class="iconbtn tip" data-filters aria-label="Close filters" data-tip="Close">${ICON.Cancel01Icon}</button></div>
+  ${fgroup('cls', 'Style', ['All', 'Serif', 'Sans', 'Mono', 'Display', 'Script'])}
+  ${fgroup('lic', 'Licence', ['Any', 'Free', 'Paid'])}
+  ${fgroup('src', 'Where it comes from', ['Any', 'On Google Fonts', 'Self-hosted', 'Adobe Fonts'])}
+  <div class="ffoot"><button class="link" data-clear ${nFilters() ? '' : 'disabled'}>Clear filters</button><button class="btn sm primary" data-filters>Show ${visible().length} fonts</button></div>
+</section>` : '';
+const colrow = () => `<div class="colrow" role="radiogroup" aria-label="Collections">
+  <button class="chip newcol" data-newcol>${ICON.PlusSignIcon}New collection</button>
+  <button class="chip" data-col="0" aria-pressed="${!st.col}">All <span class="n">${FONTS.length}</span></button>
+  ${COLS.map((c) => `<button class="chip" data-col="${c.id}" aria-pressed="${st.col === c.id}"><span class="sw" style="background:${c.c}"></span><span class="cn">${esc(c.n)}</span><span class="n">${FONTS.filter((f) => f.col.includes(c.id)).length}</span></button>`).join('')}
+</div>`;
+const colbar = () => { const c = COLS.find((x) => x.id === st.col); if (!c) return ''; const n = FONTS.filter((f) => f.col.includes(c.id)).length; return `<section class="box colbar">
+  <span class="sw" style="width:10px;height:10px;border-radius:3px;background:${c.c};flex:none"></span><b><span class="cn">${esc(c.n)}</span><span class="n">${n} ${n === 1 ? 'font' : 'fonts'}</span></b>
+  <button class="btn sm primary" data-editcol="${c.id}">${ICON.PlusSignIcon}Add fonts</button>
+  <span class="anchor"><button class="iconbtn tip" data-menu="col" aria-label="Collection options" data-tip="More" aria-expanded="${st.menu === 'col'}">${ICON.MoreHorizontalIcon}</button>${st.menu === 'col' ? `<div class="menu" role="menu"><button data-editcol="${c.id}">${ICON.Edit02Icon}Rename or change colour</button><div class="sep"></div><button class="danger" data-delcol="${c.id}">${ICON.Delete02Icon}Delete collection</button></div>` : ''}</span></section>`; };
+const tester = () => `<div class="tester">${ICON.Edit02Icon}<input type="text" placeholder="Type to preview" value="${esc(st.text)}" data-text aria-label="Preview text"><span class="px">${st.size}px</span><input type="range" min="16" max="64" value="${st.size}" data-size aria-label="Preview size"></div>`;
+const cardMenu = (f, i, list) => st.menu === 'f' + i ? `<div class="menu" role="menu" style="${list ? 'top:calc(100% + 4px);right:0;min-width:236px' : 'top:40px;right:4px;left:4px;min-width:0'}">
+  <div class="mlbl">Add to collection</div>
+  ${COLS.map((c) => `<button class="mcol" data-addcol="${i}:${c.id}"><span class="mdot" style="background:${c.c}"></span>${c.n}${f.col.includes(c.id) ? `<span class="tick">${ICON.Tick02Small}</span>` : ''}</button>`).join('')}
+  <button data-newcol="${i}">${ICON.PlusSignIcon}New collection…</button>
+  <div class="sep"></div>
+  <button data-toast="Opened ${f.n}">${ICON.ArrowUpRightSmall}Open details</button>
+  <button class="danger" data-toast="Removed ${f.n} from your library">${ICON.Delete02Icon}Remove</button></div>` : '';
+const sample = (f) => esc(st.text || f.n);
+const fonts = () => {
+  const v = visible();
+  if (!v.length) return `<section class="box empty"><h2>No fonts match</h2><p>Try another word, or clear the filters.</p><button class="btn sm" data-clear>Clear filters</button></section>`;
+  if (st.view === 'list') return `<div class="list">${v.map((f) => { const i = FONTS.indexOf(f); return `
+    <div class="lrow" data-open="${f.n}">
+      <div class="nm"><b>${f.n}</b>${lic(f.lic)}<span class="s">${f.cls}</span><span class="anchor"><button class="iconbtn more" data-menu="f${i}" aria-label="Options for ${f.n}">${ICON.MoreHorizontalIcon}</button>${cardMenu(f, i, true)}</span></div>
+      <div class="spec" style="font-family:${f.css};font-size:${st.size}px">${sample(f)}</div>
+    </div>`; }).join('')}</div>`;
+  return `<div class="grid">${v.map((f) => { const i = FONTS.indexOf(f); return `
+    <div class="fcard" data-open="${f.n}">
+      <div class="spec" style="font-family:${f.css};font-size:${Math.min(st.size, 36)}px"><span>${sample(f)}</span></div>
+      <div class="meta"><div class="nm"><b>${f.n}</b></div><div class="sm2">${lic(f.lic)}<span>${f.cls}</span></div></div>
+      <button class="iconbtn more" data-menu="f${i}" aria-label="Options for ${f.n}">${ICON.MoreHorizontalIcon}</button>${cardMenu(f, i)}
+    </div>`; }).join('')}</div>`;
+};
+const saved = (withCols = true) => filters() + activeFilters() + (withCols ? colrow() : '') + colbar() + tester() + fonts();
+
+// ------------------------------------------------ Fonts I've seen and Boards
+const seenBody = () => st.rec === false ? `<section class="box empty"><h2>Fonts I've seen is off</h2><p>Turn it on to keep a history of the fonts on the pages you read, so you can find them later. It stays on this computer.</p><button class="btn primary" data-rec>Turn on</button></section>` : `
+  <section class="box recbar" style="flex-direction:row">
+    <i class="recdot ${st.paused.has('slow-type.studio') ? 'off' : ''}"></i>
+    <span>${st.paused.has('slow-type.studio') ? 'Paused on' : 'Recording on'} <b style="font-weight:500;color:var(--ink)">slow-type.studio</b></span>
+    <button class="btn sm" data-pause="slow-type.studio">${st.paused.has('slow-type.studio') ? ICON.PlayIcon + 'Resume' : ICON.PauseIcon + 'Pause'}</button>
+  </section>
+  <div class="searchbar"><span class="s">${ICON.Search01Small}</span><input type="text" placeholder="A name, a site, serif, heading…" aria-label="Search history"></div>
+  <section class="box">
+    <div class="sechead"><h2>Seen</h2><span class="count">21 fonts</span></div>
+    <div class="seen">${SEEN.map(([n, css, l, site, when, role]) => `
+      <div class="seenrow" data-open="${n}"><span class="n" style="font-family:${css}">${n}</span>${lic(l)}<span class="w"><a href="#">${site}</a> · ${when} · ${role}</span></div>`).join('')}</div>
+    <div><button class="link" data-toast="Showing all 21">Show all 21 ${ICON.ArrowDownSmall}</button></div>
+  </section>
+  <section class="box">
+    <div class="sechead"><h2>Sites</h2><span class="count">${SITES.length}</span></div>
+    <p class="sub">Pause a site to stop recording its fonts, for example your bank or work tools. Fonts already recorded stay until you delete them.</p>
+    <div class="sites">${SITES.map(([h, n]) => `<div class="site ${st.paused.has(h) ? 'paused' : ''}"><b>${h}</b>${st.paused.has(h) ? '<span class="ptag">Paused</span>' : ''}<span>${n} fonts</span>
+      <button class="iconbtn tip" data-pause="${h}" aria-label="${st.paused.has(h) ? 'Record' : 'Stop recording'} ${h}" data-tip="${st.paused.has(h) ? 'Record this site again' : 'Stop recording this site'}">${st.paused.has(h) ? ICON.PlayIcon : ICON.PauseIcon}</button>
+      <button class="iconbtn tip danger" data-toast="Deleted ${h} from the history" aria-label="Delete ${h} from the history" data-tip="Delete its history">${ICON.Delete02Icon}</button></div>`).join('')}</div>
+  </section>
+  <section class="box">
+    <div class="sechead"><h2>History</h2></div>
+    <p class="sub">Kept on this computer only. Nothing is sent anywhere.</p>
+    ${st.confirm ? `<div style="display:flex;gap:8px;align-items:center"><span class="sub" style="flex:1;color:var(--ink)">Delete all 21 fonts from the history?</span><button class="btn sm" data-confirm>Cancel</button><button class="btn sm dangerfill" data-toast="History deleted">Delete</button></div>`
+      : `<div style="display:flex;gap:8px"><button class="btn sm danger" data-confirm>${ICON.Delete02Icon}Delete all history</button><button class="btn sm" data-rec>Turn off</button></div>`}
+  </section>`;
+const newBoardBtn = `<button class="btn sm primary" data-newboard>${ICON.PlusSignIcon}New board</button>`;
+const boardImg = (b, small) => b.fonts.length ? `<div class="bimg ${b.theme} ${small ? 'small' : ''}">${b.fonts.map((f) => `<div class="bline"><span class="bt" style="font-family:${fcss(f)}">${esc(b.text || f)}</span><span class="bn">${f}</span></div>`).join('')}${b.mark && !small ? '<span class="bmark">Made with Font Finder Plus</span>' : ''}</div>`
+  : `<div class="bimg ${b.theme} ${small ? 'small' : ''} bempty"><span>Add fonts to see the board</span></div>`;
+const boardsBody = () => `
+  <div class="boards">${BOARDS.map((b, i) => `
+    <button class="board" data-board="${i}">${boardImg(b, true)}
+      <div class="meta"><b>${esc(b.n || 'Untitled board')}</b><span>${b.fonts.length} ${b.fonts.length === 1 ? 'font' : 'fonts'} · ${b.when}</span></div></button>`).join('')}
+  </div>
+  <p class="sub" style="padding:0 6px">A board is an image of fonts set in your own text, to share with a client or a team. Download it as a PNG.</p>`;
+const boardEditor = () => { const b = BOARDS[st.board]; const left = FONTS.filter((f) => !b.fonts.includes(f.n)); return `
+  <section class="box" style="padding:8px">${boardImg(b)}</section>
+  <section class="box">
+    <label class="fld"><span>Name</span><input type="text" value="${esc(b.n)}" placeholder="Untitled board" data-bname></label>
+    <label class="fld"><span>Text on the board</span><input type="text" value="${esc(b.text)}" placeholder="Each font's name" data-btext></label>
+    <div class="fld"><span>Background of the image</span>
+      <div class="seg3" role="radiogroup" aria-label="Background"><button role="radio" data-theme="light" aria-checked="${b.theme === 'light'}"><i class="sw2 light"></i>Light</button><button role="radio" data-theme="dark" aria-checked="${b.theme === 'dark'}"><i class="sw2 dark"></i>Dark</button></div></div>
+    <div class="inv2"><span>Show “Made with Font Finder Plus”</span><button class="switch" role="switch" aria-checked="${b.mark}" aria-label="Show the credit line" data-mark></button></div>
+  </section>
+  <section class="box">
+    <div class="sechead"><h2>Fonts on this board</h2><span class="count">${b.fonts.length} added</span><span class="grow"></span>${b.fonts.length ? '<button class="link" data-bclear>Clear</button>' : ''}</div>
+    <div class="chips addpills">${FONTS.map((f) => { const on = b.fonts.includes(f.n); return `<button class="chip" aria-pressed="${on}" data-bpick="${f.n}">${on ? ICON.Tick02Small : ICON.PlusSignIcon}<span class="pf" style="font-family:${f.css}">${f.n}</span></button>`; }).join('')}</div>
+    <div class="bacts"><button class="btn primary wide" ${b.fonts.length ? '' : 'disabled'} data-toast="Downloaded ${esc((b.n || 'board').toLowerCase().replace(/\s+/g, '-'))}.png">${ICON.Download01Icon}Download PNG</button>
+      <button class="btn danger wide" data-delboard>${ICON.Delete02Icon}Delete board</button></div>
+  </section>`; };
+const colEditor = () => { const e = st.edit; const isNew = e.id == null; return `
+  <section class="box">
+    <label class="fld"><span class="fl"><span>Name</span><span class="cc" data-cc>${e.name.length}/28</span></span><input type="text" maxlength="28" value="${esc(e.name)}" placeholder="For example: Client pitch" data-cname></label>
+    <div class="fld"><span>Colour</span><div class="swatches" role="radiogroup" aria-label="Colour">${SWATCHES.map((c) => `<button role="radio" aria-checked="${e.color === c}" aria-label="Colour ${c}" data-swatch="${c}" style="--c:${c}"></button>`).join('')}</div></div>
+  </section>
+  <section class="box" style="gap:12px">
+    <div class="sechead"><h2>Fonts in this collection</h2><span class="count">${e.fonts.size} added</span><span class="grow"></span>${e.fonts.size ? '<button class="link" data-pickclear>Clear</button>' : ''}</div>
+    <div class="chips addpills">${FONTS.map((f, i) => `<button class="chip" aria-pressed="${e.fonts.has(i)}" data-pickf="${i}">${e.fonts.has(i) ? ICON.Tick02Small : ICON.PlusSignIcon}<span class="pf" style="font-family:${f.css}">${f.n}</span></button>`).join('')}</div>
+  </section>
+  <button class="btn primary" style="height:40px;border-radius:12px" data-savecol ${e.name.trim() ? '' : 'disabled'}>${isNew ? `Create collection${e.fonts.size ? ` with ${e.fonts.size} ${e.fonts.size === 1 ? 'font' : 'fonts'}` : ''}` : 'Save changes'}</button>
+  ${isNew ? '' : `<button class="link danger" style="align-self:center;margin-top:4px" data-delcol="${e.id}">${ICON.Delete02Icon}Delete collection</button>`}`; };
+const sub = (title, body, extra = '', parent = 'Library', backTo = null) => `<div class="subtop"><button class="backbtn tip" data-back${backTo ? `="${backTo}"` : ''} aria-label="Back to ${parent}" data-tip="Back">${ICON.ArrowLeft01Icon}</button><span class="crumb"><span>${parent}</span><span class="sl">/</span><b>${esc(title)}</b></span>${extra}</div>${body}`;
+
+// ------------------------------------------------ the three versions
+const v1 = () => {
+  if (st.page === 'coledit') return sub(st.edit.id == null ? 'New collection' : (COLS.find((c) => c.id === st.edit.id)?.n || 'Collection'), colEditor());
+  if (st.page === 'seen') return sub("Fonts I've seen", seenBody());
+  if (st.page === 'boards') return sub('Boards', boardsBody(), newBoardBtn);
+  if (st.page === 'board') return sub(BOARDS[st.board].n || 'Untitled board', boardEditor(), '', 'Boards', 'boards');
+  return `${searchbar()}${colrow()}
+  <div class="duo">
+    <button class="tile" data-page="boards"><span class="ic">${ICON.DashboardSquare01Icon}</span><span class="t"><b>Boards</b><span>${BOARDS.length} boards</span></span></button>
+    <button class="tile" data-page="seen"><span class="ic">${ICON.Clock01Icon}</span><span class="t"><b>Fonts I've seen</b><span>21 fonts</span></span></button>
+  </div>${saved(false)}`;
+};
+
+const v2 = () => {
+  if (st.page === 'seen') return sub("Fonts I've seen", seenBody());
+  if (st.page === 'boards') return sub('Boards', boardsBody(), newBoardBtn);
+  if (st.page === 'board') return sub(BOARDS[st.board].n || 'Untitled board', boardEditor(), '', 'Boards', 'boards');
+  if (st.page === 'col') { const c = COLS.find((x) => x.id === st.col); return sub(c ? c.n : 'All saved fonts', searchbar(c ? `Search ${c.n}` : `Search ${FONTS.length} saved fonts`) + filters() + tester() + fonts()); }
+  const go = (attrs, ic, t, s, v) => `<button class="go" ${attrs}><span class="ic">${ic}</span><span class="t"><b>${t}</b><span>${s}</span></span><span class="v">${v}</span><span class="chev">${ICON.ChevR}</span></button>`;
+  const peek = (ids) => ids.map((n) => FONTS.find((f) => f.n === n)).filter(Boolean).map((f) => f.n).join(', ');
+  return `<div class="searchbar"><span class="s">${ICON.Search01Small}</span><input type="text" placeholder="Search everything you've saved" aria-label="Search" data-q><span class="anchor"><button class="iconbtn tip" data-menu="lib" aria-label="More" data-tip="More">${ICON.MoreHorizontalIcon}</button>${moreMenu()}</span></div>
+  <section class="box listbox">
+    <div class="sechead"><h2>Collections</h2><span class="grow"></span><button class="link" data-toast="Name your new collection">${ICON.PlusSignIcon}New</button></div>
+    ${go('data-colpage="0"', `<span style="font-family:'Fraunces';color:var(--ink)">Aa</span>`, 'All saved fonts', peek(['Fraunces', 'Inter', 'Lobster', 'Oswald']) + '…', FONTS.length)}
+    ${COLS.map((c) => { const fs = FONTS.filter((f) => f.col.includes(c.id)); return go(`data-colpage="${c.id}"`, `<span style="width:12px;height:12px;border-radius:4px;background:${c.c}"></span>`, c.n, fs.map((f) => f.n).join(', '), fs.length); }).join('')}
+  </section>
+  <section class="box listbox">
+    ${go('data-page="boards"', ICON.DashboardSquare01Icon, 'Boards', 'Shareable images of fonts', BOARDS.length)}
+    ${go('data-page="seen"', ICON.Clock01Icon, "Fonts I've seen", 'History of the sites you read', 21)}
+  </section>`;
+};
+
+const v3 = () => st.page === 'board' ? sub(BOARDS[st.board].n || 'Untitled board', boardEditor(), '', 'Boards', 'lib') : `
+  <div class="seg" role="tablist">${[['saved', 'Saved', FONTS.length], ['seen', 'Seen', 21], ['boards', 'Boards', BOARDS.length]].map(([k, l, n]) => `<button role="tab" data-seg="${k}" ${st.seg === k ? 'aria-current="true" aria-selected="true"' : ''}>${l} <span class="n">${n}</span></button>`).join('')}</div>
+  ${st.seg === 'saved' ? searchbar() + saved() : st.seg === 'seen' ? seenBody() : `<div style="display:flex;justify-content:flex-end">${newBoardBtn}</div>` + boardsBody()}`;
+const variants = [v1];
+try { const pg = new URLSearchParams(location.search).get('page'); if (pg) st.page = pg; } catch (e) {}
+let current = 0;
+const stage = document.getElementById('stage');
+stage.innerHTML = v1();
+
+// ------------------------------------------------ behaviour
+let toastTimer;
+function toast(m) { document.querySelector('.toast')?.remove(); const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = m; document.body.appendChild(t); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), 2200); }
+function rerender(keepFocus) {
+  const a = document.activeElement, sel = a && a.matches('[data-q],[data-text]') ? (a.matches('[data-q]') ? '[data-q]' : '[data-text]') : null, pos = a?.selectionStart;
+  const y = scrollY; stage.innerHTML = variants[current](); scrollTo(0, y);
+  document.querySelector('.topbar').hidden = !!stage.querySelector('.subtop');
+  const row = stage.querySelector('.colrow'), on = row?.querySelector('[aria-pressed="true"]'); if (row && on) row.scrollLeft = Math.max(0, on.offsetLeft - row.clientWidth + on.offsetWidth + 24 > 0 ? on.offsetLeft - 60 : 0);
+  if (sel) { const n = stage.querySelector(sel); n?.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} }
+}
+document.addEventListener('click', (e) => {
+  const q = (s) => e.target.closest(s); let el;
+  if (st.menu && !q('.menu') && !q('[data-menu]')) { st.menu = null; rerender(); if (!q('button')) return; }
+  if ((el = q('[data-menu]'))) { e.stopPropagation(); st.menu = st.menu === el.dataset.menu ? null : el.dataset.menu; rerender(); return; }
+  if ((el = q('[data-addcol]'))) { const [i, c] = el.dataset.addcol.split(':').map(Number); const f = FONTS[i]; f.col = f.col.includes(c) ? f.col.filter((x) => x !== c) : [...f.col, c]; toast(f.col.includes(c) ? `Added ${f.n} to ${COLS.find((x) => x.id === c).n}` : `Removed from ${COLS.find((x) => x.id === c).n}`); rerender(); return; }
+  if ((el = q('[data-newcol]'))) { const fi = el.dataset.newcol; st.edit = { id: null, name: '', color: SWATCHES[COLS.length % SWATCHES.length], fonts: new Set(fi !== '' && fi != null ? [+fi] : []) }; st.menu = null; st.page = 'coledit'; rerender(); scrollTo(0, 0); stage.querySelector('[data-cname]')?.focus(); return; }
+  if ((el = q('[data-editcol]'))) { const c = COLS.find((x) => x.id === +el.dataset.editcol); st.edit = { id: c.id, name: c.n, color: c.c, fonts: new Set(FONTS.map((f, i) => (f.col.includes(c.id) ? i : -1)).filter((i) => i >= 0)) }; st.menu = null; st.page = 'coledit'; rerender(); scrollTo(0, 0); return; }
+  if ((el = q('[data-swatch]'))) { st.edit.color = el.dataset.swatch; rerender(); return; }
+  if ((el = q('[data-pickf]'))) { const i = +el.dataset.pickf; st.edit.fonts.has(i) ? st.edit.fonts.delete(i) : st.edit.fonts.add(i); rerender(); return; }
+  if (q('[data-pickclear]')) { st.edit.fonts.clear(); rerender(); return; }
+  if (q('[data-savecol]')) { const e = st.edit; let c = COLS.find((x) => x.id === e.id); if (!c) { c = { id: Math.max(...COLS.map((x) => x.id)) + 1 }; COLS.push(c); } c.n = e.name.trim(); c.c = e.color; FONTS.forEach((f, i) => { f.col = f.col.filter((x) => x !== c.id); if (e.fonts.has(i)) f.col.push(c.id); }); toast(e.id == null ? `Created ${c.n}` : 'Saved'); st.col = c.id; st.page = null; st.edit = null; rerender(); scrollTo(0, 0); return; }
+  if ((el = q('[data-delcol]'))) { const id = +el.dataset.delcol; const c = COLS.find((x) => x.id === id); COLS.splice(COLS.indexOf(c), 1); FONTS.forEach((f) => (f.col = f.col.filter((x) => x !== id))); toast(`Deleted ${c.n}. Its fonts stay in your library.`); st.col = 0; st.page = null; st.menu = null; rerender(); scrollTo(0, 0); return; }
+  if ((el = q('[data-unf]'))) { st.f[el.dataset.unf] = el.dataset.unf === 'cls' ? 'All' : 'Any'; rerender(); return; }
+  if (q('[data-filters]')) { st.filters = !st.filters; rerender(); return; }
+  if ((el = q('[data-f]'))) { st.f[el.dataset.f] = el.dataset.v; rerender(); return; }
+  if (q('[data-clear]')) { st.f = { cls: 'All', lic: 'Any', src: 'Any' }; st.q = ''; rerender(); return; }
+  if ((el = q('[data-view]'))) { st.view = el.dataset.view; rerender(); return; }
+  if ((el = q('[data-col]'))) { st.col = +el.dataset.col; st.menu = null; rerender(); return; }
+  if ((el = q('[data-colpage]'))) { st.col = +el.dataset.colpage; st.page = 'col'; rerender(); scrollTo(0, 0); return; }
+  if ((el = q('[data-page]'))) { st.page = el.dataset.page; rerender(); scrollTo(0, 0); return; }
+  if ((el = q('[data-back]'))) { const to = el.dataset.back; st.page = to === 'boards' ? 'boards' : null; if (!to) st.col = 0; st.menu = null; rerender(); scrollTo(0, 0); return; }
+  if (q('[data-newboard]')) { BOARDS.unshift({ n: '', text: '', fonts: [], theme: 'light', mark: true, when: 'Edited just now' }); st.board = 0; st.page = 'board'; rerender(); scrollTo(0, 0); stage.querySelector('[data-bname]')?.focus(); return; }
+  if ((el = q('[data-board]'))) { st.board = +el.dataset.board; st.page = 'board'; rerender(); scrollTo(0, 0); return; }
+  if ((el = q('[data-theme]')) && st.page === 'board') { BOARDS[st.board].theme = el.dataset.theme; rerender(); return; }
+  if (q('[data-mark]')) { BOARDS[st.board].mark = !BOARDS[st.board].mark; rerender(); return; }
+  if ((el = q('[data-bpick]'))) { const b = BOARDS[st.board], n = el.dataset.bpick; b.fonts = b.fonts.includes(n) ? b.fonts.filter((f) => f !== n) : [...b.fonts, n]; rerender(); return; }
+  if (q('[data-bclear]')) { BOARDS[st.board].fonts = []; rerender(); return; }
+  if ((el = q('[data-bremove]'))) { const b = BOARDS[st.board]; b.fonts = b.fonts.filter((f) => f !== el.dataset.bremove); rerender(); return; }
+  if ((el = q('[data-badd]'))) { BOARDS[st.board].fonts.push(el.dataset.badd); st.menu = null; rerender(); return; }
+  if (q('[data-delboard]')) { BOARDS.splice(st.board, 1); st.page = current === 2 ? null : 'boards'; toast('Board deleted'); rerender(); scrollTo(0, 0); return; }
+  if ((el = q('[data-seg]'))) { st.seg = el.dataset.seg; rerender(); return; }
+  if ((el = q('[data-pause]'))) { const h = el.dataset.pause; st.paused.has(h) ? st.paused.delete(h) : st.paused.add(h); toast(st.paused.has(h) ? `Paused on ${h}` : `Recording on ${h} again`); rerender(); return; }
+  if (q('[data-confirm]')) { st.confirm = !st.confirm; rerender(); return; }
+  if (q('[data-rec]')) { st.rec = !st.rec; toast(st.rec ? "Fonts I've seen is on" : "Fonts I've seen is off"); rerender(); return; }
+  if ((el = q('[data-toast]'))) { e.preventDefault(); st.menu = null; st.confirm = false; toast(el.dataset.toast); rerender(); return; }
+  if ((el = q('[data-open]')) && !q('button')) { toast(`Opens ${el.dataset.open} in Details`); }
+});
+document.addEventListener('input', (e) => {
+  if (e.target.matches('[data-q]')) { st.q = e.target.value; rerender(); }
+  else if (e.target.matches('[data-text]')) { st.text = e.target.value; rerender(); }
+  else if (e.target.matches('[data-cname]')) { st.edit.name = e.target.value; const cc = stage.querySelector('[data-cc]'); if (cc) cc.textContent = e.target.value.length + '/28'; const b = stage.querySelector('[data-savecol]'); if (b) b.disabled = !st.edit.name.trim(); }
+  else if (e.target.matches('[data-bname]')) { BOARDS[st.board].n = e.target.value; const c = document.querySelector('.crumb b'); if (c) c.textContent = e.target.value || 'Untitled board'; }
+  else if (e.target.matches('[data-btext]')) { BOARDS[st.board].text = e.target.value; document.querySelectorAll('.bimg .bt').forEach((n) => (n.textContent = e.target.value || n.nextElementSibling.textContent)); }
+  else if (e.target.matches('[data-size]')) { st.size = +e.target.value; stage.querySelectorAll('.lrow .spec').forEach((s) => (s.style.fontSize = st.size + 'px')); stage.querySelectorAll('.fcard .spec').forEach((s) => (s.style.fontSize = Math.min(st.size, 36) + 'px')); stage.querySelector('.tester .px').textContent = st.size + 'px'; }
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && st.menu) { st.menu = null; rerender(); } });
+
+</script>
+
+<script>
+(() => {
+  const CUR = "library";
+  const TABS = [['page', 'Page', 'index.html'], ['image', 'Image', 'image.html'], ['system', 'System', 'system.html'], ['library', 'Library', 'library.html']];
+  const GEAR = "<svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15.5 12C15.5 13.933 13.933 15.5 12 15.5C10.067 15.5 8.5 13.933 8.5 12C8.5 10.067 10.067 8.5 12 8.5C13.933 8.5 15.5 10.067 15.5 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"></path><path d=\"M21.011 14.0965C21.5329 13.9558 21.7939 13.8854 21.8969 13.7508C22 13.6163 22 13.3998 22 12.9669V11.0332C22 10.6003 22 10.3838 21.8969 10.2493C21.7938 10.1147 21.5329 10.0443 21.011 9.90358C19.0606 9.37759 17.8399 7.33851 18.3433 5.40087C18.4817 4.86799 18.5509 4.60156 18.4848 4.44529C18.4187 4.28902 18.2291 4.18134 17.8497 3.96596L16.125 2.98673C15.7528 2.77539 15.5667 2.66972 15.3997 2.69222C15.2326 2.71472 15.0442 2.90273 14.6672 3.27873C13.208 4.73448 10.7936 4.73442 9.33434 3.27864C8.95743 2.90263 8.76898 2.71463 8.60193 2.69212C8.43489 2.66962 8.24877 2.77529 7.87653 2.98663L6.15184 3.96587C5.77253 4.18123 5.58287 4.28891 5.51678 4.44515C5.45068 4.6014 5.51987 4.86787 5.65825 5.4008C6.16137 7.3385 4.93972 9.37763 2.98902 9.9036C2.46712 10.0443 2.20617 10.1147 2.10308 10.2492C2 10.3838 2 10.6003 2 11.0332V12.9669C2 13.3998 2 13.6163 2.10308 13.7508C2.20615 13.8854 2.46711 13.9558 2.98902 14.0965C4.9394 14.6225 6.16008 16.6616 5.65672 18.5992C5.51829 19.1321 5.44907 19.3985 5.51516 19.5548C5.58126 19.7111 5.77092 19.8188 6.15025 20.0341L7.87495 21.0134C8.24721 21.2247 8.43334 21.3304 8.6004 21.3079C8.76746 21.2854 8.95588 21.0973 9.33271 20.7213C10.7927 19.2644 13.2088 19.2643 14.6689 20.7212C15.0457 21.0973 15.2341 21.2853 15.4012 21.3078C15.5682 21.3303 15.7544 21.2246 16.1266 21.0133L17.8513 20.034C18.2307 19.8187 18.4204 19.711 18.4864 19.5547C18.5525 19.3984 18.4833 19.132 18.3448 18.5991C17.8412 16.6616 19.0609 14.6226 21.011 14.0965Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"></path></svg>";
+  const patch = () => {
+    document.querySelectorAll('.topbar:not([data-app])').forEach((tb) => {
+      tb.dataset.app = '1';
+      tb.innerHTML = '<nav class="tabs" aria-label="Sections">' + TABS.map(([k, l, h]) => '<a href="' + h + '"' + (k === CUR ? ' aria-current="page"' : '') + '>' + l + '</a>').join('') + '</nav><a class="setbtn" href="settings.html" aria-label="Settings">' + GEAR + '</a>';
+    });
+    const sub = document.querySelector('.subtop'); const tb = document.querySelector('.topbar');
+    if (tb && CUR === 'library') tb.hidden = !!sub;
+  };
+  new MutationObserver(patch).observe(document.documentElement, { childList: true, subtree: true });
+  patch();
+  const go = (h) => { location.href = h; };
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    const href = t.closest('[data-href]'); if (href) { e.preventDefault(); e.stopImmediatePropagation(); return go(href.dataset.href); }
+    if (t.closest('[data-goback]')) { e.preventDefault(); e.stopImmediatePropagation(); return history.length > 1 ? history.back() : go('index.html'); }
+    if (CUR === 'page' && t.closest('[data-open]')) { e.preventDefault(); e.stopImmediatePropagation(); return go('details.html'); }
+    if (CUR === 'details' && t.closest('[data-toast="Back to the Page tab"]')) { e.preventDefault(); e.stopImmediatePropagation(); return go('index.html'); }
+    const dt = t.closest('[data-toast]');
+    if (dt && /^Opens Details/.test(dt.dataset.toast)) { e.preventDefault(); e.stopImmediatePropagation(); return go('details.html'); }
+    if (CUR === 'library' && t.closest('[data-open]') && !t.closest('button')) { e.preventDefault(); e.stopImmediatePropagation(); return go('details.html'); }
+  }, true);
+})();
+</script>
