@@ -431,3 +431,24 @@ a.btn { text-decoration: none; }
 .seenrow { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; border-top: 1px solid var(--line); }
 .seenrow:first-of-type { border-top: 0; }
 .seenrow a { color: var(--ink); }
+
+/* Type system health */
+.healthscore { display: flex; align-items: baseline; gap: 2px; padding: 10px 14px; border-radius: 14px; background: var(--field); flex: none; }
+.healthscore b { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; }
+.healthscore span { font-size: 12px; color: var(--muted); }
+.healthscore.good b { color: var(--green-text); }
+.healthscore.warn b { color: var(--amber-text); }
+.healthscore.bad b { color: var(--red-text); }
+.healthparts { display: flex; flex-direction: column; gap: 4px; }
+.healthpart { border-top: 1px solid var(--line); padding: 8px 0; }
+.healthpart summary { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; list-style: none; }
+.healthpart summary::-webkit-details-marker { display: none; }
+.healthpart[open] summary { margin-bottom: 8px; }
+.healthpart > .row { padding: 3px 0; }
+.healthbar { width: 90px; height: 6px; border-radius: 3px; background: var(--field); overflow: hidden; flex: none; }
+.healthbar i { display: block; height: 100%; border-radius: 3px; }
+.healthbar i.good { background: var(--green); }
+.healthbar i.warn { background: var(--amber); }
+.healthbar i.bad { background: var(--red-text); }
+.healthpart summary svg { transition: transform 0.15s ease; flex: none; }
+.healthpart[open] summary svg { transform: rotate(180deg); }

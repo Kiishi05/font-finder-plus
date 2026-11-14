@@ -72,6 +72,14 @@ In the Image tab, paste, upload or drop a picture (or right-click one on a page)
 - Each match is labelled **Likely this font** (only for very close matches, right every time in the accuracy test), **Closest free fonts**, or **Probably a paid or custom font**.
 - **Details** opens the full font page: who made it, the licence, where to get it (Google Fonts, the foundry, or Fontshare), letters, languages and look-alikes.
 
+## Type system health check
+
+The System tab starts with one score out of 100 for the page's typography, from five parts: **font families** (two or three is plenty; fonts that never load), **sizes** (how many, near-duplicates, whether they follow a scale), **weights** (per family, and weights loaded but not used), **loading** (file size, formats, font-display, preloading) and **readability** (contrast, small or thin text, body size and line height). Each part opens to show what was found and what to change. **Copy report** copies it as text. Only what is measured on the page counts.
+
+The System tab also exports the type system for **Webflow** (a setup guide: fonts, variables, tag styles and classes with their values, since Webflow has no way to paste styles) and **Framer** (each text style with its tag and values), next to CSS, Tailwind and design tokens.
+
+Fonts served by **Adobe Fonts** get a **Find it on Adobe Fonts** link (Adobe's own search, since family page addresses cannot be guessed) and a note that using them needs your own Adobe plan or a licence from the foundry.
+
 ## Fonts I've seen
 
 Library > **Fonts I've seen** keeps a history of the fonts on the pages you read with the panel, so you can find them later ("where did I see that serif?"). It is **off until you turn it on** (there, or in Settings). Search by name, site, kind of font (serif, sans, mono, script, display), role (heading, body, code) or licence (free, paid). Pause it on any site, delete one site, or delete everything. It is stored only in this browser on this computer.

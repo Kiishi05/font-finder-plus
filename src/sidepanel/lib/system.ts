@@ -142,7 +142,7 @@ function googleImport(styles: NamedStyle[], fams: Map<string, Family>): string |
   return `https://fonts.googleapis.com/css2?${parts.join('&')}&display=swap`;
 }
 
-export type ExportFormat = 'css' | 'tailwind3' | 'tailwind4' | 'tokens' | 'framer';
+export type ExportFormat = 'css' | 'tailwind3' | 'tailwind4' | 'tokens' | 'framer' | 'webflow';
 
 export const EXPORTS: { id: ExportFormat; label: string; file: string; note: string }[] = [
   { id: 'css', label: 'CSS variables', file: 'type-system.css', note: 'Paste into your stylesheet. Fonts not on Google Fonts need their own @font-face and a licence.' },
@@ -150,6 +150,7 @@ export const EXPORTS: { id: ExportFormat; label: string; file: string; note: str
   { id: 'tailwind3', label: 'Tailwind v3 (config)', file: 'tailwind.config.js', note: 'Merge into theme.extend in tailwind.config.js.' },
   { id: 'tokens', label: 'Design tokens (Figma)', file: 'type-tokens.json', note: 'W3C design tokens format. Import into Figma with the Tokens Studio plugin, or any tool that reads design tokens.' },
   { id: 'framer', label: 'Framer text styles', file: 'framer-text-styles.txt', note: 'Framer does not import style files, so this lists each style to create under Assets, Text Styles, with values in the units Framer uses.' },
+  { id: 'webflow', label: 'Webflow styles', file: 'webflow-type-system.txt', note: 'Webflow has no official way to paste styles, so this is a setup guide: fonts, variables, then each tag and class with its values, in the order to create them.' },
 ];
 
 export function exportSystem(format: ExportFormat, styles: NamedStyle[], host: string): string {
@@ -212,12 +213,14 @@ export function exportSystem(format: ExportFormat, styles: NamedStyle[], host: s
     }
     return JSON.stringify({ $description: head, font: { family }, typography }, null, 2);
   }
+  if (format === 'webflow') return webflowGuide(styles, fams, head);
   // Framer
-  const lines = [head, '', 'Create each one in Framer under Assets, Text Styles.', ''];
+  const lines = [head, '', 'Create each one in Framer under Assets, Text Styles. Set its Tag (H1 to H6 or Paragraph) so it keeps its meaning for search engines.', ''];
   for (const s of styles) {
     const f = fam(s);
     lines.push(
       `${s.name}`,
+      `  Tag: ${/^h[1-6]$/.test(s.name) ? s.name.toUpperCase() : 'Paragraph'}`,
       `  Font: ${f.name} ${s.weight}${s.style !== 'normal' ? ' italic' : ''}`,
       `  Size: ${r(s.size)}px`,
       `  Line height: ${s.lh == null ? 'normal' : `${r(s.lh, 2)}em (${Math.round(s.lh * 100)}%)`}`,
@@ -229,6 +232,42 @@ export function exportSystem(format: ExportFormat, styles: NamedStyle[], host: s
   lines.push('Fonts:');
   for (const f of fams.values()) lines.push(`  ${f.name}: ${f.google ? 'on Google Fonts, available in Framer\'s font picker' : 'not on Google Fonts; upload the font files in Framer (needs a licence that allows it)'}`);
   return lines.join('\n');
+}
+
+/** Webflow: set up fonts, variables, tag styles (Body, H1 to H6) and classes, in that order. */
+function webflowGuide(styles: NamedStyle[], fams: ReturnType<typeof families>, head: string): string {
+  const L: string[] = [head, ''];
+  L.push('1. Fonts (Site settings > Fonts)');
+  for (const f of fams.values()) L.push(`   ${f.name}: ${f.google ? 'add it under Google Fonts, with the weights below' : 'upload its font files under Custom fonts (you need a licence that allows web use)'}`);
+  const weights = new Map<string, Set<string>>();
+  for (const s of styles) {
+    const set = weights.get(fams.get(s.fontKey)!.name) ?? new Set<string>();
+    set.add(s.weight);
+    weights.set(fams.get(s.fontKey)!.name, set);
+  }
+  for (const [n, ws] of weights) L.push(`   ${n} weights used: ${[...ws].sort().join(', ')}`);
+  L.push('', '2. Variables (Variables panel > New collection "Typography")');
+  for (const f of fams.values()) L.push(`   Font family  font-${f.token} = ${f.name}`);
+  for (const s of styles) L.push(`   Size  text-${s.name} = ${r(s.size)}px`);
+  L.push('', '3. Tag styles (Style panel > Selector: "All H1 Headings", "Body (All Pages)" and so on)');
+  const tags = styles.filter((s) => s.name === 'body' || /^h[1-6]$/.test(s.name));
+  const classes = styles.filter((s) => !tags.includes(s));
+  const block = (s: NamedStyle) => {
+    const f = fams.get(s.fontKey)!;
+    return [
+      `   Font: ${f.name}, ${s.weight}${s.style !== 'normal' ? ', italic' : ''}`,
+      `   Size: ${r(s.size)}px (or the text-${s.name} variable)`,
+      `   Height (line height): ${s.lh == null ? 'Auto' : `${r(s.lh, 2)} (unitless)`}`,
+      `   Letter spacing: ${s.em ? `${s.em}em` : '0em'}`,
+      ...(s.transform !== 'none' ? [`   Letter case: ${s.transform}`] : []),
+    ];
+  };
+  for (const s of tags) L.push(`   ${s.name === 'body' ? 'Body (All Pages)' : `All ${s.name.toUpperCase()} Headings`}`, ...block(s), '');
+  if (classes.length) {
+    L.push('4. Classes (add a class to an element, then set its type)');
+    for (const s of classes) L.push(`   .${s.name}`, ...block(s), '');
+  }
+  return L.join('\n').trimEnd();
 }
 
 // ------------------------------------------------------------- developer

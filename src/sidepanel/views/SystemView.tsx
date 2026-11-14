@@ -8,6 +8,7 @@ import { Select } from '../components/Select';
 import { copyToClipboard, usePageScan, useSystemScan, type TabState } from '../lib/hooks';
 import { usePreviewFamily } from '../lib/preview';
 import { SendToFigma } from '../components/SendToFigma';
+import { healthCheck } from '../lib/health';
 import { EXPORTS, detectScale, devSummary, exportSystem, nameStyles, type ExportFormat, type NamedStyle } from '../lib/system';
 
 interface Props {
@@ -39,7 +40,7 @@ export function SystemView({ tab, toast }: Props) {
   return (
     <>
       <nav className="jump" aria-label="Jump to">
-        {[['sys-styles', 'Styles'], ['sys-read', 'Readability'], ['sys-dev', 'Developer'], ['sys-figma', 'Figma'], ['sys-export', 'Export'], ['sys-compare', 'Compare']].map(([id, label]) => (
+        {[['sys-health', 'Health'], ['sys-styles', 'Styles'], ['sys-read', 'Readability'], ['sys-dev', 'Developer'], ['sys-figma', 'Figma'], ['sys-export', 'Export'], ['sys-compare', 'Compare']].map(([id, label]) => (
           <button key={id} onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{label}</button>
         ))}
       </nav>
@@ -47,6 +48,7 @@ export function SystemView({ tab, toast }: Props) {
       {error && <div className="notice amber"><Icon icon={Alert02Icon} size={15} />{error}</div>}
       {system && scan && (
         <>
+          <HealthCard styles={styles} scan={scan} system={system} toast={toast} />
           <StylesCard styles={styles} scan={scan} tabId={tab.tabId} toast={toast} />
           <ReadabilityCard issues={system.issues} tabId={tab.tabId} toast={toast} />
           <DevCard system={system} scan={scan} />
@@ -61,6 +63,53 @@ export function SystemView({ tab, toast }: Props) {
         </>
       )}
     </>
+  );
+}
+
+// ------------------------------------------------------------- health
+
+const PART_TONE = (n: number) => (n >= 85 ? 'good' : n >= 65 ? 'warn' : 'bad');
+const FIND_LABEL = { bad: 'Fix', warn: 'Check', tip: 'Tip', ok: 'Good' } as const;
+const FIND_TONE = { bad: 'bad', warn: 'warn', tip: 'neutral', ok: 'good' } as const;
+
+function HealthCard({ styles, scan, system, toast }: { styles: NamedStyle[]; scan: PageScan; system: SystemScan; toast: (m: string) => void }) {
+  const health = useMemo(() => healthCheck({ scan, styles, issues: system.issues, dev: devSummary(system.dev, scan), scale: detectScale(styles) }), [scan, styles, system]);
+  const report = () =>
+    [`Type system health for ${scan.host}: ${health.score}/100 (${health.grade})`, '', ...health.parts.flatMap((p) => [`${p.label}: ${p.score}/100`, ...p.findings.map((f) => `  - ${f.text}${f.fix ? ` ${f.fix}` : ''}`), ''])].join('\n');
+  return (
+    <section className="section" id="sys-health">
+      <h2>[Health] Type system check</h2>
+      <div className="row" style={{ gap: 14, alignItems: 'center' }}>
+        <div className={`healthscore ${PART_TONE(health.score)}`} aria-label={`Score ${health.score} out of 100`}>
+          <b>{health.score}</b><span>/100</span>
+        </div>
+        <div className="stack grow">
+          <b style={{ fontSize: 15 }}>{health.grade}</b>
+          <span className="muted" style={{ fontSize: 12 }}>From what this page actually uses: font families, sizes, weights, how fonts load, and readability.</span>
+        </div>
+      </div>
+      <div className="healthparts">
+        {health.parts.map((p) => (
+          <details key={p.id} className="healthpart">
+            <summary>
+              <span className="grow">{p.label}</span>
+              <span className="healthbar" aria-hidden="true"><i className={PART_TONE(p.score)} style={{ width: `${p.score}%` }} /></span>
+              <span className="mono" style={{ fontSize: 12, width: 34, textAlign: 'right' }}>{p.score}</span>
+              <Icon icon={ArrowDown01Icon} size={14} />
+            </summary>
+            {p.findings.map((f, i) => (
+              <div key={i} className="row" style={{ alignItems: 'flex-start', fontSize: 12.5, gap: 8 }}>
+                <span className={`pill ${FIND_TONE[f.level]}`}>{FIND_LABEL[f.level]}</span>
+                <span className="grow">{f.text}{f.fix && <span className="muted"> {f.fix}</span>}</span>
+              </div>
+            ))}
+          </details>
+        ))}
+      </div>
+      <div className="row" style={{ gap: 6 }}>
+        <button className="btn sm" onClick={async () => (await copyToClipboard(report())) && toast('Copied the health report')}><Icon icon={Copy01Icon} size={13} />Copy report</button>
+      </div>
+    </section>
   );
 }
 

@@ -193,3 +193,10 @@ export function freeSourceOf(family: string): { site: string; licence: string; u
   const gf = googleFamily(family);
   return { site: 'Google Fonts', licence: LICENSE_LABEL[gf?.l ?? 'OFL'], url: googleFontsUrl(gf?.family ?? family) };
 }
+
+/**
+ * Adobe Fonts' own search for a family (the address its site gives search
+ * engines). Family pages have addresses that cannot be guessed reliably, so
+ * the search is used instead.
+ */
+export const adobeFontsUrl = (name: string) => `https://fonts.adobe.com/search?query=${encodeURIComponent(name.replace(/\s+(web|pro|std|var|vf)$/i, ''))}`;

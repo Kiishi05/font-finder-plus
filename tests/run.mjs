@@ -470,7 +470,19 @@ try {
   try { const t = JSON.parse(await exported()); tokensOk = t.typography?.h1?.$type === 'typography'; } catch { tokensOk = false; }
   check('design tokens export is valid JSON', tokensOk);
   await panel.selectOption('select[aria-label="Export format"]', 'framer');
-  check('Framer export lists text styles', (await exported()).includes('Line height:'));
+  check('Framer export lists text styles with their tags', (await exported()).includes('Line height:') && (await exported()).includes('Tag: H1'));
+  await panel.selectOption('select[aria-label="Export format"]', 'webflow');
+  const wf = await exported();
+  check('Webflow export is a setup guide: fonts, variables, tag styles and classes', /Site settings > Fonts/.test(wf) && /Variables panel/.test(wf) && /All H1 Headings/.test(wf) && /Body \(All Pages\)/.test(wf), wf.slice(0, 160));
+  // Phase 10: type system health check
+  const health = await panel.locator('#sys-health').innerText();
+  const score = Number(/(\d+)\s*\/100/.exec(health)?.[1] ?? -1);
+  check('health check gives one score out of 100 with a grade', score >= 0 && score <= 100 && /Excellent|Good|Fair|Needs work/.test(health), health.slice(0, 120).replace(/\n/g, ' '));
+  check('health check scores families, sizes, weights, loading and readability', ['Font families', 'Sizes', 'Weights', 'Loading', 'Readability'].every((k) => health.includes(k)));
+  await panel.locator('#sys-health summary', { hasText: 'Readability' }).click();
+  await panel.locator('#sys-health summary', { hasText: 'Font families' }).click();
+  const healthOpen = await panel.locator('#sys-health').innerText();
+  check('health findings say what to fix (low contrast, a font that never loads)', /Low contrast text/.test(healthOpen) && /never loads/.test(healthOpen) && score < 100, healthOpen.replace(/\s+/g, ' ').slice(0, 300));
   const cmp = await panel.locator('#sys-compare').innerText();
   check('compare shows the other tab', cmp.includes('127.0.0.1') && /Fonts/.test(cmp) && /Body text/.test(cmp), cmp.slice(0, 120).replace(/\n/g, ' '));
 
@@ -872,8 +884,9 @@ try {
   check('Google Docs and Figma are recognised as drawing text as pictures', !!acc.drawsTextAsPictures('https://docs.google.com/document/d/abc/edit') && !!acc.drawsTextAsPictures('https://www.figma.com/design/abc/x') && !acc.drawsTextAsPictures('https://stripe.com'));
   // Junk lines from text recognition, crosswalk stripes, and names in the post around a picture.
   const tmp5 = path.join(root, 'node_modules/.cache/ffp-ocrclean.mjs');
-  await build({ stdin: { contents: "export * from './src/sidepanel/lib/ocrclean.ts'; export * from './src/shared/textdetect.ts'; export { namesFromContext } from './src/sidepanel/lib/fontnames.ts';", resolveDir: root, loader: 'ts' }, outfile: tmp5, format: 'esm', bundle: true, platform: 'node', logLevel: 'silent', loader: { '.json': 'json' } });
+  await build({ stdin: { contents: "export * from './src/sidepanel/lib/ocrclean.ts'; export * from './src/shared/textdetect.ts'; export { namesFromContext } from './src/sidepanel/lib/fontnames.ts'; export { adobeFontsUrl } from './src/shared/catalog.ts';", resolveDir: root, loader: 'ts' }, outfile: tmp5, format: 'esm', bundle: true, platform: 'node', logLevel: 'silent', loader: { '.json': 'json' } });
   const oc = await import(tmp5);
+  check('Adobe Fonts links use its own search (no guessed page addresses)', oc.adobeFontsUrl('Freight Text Pro') === 'https://fonts.adobe.com/search?query=Freight%20Text');
   const OL = (text, confidence) => ({ text, confidence, bbox: { x0: 0, y0: 0, x1: 1, y1: 1 }, baseline: null, symbols: [] });
   const kept = oc.realLines([OL('CEgl es — — Es', 52), OL('®) © a', 61), OL('Lil Grotesk', 74), OL('Payments infrastructure for the internet', 91), OL('ee EE', 40), OL('Lauch Type', 66)]).map((l) => l.text);
   check('text recognition junk is dropped, real lines are kept', kept.join('|') === 'Lil Grotesk|Payments infrastructure for the internet|Lauch Type', kept.join('|'));

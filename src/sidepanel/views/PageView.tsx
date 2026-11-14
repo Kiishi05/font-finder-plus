@@ -1,9 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useRef, useState } from 'react';
-import { CLASS_LABEL, SOURCE_LABEL, freeSourceOf, licenseBadge } from '../../shared/catalog';
+import { CLASS_LABEL, SOURCE_LABEL, freeSourceOf, licenseBadge, adobeFontsUrl } from '../../shared/catalog';
 import { declarationCss } from '../../shared/css';
 import { db, saveFont } from '../../shared/db';
-import { Share08Icon, Alert02Icon, ArrowDown01Icon, ArrowRight01Icon, ArrowUp01Icon, Bookmark02Icon, CloseIcon, SourceCodeIcon, Target02Icon } from '../../shared/icons';
+import { Share08Icon, Alert02Icon, ArrowDown01Icon, ArrowRight01Icon, ArrowUp01Icon, Bookmark02Icon, CloseIcon, SourceCodeIcon, Target02Icon, ArrowUpRight01Icon } from '../../shared/icons';
 import { sendToExtension, sendToTab } from '../../shared/messages';
 import { bestFileUrl, fontId, recordFromUsage } from '../../shared/records';
 import { hasAllSitesAccess, requestAllSitesAccess } from '../../shared/settings';
@@ -305,6 +305,9 @@ function FontCard({ f, tester, tabId, host, swappedTo, onOpen, toast }: { f: Pag
           <span>Showing <b>{swappedTo}</b> on the page instead</span>
           <button className="linkbtn" onClick={() => undoSwap(tabId, f.key)}>Undo</button>
         </div>
+      )}
+      {f.source === 'adobe' && !catalogFamily && (
+        <a className="linkbtn" style={{ fontSize: 12, alignSelf: 'flex-start' }} href={adobeFontsUrl(name)} target="_blank" rel="noreferrer">Find it on Adobe Fonts <Icon icon={ArrowUpRight01Icon} size={12} /></a>
       )}
       <div className="actions">
         <button className={outlined ? 'on' : ''} aria-pressed={outlined} title={outlined ? 'Remove the outlines' : 'Outline the text on the page that uses this font'} onClick={show}>

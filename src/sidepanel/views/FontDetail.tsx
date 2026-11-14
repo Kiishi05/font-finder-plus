@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { knownFont } from '../../shared/licences';
-import { CLASS_LABEL, SOURCE_LABEL, googleFamily, googleFontsUrl, licenseBadge } from '../../shared/catalog';
+import { CLASS_LABEL, SOURCE_LABEL, googleFamily, googleFontsUrl, licenseBadge, adobeFontsUrl } from '../../shared/catalog';
 import { declarationCss, fontStackCss, round, tidyStack } from '../../shared/css';
 import { db, saveFont, upsertFont } from '../../shared/db';
 import { Alert02Icon, Share08Icon, ArrowLeft01Icon, ArrowUpRight01Icon, Bookmark02Icon, Copy01Icon, Delete02Icon, SourceCodeIcon } from '../../shared/icons';
@@ -232,6 +232,12 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, onShare, pa
             {data.source === 'image' ? 'Not in the catalogues we know. Search for it by name to find who makes it.' : parsed || kind !== 'web' ? 'Not in the Google Fonts catalogue.' : 'Not matched to Google Fonts yet. The font file is being checked.'}
           </span>
         )}
+        {data.source === 'adobe' && !gf && (
+          <a className="btn" href={adobeFontsUrl(name)} target="_blank" rel="noreferrer">
+            Find it on Adobe Fonts <Icon icon={ArrowUpRight01Icon} size={15} />
+          </a>
+        )}
+        {data.source === 'adobe' && !gf && <span className="muted" style={{ fontSize: 11.5 }}>This site loads it from Adobe Fonts. To use it, add it to a web project with your own Adobe plan (most Creative Cloud plans include Adobe Fonts), or license it from the foundry.</span>}
         {data.source === 'image' && !gf && <span className="muted" style={{ fontSize: 11.5 }}>This font was named in an image. Font Finder Plus does not have its file, so previews below use a stand-in and its letters and languages cannot be checked.</span>}
       </section>
 

@@ -1,7 +1,7 @@
 // Builds what "Send to Figma" copies: every font on the page with its licence,
 // where to get it, its closest free stand-in and a preview, plus the page's
 // text styles. Everything is worked out here, on this computer.
-import { googleFontsUrl } from '../../shared/catalog';
+import { googleFontsUrl, adobeFontsUrl } from '../../shared/catalog';
 import { FIGMA_MARK, serializePayload, type FigmaFont, type FigmaPayload, type FigmaPreview, type FigmaStyle } from '../../shared/figma-payload';
 import { knownFont, summaryFor } from '../../shared/licences';
 import { sendToTab } from '../../shared/messages';
@@ -42,6 +42,7 @@ async function fontFor(f: PageFontUsage, tabId: number): Promise<FigmaFont> {
   const catalogFamily = rec?.catalogFamily ?? f.catalogFamily;
   let getIt: FigmaFont['getIt'] = null;
   if (catalogFamily) getIt = { label: 'Google Fonts (free)', url: googleFontsUrl(catalogFamily) };
+  else if (f.source === 'adobe') getIt = { label: 'Adobe Fonts (with an Adobe plan)', url: adobeFontsUrl(name) };
   else if (known) getIt = { label: known.by, url: known.url };
   else if (sum.url) getIt = { label: sum.name, url: sum.url };
 
