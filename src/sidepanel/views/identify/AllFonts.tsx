@@ -1,8 +1,8 @@
 // "Fonts in this image": every text style in a picture matched on its own, plus
 // font names written in it ("Font: Clash Display"). Save them all at once.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { LICENSE_LABEL, allGoogleFamilies, googleFamily, googleFontsUrl, licenseBadge } from '../../../shared/catalog';
-import { ArrowUpRight01Icon, FolderAddIcon } from '../../../shared/icons';
+import { ArrowUpRight01Icon, FolderAddIcon, Tick02Icon } from '../../../shared/icons';
 import { SaveFontButton } from '../../components/SaveFontButton';
 import { imageVerdict, type Verdict } from '../../../shared/imagerank';
 import { knownFont, licenceTypeFor } from '../../../shared/licences';
@@ -72,7 +72,10 @@ export function blocksFor(lines: OcrLine[]): TextBlock[] {
     .slice(0, 8);
 }
 
-export function AllFonts({ image, lines, postNames = [], scan, tabId, samePage, onOpenFontId, toast }: {
+/** The best match of one block, for the Recent list. */
+export interface BlockSummary { family: string; bold: boolean; score: number; reason: string; text: string; size: number }
+
+export function AllFonts({ image, lines, postNames = [], scan, tabId, samePage, onOpenFontId, toast, onDone, headExtra }: {
   image: HTMLCanvasElement;
   lines: OcrLine[];
   /** Font names in the post around the picture. */
@@ -83,6 +86,10 @@ export function AllFonts({ image, lines, postNames = [], scan, tabId, samePage, 
   samePage: boolean;
   onOpenFontId: (id: string) => void;
   toast: (m: string) => void;
+  /** Every block has been matched: the best match of each, best first (for the Recent list). */
+  onDone?: (best: BlockSummary[]) => void;
+  /** Quiet extra controls in the heading card ("Pick one line instead"). */
+  headExtra?: ReactNode;
 }) {
   const blocks = useMemo(() => blocksFor(lines), [lines]);
   const names = useMemo(() => {
@@ -103,12 +110,17 @@ export function AllFonts({ image, lines, postNames = [], scan, tabId, samePage, 
   const [results, setResults] = useState<(BlockResult | null)[]>([]);
   const [pick, setPick] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
+  const doneRef = useRef(onDone);
+  doneRef.current = onDone;
 
+  // The page's fonts only matter for a picture from this page (a new scan of another page does not re-match).
+  const pageScan = samePage ? scan : null;
   useEffect(() => {
     let live = true;
     setResults(blocks.map(() => null));
     (async () => {
-      const extra = samePage && scan ? await pageFontFiles(scan.fonts, tabId) : [];
+      const extra = pageScan ? await pageFontFiles(pageScan.fonts, tabId) : [];
+      const out: BlockResult[] = [];
       for (let i = 0; i < blocks.length; i++) {
         const glyphs = cutGlyphs(image, blocks[i].lines, {});
         const all = glyphs.length >= 2 ? await matchGlyphs(glyphs, 80, extra).catch(() => []) : [];
@@ -162,13 +174,21 @@ export function AllFonts({ image, lines, postNames = [], scan, tabId, samePage, 
         }
         const r: BlockResult = { matches, letters: glyphs.length, verdict, nameCheck, corrected };
         if (!live) return;
+        out.push(r);
         setResults((prev) => prev.map((x, j) => (j === i ? r : x)));
       }
+      if (!live) return;
+      const best = out
+        .map((r, i) => ({ m: r.matches[0], b: blocks[i] }))
+        .filter(({ m }) => m && m.score > 0)
+        .map(({ m, b }) => ({ family: m.family, bold: m.bold, score: m.score, reason: m.reason, text: b.text, size: b.size }))
+        .sort((x, y) => y.score - x.score);
+      doneRef.current?.(best);
     })();
     return () => {
       live = false;
     };
-  }, [blocks, image, samePage, scan, tabId, names]);
+  }, [blocks, image, pageScan, tabId, names]);
 
   // A name written inside a block names that block's font ("Clash Display" set in Clash Display).
   const nameOf = (b: TextBlock) => names.find((n) => b.lines.some((l) => l.index === n.line)) ?? null;
@@ -193,7 +213,7 @@ export function AllFonts({ image, lines, postNames = [], scan, tabId, samePage, 
         await saveWithImage(recordForName(fam), image, col);
         done.add(fam);
       }
-      toast(done.size ? `Saved ${done.size} ${done.size === 1 ? 'font' : 'fonts'} to a new collection, with the image` : 'Nothing clear enough to save. Pick a font in a card first.');
+      toast(done.size ? `Saved ${done.size} ${done.size === 1 ? 'font' : 'fonts'} to a new collection, with the picture` : 'Nothing clear enough to save. Pick a font in a card first.');
     } finally {
       setSaving(false);
     }
@@ -205,91 +225,113 @@ export function AllFonts({ image, lines, postNames = [], scan, tabId, samePage, 
   const hidden = (i: number) => !!results[i] && results[i]!.matches.every((m) => m.score === 0) && !nameOf(blocks[i]);
   const shownCount = blocks.filter((_, i) => !hidden(i)).length;
   const hiddenCount = blocks.length - shownCount;
+  const total = shownCount + inPost.length + loose.length;
 
   return (
-    <section className="section" id="allfonts">
-      <h2>[Fonts in this image] {shownCount} {shownCount === 1 ? 'text style' : 'text styles'}{names.length ? ` · ${names.length} named` : ''}</h2>
-      <span className="muted" style={{ fontSize: 12 }}>Each block of text in a different size or style is matched on its own. Font names written in the image are looked up too.</span>
-      <button className="btn primary" onClick={saveAll} disabled={saving || pending}>
-        <Icon icon={FolderAddIcon} size={15} />{saving ? 'Saving…' : pending ? 'Matching…' : 'Save all to a new collection'}
-      </button>
-
-      {inPost.length > 0 && (
-        <div className="stack" style={{ gap: 6 }}>
-          <span className="label">[Named in the post]</span>
-          {inPost.map((n) => <NamedRow key={n.name} n={n} onOpen={() => open(n.name)} image={image} toast={toast} />)}
+    <div className="iresults" id="allfonts">
+      <section className="section ireshead">
+        <div className="sechead">
+          <h2>Fonts in this picture<span className="count">{total}</span></h2>
+          <button className="btn sm primary" onClick={saveAll} disabled={saving || pending} title="Save every font found to a new collection, with the picture">
+            <Icon icon={FolderAddIcon} size={15} />{saving ? 'Saving…' : pending ? 'Matching…' : 'Save all'}
+          </button>
         </div>
-      )}
+        {headExtra}
+      </section>
 
-      {loose.length > 0 && (
-        <div className="stack" style={{ gap: 6 }}>
-          <span className="label">[Named in the image]</span>
-          {loose.map((n) => <NamedRow key={n.name} n={n} onOpen={() => open(n.name)} image={image} toast={toast} />)}
-        </div>
-      )}
+      {inPost.map((n) => <NamedCard key={`p-${n.name}`} n={n} where="post" onOpen={() => open(n.name)} image={image} toast={toast} />)}
+      {loose.map((n) => <NamedCard key={`i-${n.name}`} n={n} where="picture" onOpen={() => open(n.name)} image={image} toast={toast} />)}
 
-      <div className="blocks">
-        {blocks.map((b, i) => hidden(i) ? null : (
-          <BlockCard key={i} i={blocks.slice(0, i).filter((_, j) => !hidden(j)).length} total={shownCount} block={b} image={image} result={results[i]} named={results[i]?.corrected?.name ?? nameOf(b)} picked={chosen(i)} onPick={(f) => setPick({ ...pick, [i]: f })} onOpen={open} toast={toast} />
-        ))}
-      </div>
-      {hiddenCount > 0 && !pending && <span className="muted" style={{ fontSize: 11.5 }}>{hiddenCount} more {hiddenCount === 1 ? 'bit' : 'bits'} of text could not be read clearly enough to compare, so {hiddenCount === 1 ? 'it is' : 'they are'} left out.</span>}
-      <span className="muted" style={{ fontSize: 11.5 }}>
-        Compared on this computer with free Google Fonts{samePage ? ' and the fonts this page uses' : ''}. "Likely this font" is used only for very close matches. A paid font gets its closest free look-alikes, not its name, unless the name is written in the image.
-      </span>
-    </section>
+      {blocks.map((b, i) => hidden(i) ? null : (
+        <BlockCard key={i} i={blocks.slice(0, i).filter((_, j) => !hidden(j)).length} block={b} image={image} result={results[i]} named={results[i]?.corrected?.name ?? nameOf(b)} picked={chosen(i)} onPick={(f) => setPick({ ...pick, [i]: f })} onOpen={open} toast={toast} />
+      ))}
+
+      <p className="ifoot">
+        {hiddenCount > 0 && !pending && `${hiddenCount} more ${hiddenCount === 1 ? 'bit' : 'bits'} of text could not be read clearly enough to compare, so ${hiddenCount === 1 ? 'it is' : 'they are'} left out. `}
+        Compared on this computer with free Google Fonts and Fontshare fonts{samePage ? ' and the fonts this page uses' : ''}. A paid font gets its closest free look-alikes, not its name, unless the name is written in the picture.
+      </p>
+    </div>
   );
 }
 
-function crop(image: HTMLCanvasElement, b: TextBlock['box']): string {
+/** The block cut out of the picture, and the colour around its letters (for the box it sits in). */
+function crop(image: HTMLCanvasElement, b: TextBlock['box']): { url: string; bg: string; dark: boolean } {
   const pad = 4;
   const x = Math.max(0, b.x0 - pad), y = Math.max(0, b.y0 - pad);
   const w = Math.min(image.width - x, b.x1 - b.x0 + pad * 2), h = Math.min(image.height - y, b.y1 - b.y0 + pad * 2);
   const c = document.createElement('canvas');
   c.width = Math.max(1, w);
   c.height = Math.max(1, h);
-  c.getContext('2d')!.drawImage(image, x, y, w, h, 0, 0, w, h);
-  return c.toDataURL('image/png');
+  const ctx = c.getContext('2d', { willReadFrequently: true })!;
+  ctx.drawImage(image, x, y, w, h, 0, 0, w, h);
+  // The middle value of the four corners is nearly always the background.
+  const px = [[0, 0], [c.width - 1, 0], [0, c.height - 1], [c.width - 1, c.height - 1]].map(([cx, cy]) => [...ctx.getImageData(cx, cy, 1, 1).data.slice(0, 3)]);
+  const mid = [0, 1, 2].map((k) => px.map((p) => p[k]).sort((p, q) => p - q)[1]);
+  const luma = (0.299 * mid[0] + 0.587 * mid[1] + 0.114 * mid[2]) / 255;
+  return { url: c.toDataURL('image/png'), bg: `rgb(${mid.join(',')})`, dark: luma < 0.5 };
 }
 
-/** Where to get a font: Google Fonts (free), its foundry (paid or free elsewhere), or a plain note. */
-function WhereToGet({ name }: { name: string }) {
+/** The licence badge for a font name: green only for free, amber for paid, a grey ring when unknown. */
+export function licOf(name: string): { tone: 'free' | 'warn' | 'neutral'; text: string; title: string } {
   const gf = googleFamily(name);
-  if (gf) return <a className="btn sm ghost" href={googleFontsUrl(gf.family)} target="_blank" rel="noreferrer">Get it free: Google Fonts <Icon icon={ArrowUpRight01Icon} size={13} /></a>;
+  if (gf) return { tone: 'free', text: 'Free', title: `Free · ${gf.l && gf.l in LICENSE_LABEL ? LICENSE_LABEL[gf.l as keyof typeof LICENSE_LABEL] : 'Google Fonts'}` };
+  const free = freeFont(name);
+  if (free) return { tone: 'free', text: 'Free', title: `Free · ${freeLicenceLabel(free)} · ${SOURCE_NAME[free.s]}` };
   const k = knownFont(name);
-  if (k) return <a className="btn sm ghost" href={k.url} target="_blank" rel="noreferrer">{k.licence === 'commercial' ? `Buy from ${k.by}` : `Get it from ${k.by}`} <Icon icon={ArrowUpRight01Icon} size={13} /></a>;
+  if (k) {
+    const t = licenceTypeFor(k);
+    const b = licenseBadge(t);
+    return { tone: b.tone, text: b.tone === 'neutral' ? 'Not in our lists' : b.text, title: t in LICENSE_LABEL ? LICENSE_LABEL[t as keyof typeof LICENSE_LABEL] : `${b.text}, from ${k.by}` };
+  }
+  return { tone: 'neutral', text: 'Not in our lists', title: `Not in ${CATALOGUES_CHECKED.join(', ')}` };
+}
+
+export function Lic({ name }: { name: string }) {
+  const l = licOf(name);
+  return <span className={`lic ${l.tone}`} title={l.title}><i />{l.text}</span>;
+}
+
+/** Where to get a font: Google Fonts (free), its foundry (paid or free elsewhere), or a web search. */
+export function WhereToGet({ name }: { name: string }) {
+  const gf = googleFamily(name);
+  if (gf) return <a className="linkbtn getlink" href={googleFontsUrl(gf.family)} target="_blank" rel="noreferrer" title="Get it free on Google Fonts">Google Fonts<Icon icon={ArrowUpRight01Icon} size={14} /></a>;
+  const k = knownFont(name);
+  if (k) return <a className="linkbtn getlink" href={k.url} target="_blank" rel="noreferrer">{k.licence === 'commercial' ? `Buy from ${k.by}` : `Get it from ${k.by}`}<Icon icon={ArrowUpRight01Icon} size={14} /></a>;
   return (
-    <a className="btn sm ghost" href={`https://www.google.com/search?q=${encodeURIComponent(`"${name}" font`)}`} target="_blank" rel="noreferrer" title="Not in the catalogues Font Finder Plus knows. Opens a web search.">
-      Search the web for it <Icon icon={ArrowUpRight01Icon} size={13} />
+    <a className="linkbtn getlink" href={`https://www.google.com/search?q=${encodeURIComponent(`"${name}" font`)}`} target="_blank" rel="noreferrer" title="Not in the catalogues Font Finder Plus knows. Opens a web search.">
+      Search the web<Icon icon={ArrowUpRight01Icon} size={14} />
     </a>
   );
 }
 
-function NamedRow({ n, onOpen, image, toast }: { n: NamedFont; onOpen: () => void; image: HTMLCanvasElement; toast: (m: string) => void }) {
+export const Tick = ({ children }: { children: ReactNode }) => <span className="istatus"><Icon icon={Tick02Icon} size={14} /><span>{children}</span></span>;
+export const Note = ({ children }: { children: ReactNode }) => <span className="inote">{children}</span>;
+
+/** A font named in the post or the picture, with no text block of its own. */
+function NamedCard({ n, where, onOpen, image, toast }: { n: NamedFont; where: 'post' | 'picture'; onOpen: () => void; image: HTMLCanvasElement; toast: (m: string) => void }) {
   const rec = recordForName(n.name);
-  const lic = n.kind === 'google' ? googleFamily(n.name)?.l : n.known ? licenceTypeFor(n.known) : null;
-  const badge = licenseBadge(rec.licenseType);
   const free = n.kind === 'google' ? null : freeFont(n.name);
+  const listed = free ? SOURCE_NAME[free.s] : n.kind === 'google' ? 'Google Fonts' : n.known?.by ?? 'a foundry we know';
   return (
-    <div className="named">
-      <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-        <b className="grow">{n.name}</b>
-        <span className={`lic ${badge.tone}`}><i />{free ? `Free · ${freeLicenceLabel(free)}` : lic && lic in LICENSE_LABEL ? LICENSE_LABEL[lic as keyof typeof LICENSE_LABEL] : badge.text}</span>
+    <section className="section ires named">
+      <div className="iinfo">
+        <div className="nmrow"><b>{n.name}</b><Lic name={n.name} /></div>
+        {n.kind !== 'unknown'
+          ? <Tick>Named in the {where}. Listed on {listed}{rec.foundry && rec.foundry !== listed ? `, by ${rec.foundry}` : ''}</Tick>
+          : <Note>{n.line < 0 ? 'Named in the post next to a link to its font page' : "Possibly the font's name (the biggest text in a post about a typeface)"}, but not confirmed: it is not in {CATALOGUES_CHECKED.join(', ')}. Who made it and its licence are unknown.</Note>}
       </div>
-      {n.kind !== 'unknown' && <span className="muted" style={{ fontSize: 11.5 }}>Confirmed: listed on {free ? SOURCE_NAME[free.s] : n.kind === 'google' ? 'Google Fonts' : n.known?.by ?? 'a foundry we know'}.</span>}
-      {n.kind === 'unknown' && <span className="muted" style={{ fontSize: 11.5 }}>{n.line < 0 ? 'Named in the post next to a link to its font page' : "Possibly the font's name (the biggest text in a post about a typeface)"}, but not confirmed: it is not in {CATALOGUES_CHECKED.join(', ')}. Who made it and its licence are unknown.</span>}
-      {rec.foundry && <span className="muted" style={{ fontSize: 11.5 }}>By {rec.foundry}</span>}
-      <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+      <div className="racts">
         <button className="btn sm" onClick={onOpen}>Details</button>
         <SaveFontButton fontId={rec.id} name={n.name} onSave={() => saveWithImage(rec, image)} toast={toast} />
+        <span className="grow" />
         <WhereToGet name={n.name} />
       </div>
-    </div>
+    </section>
   );
 }
 
-function BlockCard({ i, total, block, image, result, named, picked, onPick, onOpen, toast }: {
-  i: number; total: number; block: TextBlock; image: HTMLCanvasElement; result: BlockResult | null; named: NamedFont | null;
+function BlockCard({ i, block, image, result, named, picked, onPick, onOpen, toast }: {
+  i: number; block: TextBlock; image: HTMLCanvasElement; result: BlockResult | null; named: NamedFont | null;
   picked: string | null; onPick: (f: string) => void; onOpen: (name: string) => void; toast: (m: string) => void;
 }) {
   const thumb = useMemo(() => crop(image, block.box), [image, block]);
@@ -301,47 +343,90 @@ function BlockCard({ i, total, block, image, result, named, picked, onPick, onOp
   // in Google Fonts): never call the match "likely" then.
   const nameDiffers = !!named && !!m && named.name.toLowerCase() !== m.family.toLowerCase();
   const verdict = result ? (isTop && !(nameDiffers && result.verdict === 'exact') ? result.verdict : result.verdict === 'unlikely' ? 'unlikely' : 'close') : null;
+  // What the card is about: a name confirmed by its letters; a name that cannot be checked here
+  // (paid, or not in our lists) with its free look-alikes; or text matched by its letters.
+  const confirmed = !!named && !!m && result?.nameCheck === 'agrees' && !nameDiffers;
+  const aboutName = !!named && !!m && nameDiffers && result?.nameCheck !== 'differs';
+  const differs = !!named && !!m && result?.nameCheck === 'differs';
+  const subjectFamily = confirmed || aboutName ? named!.name : m?.family ?? '';
+  const subject = confirmed || aboutName ? named!.name : m ? `${m.family}${m.bold ? ' Bold' : ''}` : '';
+  const k = named ? knownFont(named.name) : null;
+  const showChips = !!result && result.matches.length > 1 && !confirmed;
+  const pageFont = !!m?.onPage && !aboutName && !confirmed;
+
+  let status: ReactNode = null;
+  if (result && m && verdict) {
+    if (confirmed) status = result.corrected ? <Tick>Read as “{result.corrected.read}”; the letters match {named!.name}</Tick> : <Tick>Name and letters match</Tick>;
+    else if (aboutName) {
+      status = k?.licence === 'commercial'
+        ? <Note>Paid, from {k.by}. Closest free: {m.family} {m.score}%</Note>
+        : k
+          ? <Note>From {k.by}, so its letters cannot be compared here. Closest free: {m.family} {m.score}%</Note>
+          : <Note>{named!.name} is not in the font lists we check, so its letters cannot be compared. Closest free: {m.family} {m.score}%</Note>;
+    } else if (differs) status = <Note>The image names {named!.name}, but these letters look different. <span className="nlinks"><button className="linkbtn" onClick={() => onOpen(named!.name)}>Details for {named!.name}</button><WhereToGet name={named!.name} /></span></Note>;
+    else if (pageFont) status = <Tick>A font this page uses</Tick>;
+    else if (verdict === 'exact') status = <Tick>Likely this font: its letters match very closely</Tick>;
+    else if (verdict === 'unlikely') status = <Note>No free font is a close match, so it is probably paid or made for this design. These are the nearest free ones</Note>;
+    else status = <Note>{named ? 'Closest free font by its letters' : 'No name in the picture. Closest free font by its letters'}</Note>;
+  }
+
   return (
-    <div className="blockcard">
-      <span className="mono muted" style={{ fontSize: 10.5 }}>TEXT STYLE {i + 1} OF {total} · {result ? `${result.letters} letters compared` : 'matching…'}</span>
-      <img className="blockimg" src={thumb} alt={`Text style ${i + 1} from your image`} />
-      {named && (
-        <div className="named inline">
-          <span className="muted" style={{ fontSize: 11.5 }}>{named.kind === 'unknown' ? 'Possible font name (not confirmed):' : 'Named here:'}</span> <b>{named.name}</b>
-          <button className="btn sm" onClick={() => onOpen(named.name)}>Details</button>
-          <WhereToGet name={named.name} />
+    <section className="section ires blockcard" aria-label={`Text style ${i + 1}`}>
+      <div className={`icut${thumb.dark ? ' dark' : ''}`} style={{ background: thumb.bg }}>
+        <img src={thumb.url} alt={`Text style ${i + 1} from your picture`} />
+        {m && !m.onPage && !confirmed && g.ready && <span className="isample" dir="auto" style={{ fontFamily: g.css, fontWeight: m.bold ? 700 : 400 }} title={`Your text set in ${m.family}`}>{sample}</span>}
+      </div>
+      {!result && <div className="iinfo"><Note>Comparing letters…</Note></div>}
+      {result && !m && (
+        <div className="iinfo">
+          {named && <div className="nmrow"><b>{named.name}</b><Lic name={named.name} /></div>}
+          <Note>Too few letters could be cut out to compare. Joined-up script lettering often cannot be split into letters.</Note>
         </div>
       )}
-      {named && result?.corrected && <span className="muted" style={{ fontSize: 11.5 }}>Read as "{result.corrected.read}", but the word drawn in {named.name} matches the picture.</span>}
-      {named && result?.nameCheck === 'agrees' && <span className="muted" style={{ fontSize: 11.5 }}>Confirmed two ways: the name is written here, and its letters match {named.name}.</span>}
-      {named && result?.nameCheck === 'differs' && <span className="muted" style={{ fontSize: 11.5 }}>The letters do not look like {named.name}, so the name may be written in another font. The matches below go by the letters.</span>}
-      {named && result?.nameCheck === 'unchecked' && <span className="muted" style={{ fontSize: 11.5 }}>{named.kind === 'unknown' ? `${named.name} is not in the font lists we check, so its letters cannot be compared.` : `${named.name} is a known font, but not one from Google Fonts or Fontshare, so its letters cannot be compared here.`} The closest free fonts by its letters are below.</span>}
-      {!result && <span className="muted" style={{ fontSize: 12 }}>Comparing letters…</span>}
-      {result && !m && <span className="muted" style={{ fontSize: 12 }}>Too few letters could be cut out to compare. Joined-up script lettering often cannot be split into letters.</span>}
-      {result && m && verdict && (
+      {result && m && (
         <>
-          <div className="row" style={{ gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
-            <span className={`verdict ${verdict}`}>{VERDICT_LABEL[verdict]}</span>
-            <b className="grow" style={{ fontSize: 13.5 }}>{m.family}{m.bold ? ' Bold' : ''}</b>
-            <span className="mono" style={{ fontSize: 12 }}>{m.score}%</span>
+          <div className="iinfo">
+            <div className="nmrow">
+              <b>{subject}</b>
+              {pageFont ? <span className="gtag">On this page</span> : <Lic name={subjectFamily} />}
+              <span className="grow" />
+              <span className="pct" title={`${result.letters} letters compared`}>{m.score}% match</span>
+            </div>
+            {status}
           </div>
-          <div className="mprev" dir="auto" style={{ fontFamily: m.onPage ? undefined : g.css, fontWeight: m.bold ? 700 : 400 }}>{sample}</div>
-          {nameDiffers && <span className="muted" style={{ fontSize: 11.5 }}>The image names {named!.name}. These are the free fonts (Google Fonts and Fontshare) that look closest to it.</span>}
-          {result.verdict === 'unlikely' && <span className="muted" style={{ fontSize: 11.5 }}>No free font is a close match, so the font in your image is probably paid or made for this design. These are the nearest free ones.</span>}
-          {result.matches.length > 1 && (
-            <div className="chips" role="radiogroup" aria-label={`Other matches for text style ${i + 1}`}>
-              {result.matches.map((x) => (
-                <button key={x.family} role="radio" aria-checked={x.family === m.family} className={`chip${x.family === m.family ? ' on' : ''}`} onClick={() => onPick(x.family)}>{x.family} {x.score}%</button>
-              ))}
+          {showChips && (
+            <div className="others">
+              <span className="olbl">{aboutName ? 'Closest free matches' : 'Other free matches'}</span>
+              <div className="chips" role="radiogroup" aria-label={`Other matches for text style ${i + 1}`}>
+                {result.matches.map((x) => (
+                  <button key={x.family} role="radio" aria-checked={x.family === m.family} className={`chip${x.family === m.family ? ' on' : ''}`} onClick={() => onPick(x.family)}>{x.family} {x.score}%</button>
+                ))}
+              </div>
+              {/* The card is about the name; the picked look-alike can still be opened, saved or fetched. */}
+              {aboutName && !m.onPage && (
+                <div className="altacts">
+                  <span className="grow">{m.family}</span>
+                  <button className="linkbtn" onClick={() => onOpen(m.family)}>Details</button>
+                  <SaveFontButton fontId={recordForName(m.family).id} name={m.family} onSave={() => saveWithImage(recordForName(m.family), image)} toast={toast} />
+                  <WhereToGet name={m.family} />
+                </div>
+              )}
             </div>
           )}
-          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-            {!m.onPage && <button className="btn sm" onClick={() => onOpen(m.family)}>Details</button>}
-            {!m.onPage && <SaveFontButton fontId={recordForName(m.family).id} name={m.family} onSave={() => saveWithImage(recordForName(m.family), image)} toast={toast} />}
-            {m.onPage ? <span className="gtag">A font this page uses</span> : <WhereToGet name={m.family} />}
+          <div className="racts">
+            {pageFont ? (
+              <span className="inote">Compared with the fonts this page uses</span>
+            ) : (
+              <>
+                <button className="btn sm" onClick={() => onOpen(subjectFamily)}>Details</button>
+                <SaveFontButton fontId={recordForName(subjectFamily).id} name={subjectFamily} onSave={() => saveWithImage(recordForName(subjectFamily), image)} toast={toast} />
+                <span className="grow" />
+                <WhereToGet name={subjectFamily} />
+              </>
+            )}
           </div>
         </>
       )}
-    </div>
+    </section>
   );
 }

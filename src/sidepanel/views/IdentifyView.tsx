@@ -1,15 +1,15 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { googleFamily, googleFontsUrl, LICENSE_LABEL, licenseBadge } from '../../shared/catalog';
+import { googleFamily, licenseBadge } from '../../shared/catalog';
 import { db, saveFont } from '../../shared/db';
 import { SaveFontButton } from '../components/SaveFontButton';
 import { ensureRecord, pageFontFiles } from '../lib/imagefonts';
 import { knownFont } from '../../shared/licences';
 import { findFontNames, namesFromContext } from '../lib/fontnames';
 import { splitSamples } from '../lib/segments';
-import { AllFonts, VERDICT_LABEL, blocksFor } from './identify/AllFonts';
+import { AllFonts, Lic, Note, Tick, WhereToGet, blocksFor, type BlockSummary } from './identify/AllFonts';
 import { imageVerdict } from '../../shared/imagerank';
-import { Alert02Icon, ArrowUpRight01Icon, Delete02Icon, ImageCropIcon, ImageUploadIcon, PerspectiveIcon, RotateClockwiseIcon, ScanImageIcon, Target02Icon } from '../../shared/icons';
+import { Alert02Icon, ArrowDown01Icon, ContrastIcon, Delete02Icon, ImageCropIcon, ImageNotFound01Icon, ImageUploadIcon, InformationCircleIcon, PerspectiveIcon, RotateClockwiseIcon, ScanImageIcon, Target02Icon } from '../../shared/icons';
 import { sendToTab } from '../../shared/messages';
 import type { ImageJob, LicenseType, PageFontUsage, PageScan } from '../../shared/types';
 import { bestFileUrl, fontId, recordFromUsage } from '../../shared/records';
@@ -49,9 +49,22 @@ interface Exact {
   pictures: number;
 }
 
-type Source = { canvas: HTMLCanvasElement; kind: NonNullable<ImageJob['source']>; pageUrl?: string; /** Alt text and the post around the picture, on a page. */ context?: string[] };
+type Source = {
+  canvas: HTMLCanvasElement;
+  kind: NonNullable<ImageJob['source']>;
+  pageUrl?: string;
+  /** Alt text and the post around the picture, on a page. */
+  context?: string[];
+  /** What the picture card calls it: the file's name, or where it came from. */
+  name?: string;
+  /** Opened again from Recent: its entry there is updated instead of adding a new one. */
+  jobId?: number;
+};
+
+const KIND_NAME: Record<Source['kind'], string> = { paste: 'Pasted picture', upload: 'Uploaded picture', page: 'Area of the page', image: 'Picture from the page' };
 
 const MAX_SIDE = 2400;
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 
 async function canvasFromBlob(blob: Blob): Promise<HTMLCanvasElement> {
   const bmp = await createImageBitmap(blob);
@@ -78,14 +91,36 @@ async function captureRect(tabId: number, r: { x: number; y: number; w: number; 
   return c;
 }
 
+const hostOf = (url?: string) => {
+  try {
+    return url ? new URL(url).hostname : '';
+  } catch {
+    return '';
+  }
+};
+
+/** "Today", "Yesterday" or "12 Nov". */
+function when(t: number): string {
+  const d = new Date(t), now = new Date();
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(now) - day(d)) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...(d.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}) });
+}
+
 export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFontId, toast }: Props) {
   const { scan } = usePageScan(tab.tabId, !!tab.ping, tab.ping?.url, tab.fontsVersion);
   const [exact, setExact] = useState<Exact | null>(null);
+  // Match the area as a picture (off when a selected area is only real text, read exactly).
   const [showEditor, setShowEditor] = useState(true);
   const [source, setSource] = useState<Source | null>(null);
   const [edit, setEdit] = useState<Edit>(NO_EDIT);
   const [autoInverted, setAutoInverted] = useState(false);
+  const [adjust, setAdjust] = useState(false);
   const [lines, setLines] = useState<OcrLine[] | null>(null);
+  // The prepared picture the text was read from (adjusting does not change results until it is read again).
+  const [readImage, setReadImage] = useState<HTMLCanvasElement | null>(null);
   const [chosen, setChosen] = useState<number[]>([]);
   const [corrections, setCorrections] = useState<Record<string, string>>({});
   const [matches, setMatches] = useState<ImageMatch[] | null>(null);
@@ -93,10 +128,13 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
   const [busy, setBusy] = useState<null | 'loading' | 'reading' | 'matching'>(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [viewJob, setViewJob] = useState<ImageJob | null>(null);
+  // A file that is not a picture we can open.
+  const [openFail, setOpenFail] = useState<{ name?: string; detail: string } | null>(null);
   // Every text style in the image, or one chosen line.
   const [mode, setMode] = useState<'all' | 'line'>('all');
   const fileRef = useRef<HTMLInputElement>(null);
+  const autoRead = useRef<Source | null>(null);
+  const remembered = useRef<HTMLCanvasElement | null>(null);
   // Font names in the post around the picture ("… — Lil Grotesk").
   const postNames = useMemo(() => namesFromContext(source?.context), [source]);
 
@@ -104,19 +142,21 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
     setSource(null);
     setEdit(NO_EDIT);
     setLines(null);
+    setReadImage(null);
     setChosen([]);
     setCorrections({});
     setMatches(null);
     setError(null);
-    setViewJob(null);
+    setOpenFail(null);
     setAutoInverted(false);
     setExact(null);
     setShowEditor(true);
+    setAdjust(false);
   };
 
-  const load = useCallback(async (canvas: HTMLCanvasElement, kind: Source['kind'], pageUrl?: string, context?: string[]) => {
+  const load = useCallback(async (canvas: HTMLCanvasElement, kind: Source['kind'], pageUrl?: string, context?: string[], name?: string, jobId?: number) => {
     reset();
-    setSource({ canvas, kind, pageUrl, context });
+    setSource({ canvas, kind, pageUrl, context, name, jobId });
     // Light text on a dark background reads better inverted.
     if (looksInverted(finish(canvas, NO_EDIT))) {
       setEdit({ ...NO_EDIT, invert: true });
@@ -127,11 +167,13 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
   const loadFile = async (file: File | Blob, kind: Source['kind']) => {
     setBusy('loading');
     setError(null);
+    setOpenFail(null);
+    const name = file instanceof File && kind === 'upload' ? file.name : undefined;
     try {
       const canvas = file instanceof File && isHeic(file) ? await heicToCanvas(file) : await canvasFromBlob(file);
-      await load(canvas, kind);
+      await load(canvas, kind, undefined, undefined, name);
     } catch (err) {
-      setError(err instanceof Error ? err.message : typeof err === 'string' ? `This image could not be opened: ${err}` : 'This image could not be opened.');
+      setOpenFail({ name: file instanceof File ? file.name : undefined, detail: err instanceof Error ? err.message : typeof err === 'string' ? `This image could not be opened: ${err}` : 'This image could not be opened.' });
     } finally {
       setBusy(null);
     }
@@ -195,6 +237,7 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
   const selectArea = async () => {
     if (tab.tabId == null) return;
     setError(null);
+    setOpenFail(null);
     const r = await sendToTab<{ rect: { x: number; y: number; w: number; h: number; dpr: number } | null; inside: Exact | null }>(tab.tabId, { type: 'ffp:select-area' }, 120000);
     if (!r) {
       setError('The page did not answer. Click the Font Finder Plus icon on the page first.');
@@ -206,7 +249,9 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
     }
     setBusy('loading');
     try {
-      await load(await captureRect(tab.tabId, r.rect), 'page', tab.ping?.url);
+      const canvas = await captureRect(tab.tabId, r.rect);
+      // Same tick as load, so the area is never read as a picture when it is only real text.
+      load(canvas, 'page', tab.ping?.url);
       // Real text in the area: its fonts are read exactly from the page, no guessing.
       if (r.inside?.fonts.length) {
         setExact(r.inside);
@@ -214,6 +259,18 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
       }
     } catch {
       setError('Chrome did not allow a screenshot of this page. Click the Font Finder Plus icon on the page and try again.');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const openJob = async (j: ImageJob) => {
+    setBusy('loading');
+    try {
+      const c = await canvasFromBlob(j.image);
+      await load(c, j.source ?? 'upload', j.pageUrl, undefined, 'Picture from Recent', j.id);
+    } catch {
+      setError('This picture could not be opened again.');
     } finally {
       setBusy(null);
     }
@@ -228,6 +285,8 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
     setProgress(0);
     setError(null);
     setMatches(null);
+    setLines(null);
+    setReadImage(prepared);
     try {
       // Columns and runs of names become separate samples.
       const found = splitSamples(await recognize(prepared, setProgress));
@@ -237,7 +296,7 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
       // Start with the clearest, longest line.
       const best = found.map((l, i) => [i, l.confidence * Math.min(1, l.text.length / 12)] as const).sort((a, b) => b[1] - a[1])[0];
       setChosen(best ? [best[0]] : []);
-      if (!found.length) setError(postNames.length ? 'No readable text was found in the picture itself. The post around it names a font, shown below.' : 'No text was found in this picture. If it has text, crop closer to it, or try Invert if the text is light on dark.');
+      if (!found.length && postNames.length) setError('No readable text was found in the picture itself. The post around it names a font, shown below.');
     } catch (err) {
       setError(`Text recognition failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -245,13 +304,38 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
     }
   };
 
+  // Reading starts by itself once a picture is open.
+  useEffect(() => {
+    if (!source || !showEditor || !prepared || busy || autoRead.current === source) return;
+    autoRead.current = source;
+    read();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source, showEditor, prepared, busy]);
+
+  /** Keep this search in Recent (or update its entry, when it was opened from there). */
+  const remember = async (image: HTMLCanvasElement, ocrText: string, results: NonNullable<ImageJob['results']>) => {
+    if (source?.jobId != null) {
+      await db.imageJobs.update(source.jobId, { ocrText, results });
+      return;
+    }
+    const blob = await canvasBlob(image);
+    await db.imageJobs.add({ image: blob, createdAt: Date.now(), ocrText, results, source: source?.kind, pageUrl: source?.pageUrl });
+  };
+
+  const onAllDone = (best: BlockSummary[]) => {
+    if (!readImage || remembered.current === readImage || !best.length) return;
+    remembered.current = readImage;
+    const biggest = [...best].sort((a, b) => b.size - a.size)[0];
+    remember(readImage, biggest.text.trim().slice(0, 80), best.slice(0, 10).map(({ family, bold, score, reason }) => ({ family, bold, score, reason }))).catch(() => undefined);
+  };
+
   const chosenLines = useMemo(() => (lines ? chosen.map((i) => ({ line: lines[i], index: i })) : []), [lines, chosen]);
-  const tiles = useMemo(() => (prepared && chosenLines.length ? letterTiles(prepared, chosenLines) : []), [prepared, chosenLines]);
+  const tiles = useMemo(() => (readImage && chosenLines.length ? letterTiles(readImage, chosenLines) : []), [readImage, chosenLines]);
   const text = tiles.map((t) => (t.space ? ' ' : '') + (corrections[t.key] ?? t.text)).join('');
 
   const match = async () => {
-    if (!prepared) return;
-    const glyphs = cutGlyphs(prepared, chosenLines, corrections);
+    if (!readImage) return;
+    const glyphs = cutGlyphs(readImage, chosenLines, corrections);
     setUsedLetters(glyphs.length);
     if (glyphs.length < 2) {
       setError('Too few letters to compare. Choose a longer line, or correct letters that were read wrongly.');
@@ -265,8 +349,7 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
       const extra = sameTab ? await pageFontFiles(scan!.fonts, tab.tabId) : [];
       const res = await matchGlyphs(glyphs, 10, extra);
       setMatches(res);
-      const image = await canvasBlob(prepared);
-      await db.imageJobs.add({ image, createdAt: Date.now(), ocrText: text, results: res.map(({ family, bold, score, reason }) => ({ family, bold, score, reason })), source: source?.kind, pageUrl: source?.pageUrl });
+      await remember(readImage, text, res.map(({ family, bold, score, reason }) => ({ family, bold, score, reason })));
     } catch (err) {
       setError(`Matching failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -274,93 +357,130 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
     }
   };
 
-  if (viewJob) return <PastJob job={viewJob} onBack={() => setViewJob(null)} onAgain={async () => { const c = await canvasFromBlob(viewJob.image); load(c, viewJob.source ?? 'upload', viewJob.pageUrl); }} toast={toast} />;
+  const samePage = !!(source && (source.kind === 'page' || source.kind === 'image') && scan && (!source.pageUrl || source.pageUrl === scan.url));
+  const noText = !!lines && lines.length === 0 && !postNames.length && busy !== 'reading';
+  const picTitle = source ? source.name ?? KIND_NAME[source.kind] : '';
+  const host = hostOf(source?.pageUrl);
+  const fileInput = <input ref={fileRef} type="file" accept="image/*,.heic,.heif" hidden aria-label="Upload an image" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) loadFile(f, 'upload'); }} />;
 
   return (
     <>
-      {!source && (
-        <section className="section">
-          <h2>[Identify a font from an image]</h2>
-          <span style={{ fontSize: 12.5 }}>Find the closest free fonts to text in a picture: a logo, a poster, a screenshot. On a web page, text is read exactly from the page; pictures are matched on this computer against {INDEX_COUNT.toLocaleString()} Google Fonts families and the fonts the page uses.</span>
-          <div className="idsrc">
-            <button className="btn primary" onClick={selectArea} disabled={!tab.ping || !!busy}>
-              <Icon icon={ScanImageIcon} size={16} />Select an area on the page
-            </button>
-            <button className="btn" onClick={() => fileRef.current?.click()} disabled={!!busy}>
-              <Icon icon={ImageUploadIcon} size={16} />Upload an image
-            </button>
-            <input ref={fileRef} type="file" accept="image/*,.heic,.heif" hidden aria-label="Upload an image" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) loadFile(f, 'upload'); }} />
+      {fileInput}
+      {!source && !openFail && (
+        <StartCard
+          canSelect={!!tab.ping}
+          busy={!!busy}
+          onSelect={selectArea}
+          onUpload={() => fileRef.current?.click()}
+          onFile={(f) => loadFile(f, 'upload')}
+        />
+      )}
+
+      {!source && openFail && (
+        <section className="empty">
+          <span className="eic"><Icon icon={ImageNotFound01Icon} size={24} /></span>
+          <div className="et">
+            <h2>This file can't be opened</h2>
+            <p title={openFail.detail}>{openFail.name ? `“${openFail.name}” isn't a picture we can read.` : "This isn't a picture we can read."} Use a JPG, PNG, WebP, GIF or HEIC, or take a screenshot of the part you want.</p>
           </div>
-          <div
-            className="dropzone"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const f = [...e.dataTransfer.files].find((x) => x.type.startsWith('image/') || isHeic(x));
-              if (f) loadFile(f, 'upload');
-            }}
-          >
-            Drop an image here, or paste one (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>V</kbd>). JPG, PNG, WebP, GIF and iPhone HEIC.
+          <div className="eacts">
+            <button className="btn primary" onClick={() => fileRef.current?.click()}><Icon icon={ImageUploadIcon} size={16} />Choose another file</button>
+            <button className="btn" onClick={selectArea} disabled={!tab.ping || !!busy} title={tab.ping ? undefined : 'Click the Font Finder Plus icon on the page first'}><Icon icon={ScanImageIcon} size={16} />Select an area instead</button>
           </div>
-          <span className="muted" style={{ fontSize: 11.5 }}>
-            On any web page you can also right-click an image and choose <b>Identify the font in this image</b>.
-            {!tab.ping && ' To select an area, first click the Font Finder Plus icon on the page.'}
-          </span>
         </section>
       )}
 
-      {busy === 'loading' && <div className="notice neutral">Opening the image…</div>}
-      {error && <div className="notice amber"><Icon icon={Alert02Icon} size={15} />{error}</div>}
+      {busy === 'loading' && <div className="notice neutral" role="status">Opening the picture…</div>}
+      {error && <div className="notice neutral ierr" role="alert"><Icon icon={Alert02Icon} size={15} /><span>{error}</span></div>}
+
+      {source && prepared && (
+        <PictureCard
+          prepared={prepared}
+          title={picTitle}
+          sub={noText
+            ? 'Read on this computer, so nothing is uploaded. Use Adjust to crop or brighten it, then read it again.'
+            : `${host ? `From ${host}. ` : ''}Read on this computer. Nothing is uploaded.`}
+          big={noText}
+          adjust={adjust}
+          onAdjust={() => setAdjust(!adjust)}
+          onAnother={reset}
+        />
+      )}
+
+      {source && geo && prepared && adjust && (
+        <Editor
+          source={source}
+          geo={geo}
+          prepared={prepared}
+          edit={edit}
+          setEdit={setEdit}
+          autoInverted={autoInverted}
+          onReset={() => { setEdit(NO_EDIT); setAutoInverted(false); }}
+          reading={busy === 'reading'}
+          onRead={() => { setAdjust(false); setShowEditor(true); autoRead.current = source; read(); }}
+        />
+      )}
+
+      {busy === 'reading' && (
+        <section className="section ireading" aria-live="polite">
+          <div className="row"><span className="grow">Reading the text</span><span className="pctnum">{Math.round(progress * 100)}%</span></div>
+          <div className="ibar"><i style={{ transform: `scaleX(${progress})` }} /></div>
+        </section>
+      )}
 
       {exact && (
         <ExactFonts exact={exact} scan={scan} tabId={tab.tabId} onOpenFont={onOpenFont} showEditor={showEditor} onShowEditor={() => setShowEditor(true)} />
       )}
 
-      {source && geo && prepared && showEditor && (
-        <Editor source={source} geo={geo} prepared={prepared} edit={edit} setEdit={(e) => { setEdit(e); setLines(null); setMatches(null); }} autoInverted={autoInverted} onReset={reset} />
+      {noText && (
+        <section className="empty">
+          <span className="eic"><Icon icon={ImageNotFound01Icon} size={24} /></span>
+          <div className="et">
+            <h2>No text found in this picture</h2>
+            <p>Font Finder Plus needs a few clear letters. Crop closer to the words with Adjust, turn up the contrast if the text is faint, or turn on Invert colours for light text on dark.</p>
+          </div>
+        </section>
       )}
 
-      {source && showEditor && (
-        <button className="btn primary" style={{ height: 40 }} onClick={read} disabled={!!busy}>
-          {busy === 'reading' ? `Reading the text… ${Math.round(progress * 100)}%` : lines ? 'Read the text again' : 'Read the text'}
-        </button>
-      )}
-
-      {lines && lines.length > 0 && showEditor && (
-        <div className="seg" role="tablist" aria-label="What to match">
-          <button role="tab" aria-selected={mode === 'all'} onClick={() => setMode('all')}>Every font in the image</button>
-          <button role="tab" aria-selected={mode === 'line'} onClick={() => setMode('line')}>Pick one line</button>
-        </div>
-      )}
-
-      {lines && (lines.length > 0 || postNames.length > 0) && showEditor && mode === 'all' && prepared && (
+      {lines && (lines.length > 0 || postNames.length > 0) && showEditor && mode === 'all' && readImage && busy !== 'reading' && (
         <AllFonts
-          image={prepared}
+          image={readImage}
           lines={lines}
           postNames={postNames}
           scan={scan}
           tabId={tab.tabId}
-          samePage={!!(source && (source.kind === 'page' || source.kind === 'image') && scan && (!source.pageUrl || source.pageUrl === scan.url))}
+          samePage={samePage}
           onOpenFontId={onOpenFontId}
           toast={toast}
+          onDone={onAllDone}
+          headExtra={lines.length > 0 && (
+            <p className="sub">Each text style is matched on its own. <button className="linkbtn" onClick={() => setMode('line')}>Pick one line instead</button></p>
+          )}
         />
       )}
 
-      {lines && lines.length > 0 && showEditor && mode === 'line' && (
-        <section className="section">
-          <h2>[Text found] Choose the line to match</h2>
+      {lines && lines.length > 0 && showEditor && mode === 'line' && busy !== 'reading' && (
+        <section className="section iline">
+          <div className="sechead">
+            <h2>Text found<span className="count">{lines.length}</span></h2>
+            <button className="linkbtn" onClick={() => setMode('all')}>Every font in the picture</button>
+          </div>
+          <p className="sub">Choose the line to match.</p>
           <div className="ocrlines">
             {lines.map((l, i) => (
               <label key={i} className={`ocrline${chosen.includes(i) ? ' on' : ''}`}>
                 <input type="checkbox" checked={chosen.includes(i)} onChange={() => { setChosen(chosen.includes(i) ? chosen.filter((x) => x !== i) : [...chosen, i]); setMatches(null); }} />
                 <span className="grow" style={{ overflowWrap: 'anywhere' }}>{l.text}</span>
-                <span className={`pill ${l.confidence >= 80 ? 'good' : l.confidence >= 55 ? 'warn' : 'bad'}`}>{Math.round(l.confidence)}%</span>
+                <span className={`pill ${l.confidence >= 80 ? 'neutral' : l.confidence >= 55 ? 'warn' : 'bad'}`} title="How sure the reading is">{Math.round(l.confidence)}%</span>
               </label>
             ))}
           </div>
           {tiles.length > 0 && (
-            <>
-              <span className="label">[Letters] Fix any that were read wrongly</span>
+            <div className="iletters">
+              <div>
+                <h3>Letters</h3>
+                <p className="sub">Fix any that were read wrongly. Letters with a yellow edge were hard to read. Only a to z, A to Z and 0 to 9 are compared.</p>
+              </div>
               <div className="tiles">
                 {tiles.map((t) => (
                   <label key={t.key} className={`tile${t.confidence < 60 ? ' unsure' : ''}`} title={`Read as "${t.text}" (${Math.round(t.confidence)}% sure)`}>
@@ -369,34 +489,106 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
                   </label>
                 ))}
               </div>
-              <span className="muted" style={{ fontSize: 11.5 }}>Letters with a yellow edge were hard to read. Only a to z, A to Z and 0 to 9 are compared.</span>
-            </>
+            </div>
           )}
-          <button className="btn primary" style={{ height: 40 }} onClick={match} disabled={!!busy || !chosen.length}>
+          <button className="btn primary wide" onClick={match} disabled={!!busy || !chosen.length}>
             {busy === 'matching' ? 'Comparing letters…' : 'Find the closest fonts'}
           </button>
         </section>
       )}
 
-      {matches && prepared && showEditor && mode === 'line' && (
-        <Results matches={matches} usedLetters={usedLetters} text={text} image={prepared} scan={scan} tabId={tab.tabId} toast={toast} onOpenFontId={onOpenFontId} />
+      {matches && readImage && showEditor && mode === 'line' && (
+        <Results matches={matches} usedLetters={usedLetters} text={text} image={readImage} scan={scan} tabId={tab.tabId} toast={toast} onOpenFontId={onOpenFontId} />
       )}
 
-      {!source && <History onOpen={setViewJob} />}
+      {!source && <History onOpen={openJob} toast={toast} />}
     </>
+  );
+}
+
+// ------------------------------------------------------------- start
+
+function StartCard({ canSelect, busy, onSelect, onUpload, onFile }: { canSelect: boolean; busy: boolean; onSelect: () => void; onUpload: () => void; onFile: (f: File) => void }) {
+  const [over, setOver] = useState(false);
+  return (
+    <section className="section istart">
+      <h2>Find the fonts in a picture</h2>
+      <p className="sub">A logo, a poster, a screenshot or a post. It is read on this computer and never uploaded.</p>
+      <button
+        className={`idrop${over ? ' over' : ''}`}
+        onClick={onUpload}
+        disabled={busy}
+        aria-label="Drop a picture here, or click to choose one"
+        onDragOver={(e) => { e.preventDefault(); setOver(true); }}
+        onDragLeave={() => setOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setOver(false);
+          const f = [...e.dataTransfer.files].find((x) => x.type.startsWith('image/') || isHeic(x)) ?? e.dataTransfer.files[0];
+          if (f) onFile(f);
+        }}
+      >
+        <span className="dicon"><Icon icon={ImageUploadIcon} size={24} /></span>
+        <b>Drop a picture here</b>
+        <span className="dsub">or paste with <kbd>{IS_MAC ? '⌘' : 'Ctrl'}</kbd> <kbd>V</kbd></span>
+      </button>
+      <div className="istartbtns">
+        <button className="btn primary" onClick={onSelect} disabled={!canSelect || busy} title={canSelect ? 'Drag over the text you want on the page' : 'Click the Font Finder Plus icon on the page first'}>
+          <Icon icon={ScanImageIcon} size={16} />Select an area on the page
+        </button>
+        <button className="btn" onClick={onUpload} disabled={busy}>
+          <Icon icon={ImageUploadIcon} size={16} />Upload
+        </button>
+      </div>
+      <p className="ihint">
+        <Icon icon={InformationCircleIcon} size={15} />
+        <span>
+          On any page, right-click a picture and choose <b>Identify the font in this image</b>.
+          {!canSelect && ' To select an area, first click the Font Finder Plus icon on the page.'}
+        </span>
+      </p>
+    </section>
+  );
+}
+
+// ------------------------------------------------------------- picture
+
+function PictureCard({ prepared, title, sub, big, adjust, onAdjust, onAnother }: { prepared: HTMLCanvasElement; title: string; sub: string; big: boolean; adjust: boolean; onAdjust: () => void; onAnother: () => void }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    c.width = prepared.width;
+    c.height = prepared.height;
+    c.getContext('2d')!.drawImage(prepared, 0, 0);
+  }, [prepared, big]);
+  return (
+    <section className={`section ipic${big ? ' big' : ''}`}>
+      <div className="ithumb"><canvas ref={ref} className="prepared" aria-label="The picture, as it is read" /></div>
+      <div className="ipinfo">
+        <b title={title}>{title}</b>
+        <span>{sub}</span>
+        <div className="pacts">
+          <button className="btn sm iadjust" aria-expanded={adjust} onClick={onAdjust}>
+            <Icon icon={ImageCropIcon} size={15} />Adjust<span className="chev"><Icon icon={ArrowDown01Icon} size={14} /></span>
+          </button>
+          <button className="btn sm" onClick={onAnother}>Use another</button>
+        </div>
+      </div>
+    </section>
   );
 }
 
 // ------------------------------------------------------------- editor
 
-function Editor({ source, geo, prepared, edit, setEdit, autoInverted, onReset }: { source: Source; geo: HTMLCanvasElement; prepared: HTMLCanvasElement; edit: Edit; setEdit: (e: Edit) => void; autoInverted: boolean; onReset: () => void }) {
+function Editor({ source, geo, prepared, edit, setEdit, autoInverted, onReset, reading, onRead }: { source: Source; geo: HTMLCanvasElement; prepared: HTMLCanvasElement; edit: Edit; setEdit: (e: Edit) => void; autoInverted: boolean; onReset: () => void; reading: boolean; onRead: () => void }) {
   const [mode, setMode] = useState<'crop' | 'perspective'>('crop');
   const view = mode === 'perspective' ? source.canvas : geo;
   const ref = useRef<HTMLCanvasElement>(null);
-  const prepRef = useRef<HTMLCanvasElement>(null);
   const [drag, setDrag] = useState<{ x: number; y: number } | null>(null);
   const [live, setLive] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [handle, setHandle] = useState<number | null>(null);
+  void prepared;
 
   useEffect(() => {
     const c = ref.current;
@@ -405,13 +597,6 @@ function Editor({ source, geo, prepared, edit, setEdit, autoInverted, onReset }:
     c.height = view.height;
     c.getContext('2d')!.drawImage(view, 0, 0);
   }, [view]);
-  useEffect(() => {
-    const c = prepRef.current;
-    if (!c) return;
-    c.width = prepared.width;
-    c.height = prepared.height;
-    c.getContext('2d')!.drawImage(prepared, 0, 0);
-  }, [prepared]);
 
   const toImage = (e: React.PointerEvent) => {
     const r = ref.current!.getBoundingClientRect();
@@ -422,102 +607,106 @@ function Editor({ source, geo, prepared, edit, setEdit, autoInverted, onReset }:
   const crop = live ?? edit.crop;
 
   return (
-    <section className="section">
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h2>[Adjust the image]</h2>
-        <button className="linkbtn" style={{ fontSize: 12 }} onClick={onReset}>Use another image</button>
+    <section className="section iadj" aria-label="Adjust the picture">
+      <div className="sechead">
+        <h2>Adjust</h2>
+        <button className="linkbtn" onClick={onReset}>Reset</button>
       </div>
-      <div className="seg" role="group" aria-label="Tool">
-        <button aria-pressed={mode === 'crop'} onClick={() => setMode('crop')}><span className="row" style={{ gap: 6, justifyContent: 'center' }}><Icon icon={ImageCropIcon} size={14} />Crop</span></button>
-        <button aria-pressed={mode === 'perspective'} onClick={() => { setMode('perspective'); if (!edit.perspective) setEdit({ ...edit, perspective: corners, crop: null }); }}><span className="row" style={{ gap: 6, justifyContent: 'center' }}><Icon icon={PerspectiveIcon} size={14} />Perspective</span></button>
+      <div className="itools" role="group" aria-label="Tool">
+        <button className="btn sm" aria-pressed={mode === 'crop'} onClick={() => setMode('crop')}><Icon icon={ImageCropIcon} size={15} />Crop</button>
+        <button className="btn sm" aria-pressed={mode === 'perspective'} onClick={() => { setMode('perspective'); if (!edit.perspective) setEdit({ ...edit, perspective: corners, crop: null }); }}><Icon icon={PerspectiveIcon} size={15} />Perspective</button>
+        <button className="btn sm" onClick={() => setEdit({ ...edit, turn: (((edit.turn + 1) % 4) as Edit['turn']), crop: null })}><Icon icon={RotateClockwiseIcon} size={15} />Turn 90°</button>
       </div>
-      <div
-        className="editbox"
-        onPointerDown={(e) => {
-          if (mode !== 'crop') return;
-          (e.target as Element).setPointerCapture?.(e.pointerId);
-          setDrag(toImage(e));
-        }}
-        onPointerMove={(e) => {
-          if (mode === 'crop' && drag) {
-            const p = toImage(e);
-            setLive({ x: Math.min(drag.x, p.x), y: Math.min(drag.y, p.y), w: Math.abs(p.x - drag.x), h: Math.abs(p.y - drag.y) });
-          }
-          if (mode === 'perspective' && handle != null) {
-            const p = toImage(e);
-            const next = corners.map((c, i) => (i === handle ? [Math.max(0, Math.min(view.width, p.x)), Math.max(0, Math.min(view.height, p.y))] : c)) as [number, number][];
-            setEdit({ ...edit, perspective: next });
-          }
-        }}
-        onPointerUp={() => {
-          if (mode === 'crop' && drag) {
-            if (live && live.w > 6 && live.h > 6) setEdit({ ...edit, crop: live });
-            setDrag(null);
-            setLive(null);
-          }
-          setHandle(null);
-        }}
-      >
-        <canvas ref={ref} aria-label="Image to identify" />
-        {mode === 'crop' && crop && (
-          <div className="cropbox" style={{ left: pct(crop.x, view.width), top: pct(crop.y, view.height), width: pct(crop.w, view.width), height: pct(crop.h, view.height) }} />
-        )}
-        {mode === 'perspective' && (
-          <>
-            <svg className="quad" viewBox={`0 0 ${view.width} ${view.height}`} preserveAspectRatio="none">
-              <polygon points={corners.map((c) => c.join(',')).join(' ')} />
-            </svg>
-            {corners.map((c, i) => (
-              <span
-                key={i}
-                className="handle"
-                role="slider"
-                aria-label={['Top left corner', 'Top right corner', 'Bottom right corner', 'Bottom left corner'][i]}
-                aria-valuenow={Math.round(c[0])}
-                style={{ left: pct(c[0], view.width), top: pct(c[1], view.height) }}
-                onPointerDown={(e) => { e.stopPropagation(); (e.target as Element).setPointerCapture?.(e.pointerId); setHandle(i); }}
-              />
-            ))}
-          </>
-        )}
+      <div className="ieditwrap">
+        <div
+          className="editbox"
+          onPointerDown={(e) => {
+            if (mode !== 'crop') return;
+            (e.target as Element).setPointerCapture?.(e.pointerId);
+            setDrag(toImage(e));
+          }}
+          onPointerMove={(e) => {
+            if (mode === 'crop' && drag) {
+              const p = toImage(e);
+              setLive({ x: Math.min(drag.x, p.x), y: Math.min(drag.y, p.y), w: Math.abs(p.x - drag.x), h: Math.abs(p.y - drag.y) });
+            }
+            if (mode === 'perspective' && handle != null) {
+              const p = toImage(e);
+              const next = corners.map((c, i) => (i === handle ? [Math.max(0, Math.min(view.width, p.x)), Math.max(0, Math.min(view.height, p.y))] : c)) as [number, number][];
+              setEdit({ ...edit, perspective: next });
+            }
+          }}
+          onPointerUp={() => {
+            if (mode === 'crop' && drag) {
+              if (live && live.w > 6 && live.h > 6) setEdit({ ...edit, crop: live });
+              setDrag(null);
+              setLive(null);
+            }
+            setHandle(null);
+          }}
+        >
+          <canvas ref={ref} aria-label="Image to identify" />
+          {mode === 'crop' && crop && (
+            <div className="cropbox" style={{ left: pct(crop.x, view.width), top: pct(crop.y, view.height), width: pct(crop.w, view.width), height: pct(crop.h, view.height) }} />
+          )}
+          {mode === 'perspective' && (
+            <>
+              <svg className="quad" viewBox={`0 0 ${view.width} ${view.height}`} preserveAspectRatio="none">
+                <polygon points={corners.map((c) => c.join(',')).join(' ')} />
+              </svg>
+              {corners.map((c, i) => (
+                <span
+                  key={i}
+                  className="handle"
+                  role="slider"
+                  aria-label={['Top left corner', 'Top right corner', 'Bottom right corner', 'Bottom left corner'][i]}
+                  aria-valuenow={Math.round(c[0])}
+                  style={{ left: pct(c[0], view.width), top: pct(c[1], view.height) }}
+                  onPointerDown={(e) => { e.stopPropagation(); (e.target as Element).setPointerCapture?.(e.pointerId); setHandle(i); }}
+                />
+              ))}
+            </>
+          )}
+        </div>
+        <p className="ehint">
+          <span>
+            {mode === 'crop'
+              ? edit.crop ? 'Drag again to change the crop.' : 'Drag over the text you want. Tighter crops give better matches.'
+              : 'Drag the four corners onto the corners of a slanted sign or page to flatten it. Then switch back to Crop.'}
+          </span>
+          {edit.crop && <button className="linkbtn" onClick={() => setEdit({ ...edit, crop: null })}>Clear crop</button>}
+          {edit.perspective && <button className="linkbtn" onClick={() => setEdit({ ...edit, perspective: null, crop: null })}>Clear perspective</button>}
+        </p>
       </div>
-      <span className="muted" style={{ fontSize: 11.5 }}>
-        {mode === 'crop'
-          ? edit.crop ? 'Drag again to change the crop.' : 'Drag over the text you want to identify. Tighter crops give better matches.'
-          : 'Drag the four corners onto the corners of a slanted sign or page to flatten it. Then switch back to Crop.'}
-      </span>
-      <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-        <button className="btn sm" onClick={() => setEdit({ ...edit, turn: (((edit.turn + 1) % 4) as Edit['turn']), crop: null })}><Icon icon={RotateClockwiseIcon} size={14} />Turn 90°</button>
-        {edit.crop && <button className="btn sm ghost" onClick={() => setEdit({ ...edit, crop: null })}>Clear crop</button>}
-        {edit.perspective && <button className="btn sm ghost" onClick={() => setEdit({ ...edit, perspective: null, crop: null })}>Clear perspective</button>}
-      </div>
-      <div className="axes">
+      <div className="isliders">
         <Slider label="Straighten" value={edit.rotate} min={-20} max={20} step={0.5} unit="°" onChange={(v) => setEdit({ ...edit, rotate: v, crop: null })} />
         <Slider label="Brightness" value={edit.brightness} min={-100} max={100} step={1} onChange={(v) => setEdit({ ...edit, brightness: v })} />
         <Slider label="Contrast" value={edit.contrast} min={-100} max={100} step={1} onChange={(v) => setEdit({ ...edit, contrast: v })} />
       </div>
-      <div className="row">
-        <span className="grow" style={{ fontSize: 12.5 }}>Invert (for light text on a dark background)</span>
-        <button className="switch" role="switch" aria-checked={edit.invert} aria-label="Invert" onClick={() => setEdit({ ...edit, invert: !edit.invert })} />
+      <div className="iinv">
+        <Icon icon={ContrastIcon} size={16} />
+        <span>Invert colours</span>
+        <span className="faint">for light text on dark</span>
+        <span className="grow" />
+        <button className="switch" role="switch" aria-checked={edit.invert} aria-label="Invert colours" onClick={() => setEdit({ ...edit, invert: !edit.invert })} />
       </div>
-      {autoInverted && <span className="muted" style={{ fontSize: 11.5 }}>Invert was turned on because the image looks like light text on a dark background.</span>}
-      <span className="label">[What gets read]</span>
-      <canvas ref={prepRef} className="prepared" aria-label="Prepared image" />
+      {autoInverted && <p className="sub iauto">Invert was turned on because the picture looks like light text on a dark background.</p>}
+      <button className="btn primary wide" onClick={onRead} disabled={reading}>{reading ? 'Reading the text…' : 'Read again'}</button>
     </section>
   );
 }
 
 function Slider({ label, value, min, max, step, unit = '', onChange }: { label: string; value: number; min: number; max: number; step: number; unit?: string; onChange: (v: number) => void }) {
   return (
-    <label className="axis">
+    <label className="isl">
       <span>{label}</span>
       <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} aria-label={label} />
-      <span className="mono" style={{ fontSize: 11.5, textAlign: 'right' }}>{value}{unit}</span>
+      <span className="val">{value}{unit}</span>
     </label>
   );
 }
 
-// ------------------------------------------------------------- results
+// ------------------------------------------------------------- results (one chosen line)
 
 function Results({ matches, usedLetters, text, image, scan, tabId, toast, onOpenFontId }: { matches: ImageMatch[]; usedLetters: number; text: string; image: HTMLCanvasElement; scan: PageScan | null; tabId: number | null; toast: (m: string) => void; onOpenFontId: (id: string) => void }) {
   const verdict = imageVerdict(matches.map((m) => m.score), usedLetters);
@@ -528,35 +717,30 @@ function Results({ matches, usedLetters, text, image, scan, tabId, toast, onOpen
   const topUsage = top?.onPage ? scan?.fonts.find((f) => (f.displayName || f.family) === top.family) ?? null : null;
   const topKnown = topUsage ? knownFont(topUsage.displayName || topUsage.family) : null;
   return (
-    <section className="section">
-      <h2>[{VERDICT_LABEL[verdict]}]</h2>
-      {verdict === 'exact' && top && (
-        <div className="notice green">
-          <span>
-            <b>Likely {top.family}.</b> Its letters match very closely. In our accuracy test, matches labelled like this were right every time.
+    <div className="iresults">
+      <section className="section ireshead">
+        <div className="sechead"><h2>Closest fonts<span className="count">{matches.length}</span></h2></div>
+        {verdict === 'exact' && top && (
+          <p className="sub">
+            Likely {top.family}. Its letters match very closely. In our accuracy test, matches labelled like this were right every time.
             {top.onPage && topUsage ? ` It is a font this page uses${topKnown ? `, sold by ${topKnown.by}` : ''}.` : ''}
-            {topKnown && <> <a href={topKnown.url} target="_blank" rel="noreferrer">{topKnown.licence === 'commercial' ? `Buy from ${topKnown.by}` : `Get it from ${topKnown.by}`}</a></>}
-          </span>
-        </div>
-      )}
-      {verdict === 'close' && <span className="muted" style={{ fontSize: 12 }}>No free font is a clear match. The font in your image may be one of these, or a paid font that looks like them.</span>}
-      {verdict === 'unlikely' && (
-        <div className="notice amber">
-          <Icon icon={Alert02Icon} size={15} />
-          <span>
+            {topKnown && <> <a className="linkbtn" href={topKnown.url} target="_blank" rel="noreferrer">{topKnown.licence === 'commercial' ? `Buy from ${topKnown.by}` : `Get it from ${topKnown.by}`}</a></>}
+          </p>
+        )}
+        {verdict === 'close' && <p className="sub">No free font is a clear match. The font in your picture may be one of these, or a paid font that looks like them.</p>}
+        {verdict === 'unlikely' && (
+          <p className="sub">
             {usedLetters < 4 ? `Only ${usedLetters} ${usedLetters === 1 ? 'letter was' : 'letters were'} compared. ` : 'No free font matches closely, so the font is probably paid or made for this design. '}
-            For better results crop tightly around one line, use a bigger or sharper image, straighten it, and fix any letters read wrongly. Joined-up script lettering often cannot be split into letters.
-          </span>
-        </div>
-      )}
-      {close && verdict !== 'unlikely' && <span className="muted" style={{ fontSize: 12 }}>Several fonts here are almost the same. Compare details such as a, g, R, Q and y to tell them apart.</span>}
-      <div className="matches">
-        {matches.map((m, i) => <ImageMatchRow key={m.family} m={m} rank={i + 1} label={i === 0 && verdict === 'exact' ? 'Likely this font' : 'Closest free'} text={text} imgUrl={imgUrl} image={image} usage={m.onPage ? scan?.fonts.find((f) => (f.displayName || f.family) === m.family) ?? null : null} liveTarget={!m.onPage ? liveTarget(scan) : null} tabId={tabId} toast={toast} onOpenFontId={onOpenFontId} />)}
-      </div>
-      <span className="muted" style={{ fontSize: 11.5 }}>
+            For better results crop tightly around one line, use a bigger or sharper picture, straighten it, and fix any letters read wrongly. Joined-up script lettering often cannot be split into letters.
+          </p>
+        )}
+        {close && verdict !== 'unlikely' && <p className="sub">Several fonts here are almost the same. Compare details such as a, g, R, Q and y to tell them apart.</p>}
+      </section>
+      {matches.map((m, i) => <ImageMatchRow key={m.family} m={m} rank={i + 1} likely={i === 0 && verdict === 'exact'} text={text} imgUrl={imgUrl} image={image} usage={m.onPage ? scan?.fonts.find((f) => (f.displayName || f.family) === m.family) ?? null : null} liveTarget={!m.onPage ? liveTarget(scan) : null} tabId={tabId} toast={toast} onOpenFontId={onOpenFontId} />)}
+      <p className="ifoot">
         Compared letter by letter on this computer with {INDEX_COUNT.toLocaleString()} free Google Fonts families{onPage ? ' and the fonts this page uses' : ''}. A paid font that is not on this page gets its closest free look-alikes, not its own name.
-      </span>
-    </section>
+      </p>
+    </div>
   );
 }
 
@@ -569,42 +753,44 @@ function liveTarget(scan: PageScan | null): PageFontUsage | null {
 /** Fonts of the real text inside the selected area, read exactly from the page. */
 function ExactFonts({ exact, scan, tabId, onOpenFont, showEditor, onShowEditor }: { exact: Exact; scan: PageScan | null; tabId: number | null; onOpenFont: Props['onOpenFont']; showEditor: boolean; onShowEditor: () => void }) {
   return (
-    <section className="section">
-      <h2>[Fonts in this area] Read exactly from the page</h2>
-      {!showEditor && (
-        <div className="row" style={{ gap: 8, padding: '8px 10px', borderRadius: 10, background: 'var(--field)', fontSize: 12 }}>
-          <span className="grow">Want to compare it as a picture instead?</span>
-          <button className="btn sm" onClick={onShowEditor}>Match it as an image anyway</button>
-        </div>
-      )}
-      <span style={{ fontSize: 12.5 }}>
-        This area has real text, so its fonts are known exactly. No guessing needed.
+    <section className="section iexact">
+      <div className="sechead"><h2>Fonts in this area<span className="count">{exact.fonts.length}</span></h2></div>
+      <p className="sub">
+        This area has real text, so its fonts are read exactly from the page. No guessing needed.
         {exact.pictures > 0 && ` It also has ${exact.pictures === 1 ? 'a picture' : `${exact.pictures} pictures`} (images or drawings), which are matched below.`}
-      </span>
-      <div className="matches">
+      </p>
+      <div className="ilist">
         {exact.fonts.map((f) => {
           const usage = scan?.fonts.find((u) => u.key === f.key) ?? null;
           const badge = licenseBadge(f.licenseType as LicenseType);
           return (
             <div key={f.key} className="match">
-              <div className="row" style={{ alignItems: 'baseline' }}>
-                <b className="grow" style={{ fontSize: 13 }}>{f.name}</b>
+              <div className="nmrow">
+                <b>{f.name}</b>
                 <span className={`lic ${badge.tone}`}><i />{badge.text}</span>
               </div>
-              <span className="muted" style={{ fontSize: 11.5, overflowWrap: 'anywhere' }}>“{f.sample}”</span>
-              <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                {usage && <button className="btn sm primary" onClick={() => onOpenFont(usage, fontId(usage.family, usage.source))}>Details</button>}
-                {usage && tabId != null && <button className="btn sm" onClick={() => sendToTab(tabId, { type: 'ffp:highlight', key: f.key, label: f.name })}><Icon icon={Target02Icon} size={13} />Show on page</button>}
-              </div>
+              <span className="inote" style={{ overflowWrap: 'anywhere' }}>“{f.sample}”</span>
+              {usage && (
+                <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                  <button className="btn sm on-card" onClick={() => onOpenFont(usage, fontId(usage.family, usage.source))}>Details</button>
+                  {tabId != null && <button className="btn sm on-card" onClick={() => sendToTab(tabId, { type: 'ffp:highlight', key: f.key, label: f.name })}><Icon icon={Target02Icon} size={14} />Show on page</button>}
+                </div>
+              )}
             </div>
           );
         })}
       </div>
+      {!showEditor && (
+        <div className="iask">
+          <span className="grow">Want to compare it as a picture instead?</span>
+          <button className="btn sm" onClick={onShowEditor}>Match it as a picture</button>
+        </div>
+      )}
     </section>
   );
 }
 
-function ImageMatchRow({ m, rank, label, text, imgUrl, image, usage, liveTarget: target, tabId, toast, onOpenFontId }: { m: ImageMatch; rank: number; label: string; text: string; imgUrl: string; image: HTMLCanvasElement; usage: PageFontUsage | null; liveTarget: PageFontUsage | null; tabId: number | null; toast: (msg: string) => void; onOpenFontId: (id: string) => void }) {
+function ImageMatchRow({ m, rank, likely, text, imgUrl, image, usage, liveTarget: target, tabId, toast, onOpenFontId }: { m: ImageMatch; rank: number; likely: boolean; text: string; imgUrl: string; image: HTMLCanvasElement; usage: PageFontUsage | null; liveTarget: PageFontUsage | null; tabId: number | null; toast: (msg: string) => void; onOpenFontId: (id: string) => void }) {
   const swaps = useSwaps(tabId);
   const [trying, setTrying] = useState(false);
   const live = !!target && swaps[target.key] === m.family;
@@ -629,8 +815,8 @@ function ImageMatchRow({ m, rank, label, text, imgUrl, image, usage, liveTarget:
   const sample = text.trim() || m.family;
   const missing = useMissing(css, sample, ready);
   const gf = googleFamily(m.family);
+  const id = m.onPage && usage ? fontId(usage.family, usage.source) : `${m.family}::google`;
   const save = async () => {
-    const id = m.onPage && usage ? fontId(usage.family, usage.source) : `${m.family}::google`;
     if (m.onPage && usage) await saveFont(recordFromUsage(usage, bestFileUrl(usage, usage.sample.fontWeight)), null, usage.sample);
     else await saveFont({ id, family: m.family, displayName: m.family, catalogFamily: m.family, source: 'google', kind: 'web', classification: gf?.c ?? 'unknown', licenseType: gf?.l ?? 'unknown', designers: gf?.d ?? [], files: [] }, null, null);
     // Keep the image it was found from with the font.
@@ -641,89 +827,71 @@ function ImageMatchRow({ m, rank, label, text, imgUrl, image, usage, liveTarget:
     else await db.specimens.add({ fontId: id, screenshotIds: [shot], pairing: null, notes: '', createdAt: Date.now() });
   };
   return (
-    <div className="match">
-      <div className="row" style={{ alignItems: 'baseline' }}>
-        <span className="mono muted" style={{ fontSize: 11 }}>{rank}</span>
-        <b className="grow" style={{ fontSize: 13 }}>{m.family}{m.bold ? ' Bold' : ''}</b>
-        <span className={`verdict ${label === 'Likely this font' ? 'exact' : 'close'}`}>{label}</span>
-        <span className="mono" style={{ fontSize: 12 }}>{m.score}%</span>
+    <section className="section ires match">
+      <div className="icut">
+        {compare && <img src={imgUrl} alt="Your picture" />}
+        <span className="isample" dir="auto" style={{ fontFamily: css, fontWeight: m.bold ? 700 : 400 }} title={`Your text set in ${m.family}`}>{sample}</span>
       </div>
-      {compare && <img className="cmpimg" src={imgUrl} alt="Your image" />}
-      <div className="mprev" dir="auto" style={{ fontFamily: css, fontWeight: m.bold ? 700 : 400 }}>{sample}</div>
-      <span className="muted" style={{ fontSize: 11.5 }}>{m.reason}</span>
-      <div className="row" style={{ gap: 6, flexWrap: 'wrap', fontSize: 11.5 }}>
-        {m.onPage ? (
-          <span className="gtag">On this page{usage ? ` · ${licenseBadge(usage.licenseType).text}` : ''}</span>
-        ) : (
-          <span className="lic free"><i />Free · {gf?.l ? LICENSE_LABEL[gf.l] : 'Google Fonts'}</span>
-        )}
-        {ready && <span className={missing.length ? 'err' : 'ok'}>{missing.length ? `Missing ${missing.length} of your letters (${missing.slice(0, 6).map((c) => `“${c}”`).join(' ')})` : 'Has every letter of your text'}</span>}
+      <div className="iinfo">
+        <div className="nmrow">
+          <b>{m.family}{m.bold ? ' Bold' : ''}</b>
+          {m.onPage ? <span className="gtag">On this page{usage ? ` · ${licenseBadge(usage.licenseType).text}` : ''}</span> : <Lic name={m.family} />}
+          <span className="grow" />
+          <span className="pct">{m.score}% match</span>
+        </div>
+        {likely ? <Tick>Likely this font. {m.reason}</Tick> : <Note>{m.reason}</Note>}
+        {ready && (missing.length
+          ? <span className="inote err">Missing {missing.length} of your letters ({missing.slice(0, 6).map((c) => `“${c}”`).join(' ')})</span>
+          : <Tick>Has every letter of your text</Tick>)}
       </div>
-      <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-        <button className={`btn sm${compare ? ' done' : ''}`} onClick={() => setCompare(!compare)}>{compare ? 'Hide your image' : 'Compare with your image'}</button>
-        {!m.onPage && <button className="btn sm" onClick={async () => onOpenFontId(await ensureRecord(m.family))}>Details</button>}
-        <SaveFontButton fontId={m.onPage && usage ? fontId(usage.family, usage.source) : `${m.family}::google`} name={m.family} onSave={save} toast={toast} />
+      <div className="ilinks">
+        <button className="linkbtn" onClick={() => setCompare(!compare)}>{compare ? 'Hide your picture' : 'Compare with your picture'}</button>
         {target && tabId != null && (
-          <button className={`btn sm${live ? ' done' : ''}`} onClick={tryLive} disabled={trying} title={`Shows ${m.family} on the page in place of ${target.displayName || target.family}`}>
+          <button className="linkbtn" onClick={tryLive} disabled={trying} title={`Shows ${m.family} on the page in place of ${target.displayName || target.family}`}>
             {trying ? 'Loading…' : live ? 'Showing on page · Undo' : 'Try it live on the page'}
           </button>
         )}
-        {!m.onPage && <a className="btn sm ghost" href={googleFontsUrl(m.family)} target="_blank" rel="noreferrer">Google Fonts <Icon icon={ArrowUpRight01Icon} size={13} /></a>}
       </div>
-    </div>
-  );
-}
-
-// ------------------------------------------------------------- history
-
-function History({ onOpen }: { onOpen: (j: ImageJob) => void }) {
-  const jobs = useLiveQuery(() => db.imageJobs.orderBy('createdAt').reverse().limit(20).toArray(), []) ?? [];
-  const urls = useMemo(() => jobs.map((j) => URL.createObjectURL(j.image)), [jobs]);
-  useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls]);
-  if (!jobs.length) return null;
-  return (
-    <section className="section">
-      <h2>[Recent] {jobs.length}</h2>
-      <div className="list">
-        {jobs.map((j, i) => (
-          <div key={j.id} className="histrow">
-            <button className="histmain" onClick={() => onOpen(j)}>
-              <img src={urls[i]} alt="" />
-              <span className="stack" style={{ gap: 2, minWidth: 0 }}>
-                <b style={{ fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{j.results?.[0]?.family ?? 'No match'}{j.results?.[0] ? ` · ${j.results[0].score}%` : ''}</b>
-                <span className="muted" style={{ fontSize: 11.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>“{j.ocrText}” · {new Date(j.createdAt).toLocaleDateString()}</span>
-              </span>
-            </button>
-            <button className="iconbtn sm" aria-label="Delete from history" title="Delete" onClick={() => db.imageJobs.delete(j.id!)}><Icon icon={Delete02Icon} size={14} /></button>
-          </div>
-        ))}
+      <div className="racts">
+        {!m.onPage && <button className="btn sm" onClick={async () => onOpenFontId(await ensureRecord(m.family))}>Details</button>}
+        <SaveFontButton fontId={id} name={m.family} onSave={save} toast={toast} />
+        <span className="grow" />
+        {!m.onPage && <WhereToGet name={m.family} />}
       </div>
     </section>
   );
 }
 
-function PastJob({ job, onBack, onAgain, toast }: { job: ImageJob; onBack: () => void; onAgain: () => void; toast: (m: string) => void }) {
-  const url = useMemo(() => URL.createObjectURL(job.image), [job]);
-  useEffect(() => () => URL.revokeObjectURL(url), [url]);
-  void toast;
+// ------------------------------------------------------------- recent
+
+function History({ onOpen, toast }: { onOpen: (j: ImageJob) => void; toast: (m: string) => void }) {
+  const jobs = useLiveQuery(() => db.imageJobs.orderBy('createdAt').reverse().limit(20).toArray(), []) ?? [];
+  const urls = useMemo(() => jobs.map((j) => URL.createObjectURL(j.image)), [jobs]);
+  useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls]);
+  if (!jobs.length) return null;
   return (
-    <section className="section">
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h2>[From {new Date(job.createdAt).toLocaleString()}]</h2>
-        <button className="linkbtn" style={{ fontSize: 12 }} onClick={onBack}>Back</button>
+    <section className="section irecent">
+      <div className="sechead">
+        <h2>Recent<span className="count">{jobs.length}</span></h2>
+        <button className="linkbtn danger" onClick={async () => { await db.imageJobs.clear(); toast('Recent cleared'); }}>Clear all</button>
       </div>
-      <img className="cmpimg" src={url} alt="The image" />
-      <span className="muted" style={{ fontSize: 12 }}>Text read: “{job.ocrText}”{job.pageUrl ? ` · from ${job.pageUrl}` : ''}</span>
-      <div className="matches">
-        {(job.results ?? []).map((r, i) => (
-          <div key={r.family} className="match">
-            <div className="row"><span className="mono muted" style={{ fontSize: 11 }}>{i + 1}</span><b className="grow">{r.family}{r.bold ? ' Bold' : ''}</b><span className="mono">{r.score}%</span></div>
-            <span className="muted" style={{ fontSize: 11.5 }}>{r.reason}</span>
-            <a className="btn sm ghost" style={{ alignSelf: 'flex-start' }} href={googleFontsUrl(r.family)} target="_blank" rel="noreferrer">Google Fonts <Icon icon={ArrowUpRight01Icon} size={13} /></a>
-          </div>
-        ))}
+      <div className="rlist">
+        {jobs.map((j, i) => {
+          const top = j.results?.[0];
+          return (
+            <div key={j.id} className="histrow">
+              <button className="histmain" onClick={() => onOpen(j)} aria-label={`Open ${top?.family ?? 'this picture'} again`}>
+                <span className="rthumb"><img src={urls[i]} alt="" /></span>
+                <span className="rt">
+                  <b>{top ? `${top.family}${top.bold ? ' Bold' : ''} · ${top.score}%` : 'No match'}</b>
+                  <span>{j.ocrText ? `“${j.ocrText}” · ` : ''}{when(j.createdAt)}</span>
+                </span>
+              </button>
+              <button className="iconbtn sm rdel tip" data-tip="Delete" aria-label="Delete from Recent" onClick={async () => { await db.imageJobs.delete(j.id!); toast('Deleted from Recent'); }}><Icon icon={Delete02Icon} size={16} /></button>
+            </div>
+          );
+        })}
       </div>
-      <button className="btn" onClick={onAgain}>Open this image again to adjust and match</button>
     </section>
   );
 }
