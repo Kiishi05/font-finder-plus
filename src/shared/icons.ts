@@ -70,3 +70,6 @@ export function iconSvg(icon: unknown, size = 16, strokeWidth = 1.5, filled = fa
     .join('');
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true">${inner}</svg>`;
 }
+
+// system icons
+export { RefreshIcon as SysRefreshIcon, TextFontIcon as SysTextFontIcon } from '@hugeicons/core-free-icons';

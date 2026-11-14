@@ -1,1 +1,151 @@
 /* system view: redesign styles */
+.sys { display: flex; flex-direction: column; gap: 8px; }
+.sys [id^='sys-'] { scroll-margin-top: 12px; }
+.sys .muted { color: var(--muted); }
+
+/* Section heading with the refresh button at the right */
+.sys .syshead { align-items: center; }
+.sys .sysagain { margin: -6px -6px -6px 0; }
+.sys .sysagain .spin { display: inline-flex; }
+.sys .sysagain .spin svg { transform-origin: 50% 50%; }
+.sys .sysagain:disabled { opacity: 1; cursor: default; }
+
+/* Pills (shared by health findings, readability and loading tips) */
+.sys .pill { flex: none; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; line-height: 1.5; background: var(--field); color: var(--muted); }
+.sys .pill.bad { background: var(--red-soft); color: var(--red-text); }
+.sys .pill.warn { background: var(--amber-soft); color: var(--amber-text); }
+.sys .pill.good { background: var(--green-soft); color: var(--green-text); }
+.sys .on-grey .pill.neutral { background: var(--card); }
+.sys .find { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; }
+.sys .find > span:last-child { flex: 1; min-width: 0; padding-top: 1px; overflow-wrap: anywhere; }
+
+/* Health: score box, coloured bars, findings */
+.sysscore { display: flex; align-items: center; gap: 14px; }
+.sysscore .num { display: flex; align-items: baseline; gap: 2px; padding: 10px 14px; border-radius: 16px; background: var(--inset); flex: none; }
+.sysscore .num b { font: 600 30px/1 var(--ui); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.sysscore .num small { font-size: 12px; color: var(--faint); }
+.sysscore .num.good b { color: var(--green-text); }
+.sysscore .num.warn b { color: var(--amber-text); }
+.sysscore .num.bad b { color: var(--red-text); }
+.sysscore .txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sysscore .txt b { font-weight: 500; font-size: 15px; }
+.sysparts { display: flex; flex-direction: column; }
+.sysparts .part { all: unset; box-sizing: border-box; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 90px 30px 14px; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.sysparts .part:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 8px; }
+.sysparts .part .lbl { color: var(--ink); overflow-wrap: anywhere; }
+.sysparts .part .n { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12.5px; }
+.sysparts .part .chev, .sysdisc .chev, .famhead .chev, .sysdd .chev { display: inline-flex; color: var(--faint); transition: transform 200ms var(--ease-out); }
+.sysparts .part[aria-expanded='true'] .chev, .sysdisc[aria-expanded='true'] .chev, .famhead[aria-expanded='true'] .chev, .sysdd[data-open] .chev { transform: rotate(180deg); }
+.sysparts .bar { height: 6px; border-radius: 3px; background: var(--field); overflow: hidden; }
+.sysparts .bar i { display: block; height: 100%; border-radius: 3px; }
+.sysparts .bar i.good { background: var(--green); }
+.sysparts .bar i.warn { background: var(--amber); }
+.sysparts .bar i.bad { background: var(--red); }
+.sysparts .finds { display: flex; flex-direction: column; gap: 12px; padding: 8px 0 14px; animation: sysfade 200ms var(--ease-out); }
+@keyframes sysfade { from { opacity: 0; transform: translateY(4px); } }
+
+/* Type styles */
+.sys .scalebox { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--r-inner); background: var(--inset); font-size: 12.5px; }
+.sys .scalebox b { font-weight: 500; }
+.sys .scalebox .sizes { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.sys .styles { display: flex; flex-direction: column; }
+.sys .stylerow { display: flex; flex-direction: column; gap: 8px; padding: 16px 0; border-top: 1px solid var(--line); border-bottom: 0; min-width: 0; }
+.sys .stylerow:first-child { border-top: 0; padding-top: 4px; }
+.sys .stylerow:last-child { padding-bottom: 0; }
+.sys .stylerow .top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sys .tagname { font: 500 11.5px var(--ui); padding: 3px 7px; border-radius: 8px; background: var(--field); color: var(--muted); flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sys .stylerow .who { flex: 1; min-width: 0; font-size: 12.5px; color: var(--muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.sys .stylerow .top .iconbtn.sm { margin: -4px -6px -4px 0; }
+.sys .stylerow .iconbtn.copied { color: var(--ink); }
+.sys .stylesample { line-height: 1.15; color: var(--ink); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.sys .stylerow .meta { font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.sysdisc { all: unset; display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-weight: 500; font-size: 12.5px; cursor: pointer; }
+@media (hover: hover) and (pointer: fine) { .sysdisc:hover { color: var(--ink); } }
+.sysdisc:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+
+/* Readability: an inner grey card per issue */
+.sys .issues { display: flex; flex-direction: column; gap: 8px; }
+.sys .issue { display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: var(--r-inner); background: var(--inset); min-width: 0; }
+.sys .issue .top { display: flex; align-items: flex-start; gap: 8px; }
+.sys .issue .top b { flex: 1; min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
+.sys .issue .top b span { color: var(--faint); font-weight: 400; }
+.sys .issue p { margin: 0; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.sys .issue .quote { font-size: 12.5px; color: var(--faint); font-style: italic; overflow-wrap: anywhere; }
+.sys .issue .btn { align-self: flex-start; margin-top: 6px; }
+.sys .readnote { margin: 0; font-size: 12px; color: var(--faint); }
+
+/* Fonts and loading */
+.sysload { display: flex; flex-direction: column; gap: 8px; }
+.sysload .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.sysload .stat { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: var(--r-inner); background: var(--inset); min-width: 0; }
+.sysload .stat span { font-size: 12px; color: var(--faint); }
+.sysload .stat b { font-weight: 500; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sysload .stat b.wrap { white-space: normal; overflow-wrap: anywhere; }
+.sysload .sub { font-size: 12px; }
+.sysload .tips { display: flex; flex-direction: column; gap: 12px; }
+.famsbox { background: var(--inset); border-radius: var(--r-inner); overflow: hidden; }
+.famhead { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 8px; padding: 12px 14px; cursor: pointer; font-weight: 500; }
+.famhead .count { color: var(--faint); font-weight: 400; font-size: 12px; }
+.famhead .grow { flex: 1; }
+.famhead:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: var(--r-inner); }
+.fams { display: flex; flex-direction: column; margin: 0 6px 6px; padding: 2px 12px; background: var(--card); border-radius: var(--r-ctl); animation: sysfade 200ms var(--ease-out); }
+.fam { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 12.5px; }
+.fam:first-child { border-top: 0; }
+.fam b { font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fam .r { color: var(--faint); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.fam .d { grid-column: 1 / -1; color: var(--faint); font-size: 12px; overflow-wrap: anywhere; }
+
+/* Use this type system: Figma and export */
+.sys .figrow { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: var(--r-inner); background: var(--inset); }
+.sys .figrow .t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sys .figrow .t b { font-weight: 500; }
+.sys .figrow .t span { font-size: 12px; color: var(--faint); }
+.sys .hair { border-top: 1px solid var(--line); }
+.sysexport { display: flex; flex-direction: column; gap: 16px; }
+.sysexport h3 { margin: 0; font: 500 13px/1.3 var(--ui); color: var(--ink); }
+.sys .exnote { margin: 0; font-size: 12px; color: var(--faint); }
+.sys .code { margin: 0; max-height: 188px; overflow: auto; padding: 12px 14px; border-radius: var(--r-inner); background: var(--inset); color: var(--muted); font: 12px/1.6 var(--mono); white-space: pre; }
+.sys .exacts { display: flex; gap: 8px; }
+
+/* Custom dropdown (listbox) */
+.sysdd { position: relative; }
+.sysdd > button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: 38px; padding: 0 12px 0 14px; border: 0; border-radius: var(--r-ctl); background: var(--field); color: var(--ink); font: 500 13px var(--ui); cursor: pointer; transition: background-color 150ms ease, transform 160ms var(--ease-out); }
+@media (hover: hover) and (pointer: fine) { .sysdd > button:hover { background: var(--field-2); } }
+.sysdd > button:active { transform: scale(0.99); }
+.sysdd > button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.sysdd .val { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.sysdd .val .pre { color: var(--faint); font-weight: 400; flex: none; }
+.sysdd .txt { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.sysdd ul { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 25; margin: 0; padding: 4px; list-style: none; background: var(--card); border-radius: var(--r-inner); box-shadow: 0 0 0 1px var(--line), 0 8px 24px rgba(0, 0, 0, 0.12); transform-origin: top; animation: sysddin 160ms var(--ease-out); outline: none; max-height: 280px; overflow-y: auto; }
+@keyframes sysddin { from { opacity: 0; transform: scale(0.97); } }
+.sysdd li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 10px; cursor: pointer; min-width: 0; }
+.sysdd li[data-active] { background: var(--field); }
+.sysdd li .hint { flex: none; max-width: 50%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12px; color: var(--faint); }
+.sysdd li svg { flex: none; }
+
+/* Compare */
+.syscompare .cmp { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12.5px; }
+.syscompare .cmp th { text-align: left; padding: 0 8px 8px 0; border: 0; font: 500 12px var(--ui); color: var(--muted); text-transform: none; overflow-wrap: anywhere; }
+.syscompare .cmp td { padding: 8px 8px 8px 0; border-top: 1px solid var(--line); border-bottom: 0; vertical-align: top; overflow-wrap: anywhere; }
+.syscompare .cmp td:first-child { width: 30%; color: var(--faint); }
+.syscompare .cmp td.fname { color: var(--ink); }
+.syscompare .cmp .yes { display: inline-flex; color: var(--ink); }
+.syscompare .cmp .yes svg { vertical-align: -3px; }
+.syscompare .cmp .no { color: var(--faint); }
+
+/* Floating section tabs, fixed at the bottom */
+.sysnav { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 30; display: flex; padding: 5px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.06); max-width: calc(100vw - 24px); overflow-x: auto; scrollbar-width: none; }
+.sysnav::-webkit-scrollbar { display: none; }
+.sysnav .hl { position: absolute; top: 5px; left: 0; height: 34px; width: 0; border-radius: 10px; background: var(--ink); transition: transform 250ms var(--ease-out), width 250ms var(--ease-out); }
+.sysnav button { position: relative; flex: none; height: 34px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font: 500 13px var(--ui); white-space: nowrap; cursor: pointer; transition: color 150ms ease, transform 160ms var(--ease-out); }
+.sysnav button[aria-current='true'] { color: var(--card); }
+.sysnav button:active { transform: scale(0.97); }
+.sysnav button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .sysnav button:not([aria-current='true']):hover { color: var(--ink); } }
+
+/* Tooltips on buttons at the right edge open leftwards, so they never overflow the panel */
+.sys .sysagain.tip::after, .sys .stylerow .tip::after { left: auto; right: 0; transform: translate(0, 2px); }
+.sys .sysagain.tip:hover::after, .sys .sysagain.tip:focus-visible::after, .sys .stylerow .tip:hover::after, .sys .stylerow .tip:focus-visible::after { transform: translate(0, 0); }
+
+/* The floating section tabs take the bottom of the panel (Health goes back to the top), so hide the back-to-top button here. */
+.app:has(.sysnav) .totop { display: none; }
