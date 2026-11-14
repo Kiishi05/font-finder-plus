@@ -85,13 +85,13 @@ export {
   Edit02Icon as LibEditIcon,
   BookmarkAdd02Icon as LibBookmarkAddIcon,
   Folder01Icon as LibFolderIcon,
+} from '@hugeicons/core-free-icons';
 // Page tab icons
 export {
   AlertCircleIcon,
   ArrowRight02Icon,
   CursorPointer01Icon,
   FileLockedIcon,
-  InformationCircleIcon,
   MoreHorizontalIcon,
   PuzzleIcon,
   SearchRemoveIcon,
