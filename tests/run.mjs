@@ -149,7 +149,7 @@ try {
   check('font renamed in CSS confirmed from its file', (await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).count()) === 1);
   check('how it works guide is shown', (await panel.locator('.guide').count()) === 1);
   // Show on page: outlines sit on the heading text itself
-  await panel.locator('.fcard', { hasText: 'Fraunces' }).locator('button', { hasText: 'Show on page' }).click();
+  await panel.locator('.fcard', { hasText: 'Fraunces' }).locator('button[aria-label="Show Fraunces on the page"]').click();
   await page.waitForTimeout(300);
   const marks = await page.evaluate(() => {
     const sr = document.getElementById('ffp-root').shadowRoot;
@@ -160,7 +160,7 @@ try {
   check('Show on page outlines the text', marks.n >= 2 && marks.onHeading, JSON.stringify(marks));
   check('Show on page counts text hidden in a closed menu', /2 hidden/.test(marks.flag), marks.flag);
   check('hidden uses are counted in the scan', fam('Fraunces')?.hiddenCount === 2, String(fam('Fraunces')?.hiddenCount));
-  await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).locator('button', { hasText: 'Show on page' }).click();
+  await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).locator('button[aria-label="Show Libre Caslon Condensed on the page"]').click();
   await page.waitForTimeout(300);
   const quote = await page.evaluate(() => {
     const sr = document.getElementById('ffp-root').shadowRoot;
@@ -169,12 +169,12 @@ try {
     return { n: ms.length, covers: ms.length === 1 && ms[0].top <= q.top + 4 && ms[0].bottom >= q.bottom - 4 };
   });
   check('a paragraph in one font is outlined as one block', quote.covers, JSON.stringify(quote));
-  check('button changes to Hide outlines', (await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).locator('button', { hasText: 'Hide outlines' }).count()) === 1);
-  await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).locator('button', { hasText: 'Hide outlines' }).click();
+  check('button changes to Hide outlines', (await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).locator('button[aria-label="Hide outlines"][aria-pressed="true"]').count()) === 1);
+  await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).locator('button[aria-label="Hide outlines"]').click();
   await page.waitForTimeout(200);
   check('second click removes the outlines', await page.evaluate(() => document.getElementById('ffp-root').shadowRoot.querySelectorAll('.mark').length === 0));
-  check('button returns to Show on page', (await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).locator('button', { hasText: 'Show on page' }).count()) === 1);
-  await panel.locator('.fcard', { hasText: 'Inter' }).first().locator('button', { hasText: 'Show on page' }).click();
+  check('button returns to Show on page', (await panel.locator('.fcard', { hasText: 'Libre Caslon Condensed' }).locator('button[aria-label="Show Libre Caslon Condensed on the page"][aria-pressed="false"]').count()) === 1);
+  await panel.locator('.fcard', { hasText: 'Inter' }).first().locator('button[aria-label="Show Inter on the page"]').click();
   await page.waitForTimeout(300);
   const mixed = await page.evaluate(() => {
     const sr = document.getElementById('ffp-root').shadowRoot;
@@ -184,37 +184,44 @@ try {
     return { n: ms.length, coversCode };
   });
   check('mixed paragraph: the code word in another font is not outlined', mixed.n >= 2 && !mixed.coversCode, JSON.stringify(mixed));
-  await panel.locator('.fcard', { hasText: 'Inter' }).first().locator('button', { hasText: 'Hide outlines' }).click();
+  await panel.locator('.fcard', { hasText: 'Inter' }).first().locator('button[aria-label="Hide outlines"]').click();
   await page.screenshot({ path: path.join(out, 'show-on-page.png') });
-  // Language sample
-  await panel.selectOption('select[aria-label="Language sample"]', 'yo');
+  // Language sample (a listbox: the button opens it, then pick an option)
+  const pickSample = async (label) => {
+    await panel.locator('.tester .ddbtn').first().click();
+    await panel.locator('.ddlist li[role="option"]').filter({ hasText: new RegExp(`^${label.replace(/[()]/g, '\\$&')}$`) }).first().click();
+  };
+  check('the sample starts as the English pangram', /Sample text: English/.test(await panel.locator('.tester .ddbtn').first().getAttribute('aria-label')) && (await panel.locator('.fcard .specimen').first().innerText()).includes('The quick brown fox'));
+  await pickSample('Yoruba');
   await panel.waitForTimeout(150);
-  await panel.selectOption('select[aria-label="Language sample"]', 'ar');
+  await pickSample('Arabic');
   await panel.waitForTimeout(400);
   const miss = await panel.locator('.missing').first().innerText().catch(() => '');
   check('missing letters are named in words, in quotes', /does not support Arabic\. \d+ letters are missing \(“/.test(miss), miss.slice(0, 90));
-  await panel.selectOption('select[aria-label="Language sample"]', 'zh-hans');
+  await pickSample('Chinese (Simplified)');
   await panel.waitForTimeout(500);
   const missZh = await panel.locator('.missing').first().innerText().catch(() => '');
   check('missing Chinese is detected too', /does not support Chinese/.test(missZh), missZh.slice(0, 80));
-  await panel.selectOption('select[aria-label="Language sample"]', 'yo');
+  await pickSample('Yoruba');
   await panel.waitForTimeout(150);
   check('language sample shows Yoruba text', (await panel.locator('.fcard .specimen').first().innerText()).includes('káàárọ̀'));
   await panel.screenshot({ path: path.join(out, 'panel-page-yoruba.png'), fullPage: true });
-  await panel.locator('.toggles button', { hasText: 'Font name' }).click();
+  await pickSample('Font name');
+  check('Font name sample shows each font in its own name', (await panel.locator('.fcard', { hasText: 'Fraunces' }).locator('.specimen').innerText()).trim() === 'Fraunces');
   const interCard = panel.locator('.fcard', { hasText: 'Inter' }).first();
-  await interCard.locator('.actions button', { hasText: 'Save' }).click();
+  await interCard.locator('button[aria-label="Save Inter to your library"]').click();
   await panel.waitForTimeout(300);
   check('saving shows the collection picker', (await interCard.locator('.cardpicker').count()) === 1);
-  await interCard.locator('.actions button', { hasText: 'Saved' }).click();
+  await interCard.locator('button[aria-label^="Saved. Click to remove"]').click();
   await panel.waitForTimeout(300);
-  check('clicking Saved unsaves the font', (await interCard.locator('.actions button', { hasText: /^Save$/ }).count()) === 1 && (await interCard.locator('.cardpicker').count()) === 0);
-  check('side panel shows not-loaded warning', (await panel.locator('.notice.amber').count()) >= 1);
+  check('clicking Saved unsaves the font', (await interCard.locator('button[aria-label="Save Inter to your library"][aria-pressed="false"]').count()) === 1 && (await interCard.locator('.cardpicker').count()) === 0);
+  await panel.locator('.notloaded .nlhead').click();
+  check('side panel shows not-loaded warning', (await panel.locator('.notloaded').count()) >= 1 && /Sohne Test/.test(await panel.locator('.notloaded .nllist').innerText().catch(() => '')));
 
   // Font detail for Fraunces
-  await panel.locator('.fcard', { hasText: 'Fraunces' }).locator('button', { hasText: 'Details' }).click();
-  await panel.waitForSelector('.hero-name');
-  await panel.waitForFunction(() => document.body.innerText.includes('Glyphs') || document.body.innerText.includes('could not'), null, { timeout: 20000 }).catch(() => {});
+  await panel.locator('.fcard', { hasText: 'Fraunces' }).locator('button.go', { hasText: 'Details' }).click();
+  await panel.waitForSelector('h1.nm');
+  await panel.waitForFunction(() => /\d+ letters/.test(document.body.innerText) || document.body.innerText.includes('could not'), null, { timeout: 20000 }).catch(() => {});
   await panel.waitForTimeout(1500);
   await panel.screenshot({ path: path.join(out, 'panel-detail.png'), fullPage: true });
   const detailText = await panel.locator('body').innerText();
@@ -223,15 +230,17 @@ try {
   check('detail shows variable axes', /opsz/i.test(detailText));
   await panel.waitForFunction(() => /of \d+ supported/i.test(document.body.innerText) && document.body.innerText.includes('full family on Google Fonts'), null, { timeout: 30000 }).catch(() => {});
   await panel.waitForSelector('.glyphs button', { timeout: 20000 }).catch(() => {});
+  await panel.locator('#sec-letters .dmorelang').click().catch(() => {});
   await panel.screenshot({ path: path.join(out, 'panel-detail-phase2.png'), fullPage: true });
   const d2 = await panel.locator('body').innerText();
-  check('licence card in plain language', d2.includes('SIL Open Font License') && d2.includes('Websites') && d2.includes('This is a summary, not legal advice.'));
+  check('licence card in plain language', d2.includes('SIL Open Font License') && d2.includes('Websites') && d2.includes('A summary, not legal advice.'));
   check('language coverage checked against Google Fonts', /\d+ of 35 supported/i.test(d2) && d2.includes('full family on Google Fonts'), (d2.match(/\d+ of 35 supported/i) || [''])[0]);
   check('Fraunces supports Vietnamese, not Arabic', await panel.evaluate(() => {
     const rows = [...document.querySelectorAll('.langhead')].map((r) => r.innerText.replace(/\s+/g, ' '));
-    const none = document.querySelector('.langs')?.innerText ?? '';
-    return rows.some((r) => r.startsWith('Vietnamese') && r.includes('Supported')) && /Not supported \(\d+\)[\s\S]*Arabic/.test(none);
+    const none = [...document.querySelectorAll('.langhead')].find((r) => r.querySelector('.dnone'))?.innerText ?? '';
+    return rows.some((r) => r.startsWith('Vietnamese') && r.includes('Supported')) && /Arabic/.test(none) && /Not included/.test(none);
   }));
+  await panel.locator('.dglyphs button', { hasText: /^See all \d+ letters/ }).click();
   check('glyph grid shows the font\'s characters', (await panel.locator('.glyphs button').count()) > 100, String(await panel.locator('.glyphs button').count()));
   await panel.fill('input[aria-label="Find a character"]', 'é');
   await panel.waitForTimeout(100);
@@ -241,21 +250,22 @@ try {
   await panel.waitForFunction(() => /LATIN SMALL LETTER E WITH ACUTE/.test(document.querySelector('.glyphsel')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
   check('glyph detail shows the Unicode name', /LATIN SMALL LETTER E WITH ACUTE/.test(await panel.locator('.glyphsel').innerText()));
   // Pairs: try the partner on the page
-  const pairBtn = panel.locator('.match button', { hasText: /Try on page \(replaces/ }).first();
+  const pairBtn = panel.locator('.dpair button', { hasText: 'Try on page' }).first();
   check('pairs offer Try on page', (await pairBtn.count()) === 1);
   if (await pairBtn.count()) {
     await pairBtn.click();
     await page.waitForFunction(() => document.querySelector('main p')?.hasAttribute('data-ffp-swap'), null, { timeout: 20000 }).catch(() => {});
     check('a pair is shown on the page', await page.evaluate(() => !!document.querySelector('main p')?.hasAttribute('data-ffp-swap')));
-    await panel.locator('.match button', { hasText: 'Showing on page' }).first().click();
+    await panel.locator('.dpair button', { hasText: 'Showing on page' }).first().click();
     await page.waitForTimeout(300);
   }
   check('installed check answers', /Installed|Not installed/.test(d2));
   // Phase 3: similar fonts, live swap, pairs, playground
-  await panel.waitForSelector('.match', { timeout: 15000 }).catch(() => {});
-  const sim = await panel.evaluate(() => [...document.querySelectorAll('.match b')].map((b) => b.textContent));
+  await panel.waitForSelector('#sec-similar .match', { timeout: 15000 }).catch(() => {});
+  await panel.locator('#sec-similar button', { hasText: /^Show all \d+/ }).click().catch(() => {});
+  const sim = await panel.evaluate(() => [...document.querySelectorAll('#sec-similar .match b')].map((b) => b.textContent));
   check('similar free fonts listed', sim.length >= 5 && !sim.includes('Fraunces'), sim.slice(0, 5).join(', '));
-  await panel.locator('.match button', { hasText: 'Try on page' }).first().click();
+  await panel.locator('#sec-similar .match button', { hasText: 'Try on page' }).first().click();
   await page.waitForFunction(() => document.querySelector('h1')?.getAttribute('data-ffp-swap'), null, { timeout: 20000 }).catch(() => {});
   const swapped = await page.evaluate(() => ({ attr: document.querySelector('h1').getAttribute('data-ffp-swap'), ff: getComputedStyle(document.querySelector('h1')).fontFamily, adj: getComputedStyle(document.querySelector('h1')).fontSizeAdjust }));
   check('Try on page swaps the font live', !!swapped.attr && /FFP Swap/.test(swapped.ff), JSON.stringify(swapped));
@@ -271,17 +281,18 @@ try {
   await panel.bringToFront();
   check('a re-scan still reports the original font while swapped', rescan.scan.fonts.some((f) => f.family === 'Fraunces'));
   check('our stand-in font never shows up as a page font (also on text inside a swapped heading)', !rescan.scan.fonts.some((f) => /^FFP /i.test(f.family) || /FFP Swap/i.test(f.displayName)), rescan.scan.fonts.map((f) => f.family).join(', '));
-  await panel.locator('.match button', { hasText: 'Showing on page' }).first().click();
+  await panel.locator('#sec-similar .match button', { hasText: 'Showing on page' }).first().click();
   await page.waitForTimeout(300);
   check('Undo puts the original font back', await page.evaluate(() => !document.querySelector('h1').hasAttribute('data-ffp-swap') && !/FFP Swap/.test(getComputedStyle(document.querySelector('h1')).fontFamily)));
-  check('pairs suggested', (await panel.locator('text=[Pairs well with]').count()) === 1 && (await panel.locator('.pairprev').count()) >= 3);
+  check('pairs suggested', /Pair with a (heading|body) font/.test(await panel.locator('#sec-pairs h2').innerText()) && (await panel.locator('#sec-pairs .dpair').count()) >= 3);
   check('variable playground has sliders', (await panel.locator('.axis input[type=range]').count()) >= 2);
   await panel.screenshot({ path: path.join(out, 'panel-detail-phase3.png'), fullPage: true });
   check('detail links to Google Fonts', (await panel.locator('a[href="https://fonts.google.com/specimen/Fraunces"]').count()) >= 1);
 
   // Save to library and create a collection
-  await panel.locator('.topbar button', { hasText: 'Save' }).click();
-  await panel.waitForSelector('text=[In your library]');
+  await panel.locator('.subtop button.dsave').click();
+  await panel.waitForSelector('h2:text-is("In your library")');
+  check('Save in the details turns to Saved', /Saved/.test(await panel.locator('.subtop button.dsave.on').innerText().catch(() => '')));
   await panel.locator('button', { hasText: '+ New collection' }).click();
   await panel.fill('input[aria-label="Collection name"]', 'Editorial');
   await panel.locator('button', { hasText: 'Create' }).click();
@@ -298,7 +309,7 @@ try {
   await viewer.close();
 
   // Phase 5: share card
-  await panel.locator('button', { hasText: 'Share card' }).click();
+  await panel.locator('.dhead button', { hasText: 'Share' }).click();
   await panel.waitForSelector('canvas.cardcanvas');
   await panel.waitForTimeout(1500);
   const cardInfo = async () => panel.evaluate(() => {
@@ -320,8 +331,14 @@ try {
   await panel.screenshot({ path: path.join(out, 'panel-share-portrait-dark.png'), fullPage: true });
   const [dl] = await Promise.all([panel.waitForEvent('download'), panel.locator('button', { hasText: 'Download PNG' }).click()]);
   check('share card downloads as PNG', dl.suggestedFilename() === 'fraunces-portrait.png', dl.suggestedFilename());
+  // The select arrow must sit inside the select box.
+  const arrowInside = await panel.evaluate(() => { const ws = [...document.querySelectorAll('.selectwrap')]; return ws.length > 0 && ws.every((w) => {
+    const a = w.getBoundingClientRect(); const i = w.querySelector('svg').getBoundingClientRect();
+    return i.right <= a.right - 4 && i.left >= a.left;
+  }); });
+  check('dropdown arrows sit inside their boxes', arrowInside);
   await panel.locator('button[aria-label="Back"]').click();
-  await panel.waitForSelector('.hero-name');
+  await panel.waitForSelector('h1.nm');
 
   await panel.locator('button[aria-label="Back"]').click();
   await panel.locator('.tabs button', { hasText: 'Library' }).click();
@@ -334,29 +351,33 @@ try {
 
   check('library shows a grid by default', (await panel.locator('.grid2 .lcard').count()) === 1);
   // Add to a second collection from the library card
-  await panel.locator('.lcard button[aria-label="Add to collection"]').click();
-  await panel.locator('.lcard .chip', { hasText: '+ New collection' }).click();
-  await panel.fill('.lcard input[aria-label="Collection name"]', 'Client B');
-  await panel.locator('.lcard button', { hasText: 'Create' }).click();
+  await panel.locator('.lcard button[aria-label="Options for Fraunces"]').click();
+  check('the card menu lists collections to tick', (await panel.locator('.lcard .cardmenu [role="menuitemcheckbox"][aria-checked="true"]', { hasText: 'Editorial' }).count()) === 1);
+  await panel.locator('.lcard .cardmenu button', { hasText: 'New collection…' }).click();
+  await panel.fill('input[aria-label="Collection name"]', 'Client B');
+  await panel.locator('button', { hasText: 'Create collection' }).click();
   await panel.waitForTimeout(400);
-  const inBoth = await panel.locator('.chips').first().innerText();
+  const inBoth = await panel.locator('.colrow').innerText();
   check('a font can be in two collections', /Editorial\s*1/.test(inBoth) && /Client B\s*1/.test(inBoth), inBoth.replace(/\n/g, ' '));
   await panel.screenshot({ path: path.join(out, 'panel-library-picker.png'), fullPage: true });
   // Add fonts from inside a collection
-  await panel.locator('.chips').first().locator('button', { hasText: 'Client B' }).click();
-  await panel.locator('button', { hasText: 'Add fonts' }).click();
-  check('Add fonts lists saved fonts', (await panel.locator('.section .chip', { hasText: 'Fraunces' }).count()) === 1);
-  await panel.locator('.section .chip', { hasText: 'Fraunces' }).click();
-  await panel.waitForTimeout(200);
+  await panel.locator('.colrow button', { hasText: 'Client B' }).click();
+  await panel.locator('.colbar button', { hasText: 'Add fonts' }).click();
+  check('Add fonts lists saved fonts', (await panel.locator('.section .chip.fpill', { hasText: 'Fraunces' }).count()) === 1);
+  await panel.locator('.section .chip.fpill', { hasText: 'Fraunces' }).click();
+  await panel.locator('button.wide', { hasText: 'Save changes' }).click();
+  await panel.waitForTimeout(300);
   check('Add fonts can remove a font too', (await panel.locator('.grid2 .lcard').count()) === 0);
-  await panel.locator('.section .chip', { hasText: 'Fraunces' }).click();
-  await panel.locator('.section button', { hasText: 'Done' }).click();
-  await panel.locator('.chips').first().locator('button', { hasText: 'All' }).click();
+  await panel.locator('.colbar button', { hasText: 'Add fonts' }).click();
+  await panel.locator('.section .chip.fpill', { hasText: 'Fraunces' }).click();
+  await panel.locator('button.wide', { hasText: 'Save changes' }).click();
+  await panel.waitForTimeout(300);
+  await panel.locator('.colrow button', { hasText: /^All/ }).click();
   await panel.locator('.viewtoggle button[aria-label="Wide list"]').click();
   await panel.waitForSelector('.lrow');
 
   // Phase 5: boards
-  await panel.locator('.libtools button', { hasText: 'Boards' }).click();
+  await panel.locator('.libtile', { hasText: 'Boards' }).click();
   await panel.locator('button', { hasText: 'New board' }).click();
   await panel.fill('input[aria-label="Board name"]', 'Editorial picks');
   await panel.locator('.chips .chip', { hasText: 'Fraunces' }).click();
@@ -368,13 +389,14 @@ try {
   const [bdl] = await Promise.all([panel.waitForEvent('download'), panel.locator('button', { hasText: 'Download PNG' }).click()]);
   check('board downloads as PNG', bdl.suggestedFilename() === 'editorial-picks-board.png', bdl.suggestedFilename());
   await panel.locator('button[aria-label="Back"]').click();
-  await panel.waitForSelector('.lrow', { timeout: 5000 }).catch(() => {});
-  check('board listed', (await panel.locator('.lrow', { hasText: 'Editorial picks' }).count()) === 1);
+  await panel.waitForSelector('.boardcard', { timeout: 5000 }).catch(() => {});
+  check('board listed', (await panel.locator('.boardcard', { hasText: 'Editorial picks' }).count()) === 1);
   await panel.locator('button[aria-label="Back"]').click();
-  await panel.waitForSelector('.libtools');
+  await panel.waitForSelector('.libtile');
 
   // Phase 5: export and import
-  const [edl] = await Promise.all([panel.waitForEvent('download'), panel.locator('.libtools button', { hasText: 'Export' }).click()]);
+  await panel.locator('button[aria-label="More"]').click();
+  const [edl] = await Promise.all([panel.waitForEvent('download'), panel.locator('.lmenu button', { hasText: 'Export library' }).click()]);
   const backup = JSON.parse(fs.readFileSync(await edl.path(), 'utf8'));
   check('library export has fonts, collections and boards', backup.format === 'font-finder-plus-library' && backup.savedFonts.length >= 1 && backup.collections.some((c) => c.name === 'Editorial') && backup.boards.length === 1);
   backup.collections.push({ id: 999, name: 'Imported set', color: '#3346FF', createdAt: 1 });
@@ -385,26 +407,23 @@ try {
   await panel.setInputFiles('input[aria-label="Import a library file"]', importFile);
   await panel.waitForTimeout(800);
   const libAfter = await panel.locator('body').innerText();
-  check('import adds new fonts and collections without duplicates', libAfter.includes('Imported set') && libAfter.includes('Lora') && (libAfter.match(/Editorial\s+\d/g) || []).length === 1, (libAfter.match(/Imported set|Lora|Editorial\s+\d/g) || []).join(','));
+  check('import adds new fonts and collections without duplicates', libAfter.includes('Imported set') && libAfter.includes('Lora') && (libAfter.match(/Editorial\s*\d/g) || []).length === 1, (libAfter.match(/Imported set|Lora|Editorial\s*\d/g) || []).join(','));
 
   // Filters: classification Mono should hide Fraunces
-  await panel.selectOption('select[aria-label="Style"]', 'mono');
+  const fchip = (group, label) => panel.locator('.libfilters .fgroup', { hasText: group }).locator('.chip', { hasText: label });
+  await panel.locator('button[aria-label="Filters"]').click();
+  await fchip('Style', /^Mono$/).click();
   await panel.waitForTimeout(200);
   check('filter by classification works', (await panel.locator('.lrow').count()) === 0);
-  await panel.selectOption('select[aria-label="Style"]', 'all');
-  await panel.selectOption('select[aria-label="Source"]', 'on-google');
+  await fchip('Style', /^All$/).click();
+  await fchip('Where it comes from', /^On Google Fonts$/).click();
   await panel.waitForTimeout(200);
   check('filter "Available on Google Fonts" works', (await panel.locator('.lrow').count()) === 2);
-  await panel.selectOption('select[aria-label="Source"]', 'all');
+  await fchip('Where it comes from', /^Any$/).click();
+  await panel.locator('button[aria-label="Close filters"]').click();
   await panel.fill('#lib-search', 'undercase');
   await panel.waitForTimeout(200);
   check('search by designer works', (await panel.locator('.lrow').count()) === 1);
-  // The select arrow must sit inside the select box.
-  const arrowInside = await panel.evaluate(() => [...document.querySelectorAll('.selectwrap')].every((w) => {
-    const a = w.getBoundingClientRect(); const i = w.querySelector('svg').getBoundingClientRect();
-    return i.right <= a.right - 4 && i.left >= a.left;
-  }));
-  check('dropdown arrows sit inside their boxes', arrowInside);
   await panel.fill('#lib-search', '');
   await panel.waitForTimeout(300);
   await panel.screenshot({ path: path.join(out, 'panel-library-list.png'), fullPage: true });
@@ -449,6 +468,7 @@ try {
   await panel.waitForSelector('#sys-styles', { timeout: 20000 });
   await panel.waitForTimeout(1200);
   await panel.screenshot({ path: path.join(out, 'panel-system.png'), fullPage: true });
+  await panel.locator('#sys-styles button', { hasText: /^Show \d+ more/ }).click().catch(() => {});
   const sysText = await panel.locator('body').innerText();
   const names = await panel.evaluate(() => [...document.querySelectorAll('.tagname')].map((n) => n.textContent));
   check('type styles listed and named', names.includes('h1') && names.includes('body'), names.join(', '));
@@ -457,21 +477,26 @@ try {
   await panel.locator('.issue', { hasText: 'Low contrast text' }).locator('button', { hasText: 'Show on page' }).click();
   await page.waitForTimeout(300);
   check('readability Show on page outlines the text', await page.evaluate(() => document.getElementById('ffp-root').shadowRoot.querySelectorAll('.mark').length >= 1));
-  check('developer section counts font files', /\[Files\]\s*\n?\s*[1-9]/i.test(sysText) || /FILES\]\s*[1-9]/.test(sysText), (sysText.match(/FILES\][^\n]*\n?[^\n]*/i) || [''])[0]);
+  const filesStat = await panel.evaluate(() => [...document.querySelectorAll('#sys-dev .stat')].find((st) => st.querySelector('span')?.textContent === 'Files')?.querySelector('b')?.textContent ?? '');
+  check('developer section counts font files', /^[1-9]\d*$/.test(filesStat), `Files ${filesStat}`);
   const exported = async () => panel.locator('pre.code').innerText();
   const css = await exported();
   check('CSS export has variables and a Google Fonts import', css.includes('--font-heading') && css.includes('fonts.googleapis.com/css2?family=Fraunces') && css.includes('.text-h1'));
-  await panel.selectOption('select[aria-label="Export format"]', 'tailwind4');
+  const pickExport = async (label) => {
+    await panel.locator('#sys-export .sysdd > button').click();
+    await panel.locator('#sys-export li[role="option"]', { hasText: label }).click();
+  };
+  await pickExport('Tailwind v4');
   check('Tailwind v4 export uses @theme', (await exported()).includes('@theme {') && (await exported()).includes('--text-h1--line-height'));
-  await panel.selectOption('select[aria-label="Export format"]', 'tailwind3');
+  await pickExport('Tailwind v3');
   check('Tailwind v3 export is a config', (await exported()).includes('module.exports') && (await exported()).includes('fontSize'));
-  await panel.selectOption('select[aria-label="Export format"]', 'tokens');
+  await pickExport('Design tokens');
   let tokensOk = false;
   try { const t = JSON.parse(await exported()); tokensOk = t.typography?.h1?.$type === 'typography'; } catch { tokensOk = false; }
   check('design tokens export is valid JSON', tokensOk);
-  await panel.selectOption('select[aria-label="Export format"]', 'framer');
+  await pickExport('Framer text styles');
   check('Framer export lists text styles with their tags', (await exported()).includes('Line height:') && (await exported()).includes('Tag: H1'));
-  await panel.selectOption('select[aria-label="Export format"]', 'webflow');
+  await pickExport('Webflow styles');
   const wf = await exported();
   check('Webflow export is a setup guide: fonts, variables, tag styles and classes', /Site settings > Fonts/.test(wf) && /Variables panel/.test(wf) && /All H1 Headings/.test(wf) && /Body \(All Pages\)/.test(wf), wf.slice(0, 160));
   // Phase 10: type system health check
@@ -479,33 +504,40 @@ try {
   const score = Number(/(\d+)\s*\/100/.exec(health)?.[1] ?? -1);
   check('health check gives one score out of 100 with a grade', score >= 0 && score <= 100 && /Excellent|Good|Fair|Needs work/.test(health), health.slice(0, 120).replace(/\n/g, ' '));
   check('health check scores families, sizes, weights, loading and readability', ['Font families', 'Sizes', 'Weights', 'Loading', 'Readability'].every((k) => health.includes(k)));
-  await panel.locator('#sys-health summary', { hasText: 'Readability' }).click();
-  await panel.locator('#sys-health summary', { hasText: 'Font families' }).click();
-  const healthOpen = await panel.locator('#sys-health').innerText();
+  // One part opens at a time: read each one's findings.
+  await panel.locator('#sys-health button.part', { hasText: 'Readability' }).click();
+  const healthRead = await panel.locator('#sys-health').innerText();
+  await panel.locator('#sys-health button.part', { hasText: 'Font families' }).click();
+  const healthOpen = healthRead + '\n' + (await panel.locator('#sys-health').innerText());
   check('health findings say what to fix (low contrast, a font that never loads)', /Low contrast text/.test(healthOpen) && /never loads/.test(healthOpen) && score < 100, healthOpen.replace(/\s+/g, ' ').slice(0, 300));
   const cmp = await panel.locator('#sys-compare').innerText();
-  check('compare shows the other tab', cmp.includes('127.0.0.1') && /Fonts/.test(cmp) && /Body text/.test(cmp), cmp.slice(0, 120).replace(/\n/g, ' '));
+  // The other tab is on the same site, so it is named by its title.
+  check('compare shows the other tab', /127\.0\.0\.1|Second page/.test(cmp) && /Fonts/.test(cmp) && /Body text/.test(cmp), cmp.slice(0, 120).replace(/\n/g, ' '));
 
   // Make it free: a font with no file to read is measured on the page
   await panel.locator('.tabs button', { hasText: 'Page' }).click();
-  await panel.waitForFunction(() => /Acme Mono/.test(document.querySelector('.freelist')?.textContent ?? ''), null, { timeout: 20000 }).catch(() => {});
-  await panel.waitForFunction(() => { const r = [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Acme Mono')); return r && !/Measuring/.test(r.textContent); }, null, { timeout: 20000 }).catch(() => {});
-  const acme = await panel.evaluate(() => [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Acme Mono'))?.textContent ?? 'missing');
+  // A row's text, with its tooltips (the licence of the match is in one).
+  const freeRow = (name) => panel.evaluate((n) => { const r = [...document.querySelectorAll('.mflist li')].find((x) => x.textContent.includes(n)); return r ? [r.textContent, ...[...r.querySelectorAll('[title]')].map((t) => t.title)].join(' | ') : 'missing'; }, name);
+  await panel.waitForFunction(() => /Acme Mono/.test(document.querySelector('.mflist')?.textContent ?? ''), null, { timeout: 20000 }).catch(() => {});
+  await panel.waitForFunction(() => { const r = [...document.querySelectorAll('.mflist li')].find((x) => x.textContent.includes('Acme Mono')); return r && !/Measuring/.test(r.textContent); }, null, { timeout: 20000 }).catch(() => {});
+  const acme = await freeRow('Acme Mono');
   check('Make it free measures fonts it cannot download', /%/.test(acme) && !/Could not|Not measured/.test(acme), acme);
-  await panel.waitForFunction(() => { const r = [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Helvetica Neue LT Pro')); return r && !/Measuring/.test(r.textContent); }, null, { timeout: 20000 }).catch(() => {});
-  const hn = await panel.evaluate(() => [...document.querySelectorAll('.freerow')].find((x) => x.textContent.includes('Helvetica Neue LT Pro'))?.textContent ?? 'missing');
+  await panel.waitForFunction(() => { const r = [...document.querySelectorAll('.mflist li')].find((x) => x.textContent.includes('Helvetica Neue LT Pro')); return r && !/Measuring/.test(r.textContent); }, null, { timeout: 20000 }).catch(() => {});
+  const hn = await freeRow('Helvetica Neue LT Pro');
   check('Make it free swaps a Helvetica-shaped font for Arimo, by letter shapes', /Arimo/.test(hn), hn);
   check('Make it free shows the free licence of a close match', /Free on Google Fonts · SIL Open Font License/.test(acme), acme);
 
   // Send to Figma: copies fonts, licences, stand-ins, previews and styles.
   await panel.evaluate(() => { window.__copied = null; navigator.clipboard.writeText = async (t) => { window.__copied = t; }; });
-  await panel.locator('.figmarow button', { hasText: 'Send to Figma' }).click();
+  await panel.locator('.pstatus button', { hasText: 'Copy for Figma' }).click();
   await panel.waitForFunction(() => window.__copied, null, { timeout: 90000 }).catch(() => {});
   const figmaText = await panel.evaluate(() => window.__copied ?? '');
   fs.writeFileSync(path.join(out, 'figma-payload.txt'), figmaText);
   let fp = null;
   try { fp = JSON.parse(figmaText.slice(figmaText.indexOf('\n') + 1)); } catch {}
   const fhn = fp?.fonts?.find((f) => f.name === 'Helvetica Neue LT Pro');
+  await panel.waitForFunction(() => [...document.querySelectorAll('.pstatus button')].some((b) => b.textContent === 'Copied'), null, { timeout: 5000 }).catch(() => {});
+  check('Copy for Figma says Copied on the button', (await panel.locator('.pstatus button', { hasText: /^Copied$/ }).count()) === 1);
   check('Send to Figma copies the page for the plugin', figmaText.startsWith('FONT-FINDER-PLUS/FIGMA/1') && fp?.fonts?.length >= 4 && fp?.styles?.length >= 3, `${fp?.fonts?.length} fonts, ${fp?.styles?.length} styles, ${(figmaText.length / 1024).toFixed(0)} KB`);
   check('Figma payload has a stand-in, licence and vector preview for a paid font', fhn?.standIn?.family === 'Arimo' && /Monotype/.test(fhn?.getIt?.label ?? '') && fhn?.preview?.kind === 'svg' && fhn.preview.svg.includes('<path'), JSON.stringify({ s: fhn?.standIn, g: fhn?.getIt, p: fhn?.preview?.kind }));
   const figNames = (fp?.fonts ?? []).map((f) => f.name.toLowerCase());
@@ -548,19 +580,26 @@ try {
   await page.locator('h1').screenshot({ path: shotPath });
   await panel.bringToFront();
   await panel.locator('.tabs button', { hasText: 'Image' }).click();
+  // The text is read by itself once a picture opens. A picture with one style goes straight to its lines;
+  // with several styles, "Pick one line instead" switches to them.
+  const lineMode = async () => {
+    await panel.waitForFunction(() => document.querySelector('.ocrline') || document.querySelector('#allfonts'), null, { timeout: 90000 }).catch(() => {});
+    if (!(await panel.locator('.ocrline').count()) && (await panel.locator('button', { hasText: 'Pick one line instead' }).count())) await panel.locator('button', { hasText: 'Pick one line instead' }).click();
+    await panel.waitForSelector('.ocrline', { timeout: 5000 }).catch(() => {});
+  };
   await panel.setInputFiles('input[aria-label="Upload an image"]', shotPath);
-  await panel.waitForSelector('.editbox canvas', { timeout: 10000 });
-  await panel.locator('button', { hasText: 'Read the text' }).click();
-  await panel.waitForSelector('.ocrline', { timeout: 90000 }).catch(() => {});
+  await panel.waitForSelector('.ipic canvas', { timeout: 10000 });
+  await lineMode();
   const ocrText = await panel.locator('.ocrline').first().innerText().catch(() => '');
   check('text recognition runs inside the extension', /slow|careful|Notes/i.test(ocrText), ocrText.replace(/\s+/g, ' ').slice(0, 60));
   check('letters are shown to check and correct', (await panel.locator('.tile').count()) >= 10);
   await panel.locator('button', { hasText: 'Find the closest fonts' }).click();
-  await panel.waitForSelector('.match', { timeout: 60000 }).catch(() => {});
-  const found = await panel.evaluate(() => [...document.querySelectorAll('.match b')].map((b) => b.textContent));
+  await panel.waitForSelector('.ires.match', { timeout: 60000 }).catch(() => {});
+  const found = await panel.evaluate(() => [...document.querySelectorAll('.ires.match .nmrow b')].map((b) => b.textContent));
   check('the font in the image is among the closest matches', found.slice(0, 3).some((f) => /Fraunces/.test(f)), found.slice(0, 5).join(', '));
   await panel.waitForFunction(() => /Has every letter|Missing \d+/.test(document.querySelector('.match')?.textContent ?? ''), null, { timeout: 15000 }).catch(() => {});
-  const first = await panel.locator('.match').first().innerText();
+  // The licence is the badge's tooltip.
+  const first = await panel.locator('.match').first().evaluate((m) => [m.innerText, ...[...m.querySelectorAll('.lic[title]')].map((t) => t.title)].join(' | '));
   check('matches show the free licence and letter coverage', /Free · SIL Open Font License/.test(first) && /Has every letter of your text/.test(first), first.replace(/\s+/g, ' ').slice(0, 160));
   const liveBtn = panel.locator('.match button', { hasText: 'Try it live on the page' }).first();
   await liveBtn.click();
@@ -568,9 +607,9 @@ try {
   check('image matches can be tried live on the page', await page.evaluate(() => !!document.querySelector('[data-ffp-swap]')));
   await panel.locator('.match button', { hasText: 'Showing on page' }).first().click();
   await page.waitForTimeout(300);
-  check('the text read keeps its spaces', /Notes on slow/.test(await panel.locator('.match .mprev').first().innerText()));
+  check('the text read keeps its spaces', /Notes on slow/.test(await panel.locator('.match .isample').first().innerText()));
   await panel.screenshot({ path: path.join(out, 'panel-identify.png'), fullPage: true });
-  await panel.locator('button', { hasText: 'Use another image' }).click();
+  await panel.locator('button', { hasText: 'Use another' }).click();
   await panel.waitForSelector('.histrow', { timeout: 5000 }).catch(() => {});
   check('the search is kept in history', (await panel.locator('.histrow').count()) >= 1);
 
@@ -585,16 +624,17 @@ try {
   await page.mouse.move(hb.x + hb.width * 0.6, hb.y + hb.height * 0.5, { steps: 5 });
   await page.mouse.up();
   // Keep the page in front: the screenshot is of the visible tab (in real use the side panel sits beside it).
-  await panel.waitForSelector('.editbox canvas', { timeout: 10000 }).catch(() => {});
+  await panel.waitForSelector('.ipic canvas', { timeout: 10000 }).catch(() => {});
   await panel.bringToFront();
-  await panel.waitForSelector('text=[Fonts in this area]', { timeout: 10000 }).catch(() => {});
+  await panel.waitForSelector('.iexact', { timeout: 10000 }).catch(() => {});
   const exactText = await panel.locator('body').innerText();
-  check('selecting real text lists its exact fonts', /Fonts in this area/i.test(exactText) && /Fraunces/.test(exactText) && /known exactly/.test(exactText));
-  await panel.locator('button', { hasText: 'Match it as an image anyway' }).click();
-  await panel.waitForSelector('.editbox canvas', { timeout: 10000 }).catch(() => {});
-  const sel = await panel.evaluate(() => { const c = document.querySelector('.editbox canvas'); return c ? { w: c.width, h: c.height } : document.querySelector('.notice')?.textContent ?? 'no notice'; });
-  check('selecting an area of the page captures it', !!sel && sel.w > 100 && sel.h > 20, JSON.stringify(sel));
-  await panel.locator('button', { hasText: 'Use another image' }).click().catch(() => {});
+  check('selecting real text lists its exact fonts', /Fonts in this area/i.test(exactText) && /Fraunces/.test(exactText) && /read exactly from the page/.test(exactText), exactText.replace(/\s+/g, ' ').slice(0, 300));
+  await panel.locator('button', { hasText: 'Match it as a picture' }).click();
+  await panel.waitForSelector('.ipic canvas', { timeout: 10000 }).catch(() => {});
+  await panel.waitForFunction(() => document.querySelector('.ocrline') || document.querySelector('#allfonts') || document.querySelector('.ireading'), null, { timeout: 10000 }).catch(() => {});
+  const sel = await panel.evaluate(() => { const c = document.querySelector('.ipic canvas'); return c ? { w: c.width, h: c.height, reading: !!document.querySelector('.ocrline, #allfonts, .ireading') } : document.querySelector('.notice')?.textContent ?? 'no notice'; });
+  check('selecting an area of the page captures it', !!sel && sel.w > 100 && sel.h > 20 && sel.reading, JSON.stringify(sel));
+  await panel.locator('button', { hasText: 'Use another' }).click().catch(() => {});
 
   // Paste an image
   const pngB64 = fs.readFileSync(shotPath).toString('base64');
@@ -604,9 +644,9 @@ try {
     dt.items.add(new File([bytes], 'pasted.png', { type: 'image/png' }));
     window.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt }));
   }, pngB64);
-  await panel.waitForSelector('.editbox canvas', { timeout: 10000 }).catch(() => {});
-  check('pasting an image opens it', (await panel.locator('.editbox canvas').count()) === 1);
-  await panel.locator('button', { hasText: 'Use another image' }).click();
+  await panel.waitForSelector('.ipic canvas', { timeout: 10000 }).catch(() => {});
+  check('pasting an image opens it', (await panel.locator('.ipic canvas').count()) === 1);
+  await panel.locator('button', { hasText: 'Use another' }).click();
 
   // Hover a picture: the card says it is a picture and can identify it, matching the page's own fonts too
   await page.bringToFront();
@@ -632,40 +672,39 @@ try {
   await page.mouse.click(pb2.x + 200, pb2.y + 40);
   await page.waitForFunction(() => document.getElementById('ffp-root').shadowRoot.querySelector('.name').textContent === 'Picture with text', null, { timeout: 5000 }).catch(() => {});
   await page.evaluate(() => document.getElementById('ffp-root').shadowRoot.querySelector('.identify').click());
-  await panel.waitForSelector('.editbox canvas', { timeout: 15000 }).catch(() => {});
-  check('Identify this picture opens it in the Image tab', (await panel.locator('.editbox canvas').count()) === 1);
+  await panel.waitForSelector('.ipic canvas', { timeout: 15000 }).catch(() => {});
+  check('Identify this picture opens it in the Image tab', (await panel.locator('.ipic canvas').count()) === 1);
   await panel.bringToFront();
-  await panel.locator('button', { hasText: 'Read the text' }).click();
-  await panel.waitForSelector('.ocrline', { timeout: 90000 }).catch(() => {});
+  await lineMode();
   await panel.locator('button', { hasText: 'Find the closest fonts' }).click();
-  await panel.waitForSelector('.match', { timeout: 60000 }).catch(() => {});
-  const picMatches = await panel.evaluate(() => [...document.querySelectorAll('.match')].slice(0, 3).map((m) => m.querySelector('b').textContent + (/On this page/.test(m.textContent) ? ' (on page)' : '')));
+  await panel.waitForSelector('.ires.match', { timeout: 60000 }).catch(() => {});
+  const picMatches = await panel.evaluate(() => [...document.querySelectorAll('.ires.match')].slice(0, 3).map((m) => m.querySelector('.nmrow b').textContent + (/On this page/.test(m.textContent) ? ' (on page)' : '')));
   check('a picture in a font the page uses is matched to that font', picMatches.some((m) => /Demo.*on page/.test(m)), picMatches.join(', '));
-  await panel.locator('button', { hasText: 'Use another image' }).click();
+  await panel.locator('button', { hasText: 'Use another' }).click();
 
   // Right-click an image (the menu itself cannot be clicked in a test; it stores this request)
   const imgUrl = `http://127.0.0.1:${PORT}/heading.png`;
   fs.copyFileSync(shotPath, path.join(root, 'tests/fixtures/heading.png'));
   await sw.evaluate(async ([src, id]) => chrome.storage.session.set({ 'identify:pending': { srcUrl: src, tabId: id, pageUrl: 'http://127.0.0.1/', at: Date.now() } }), [imgUrl, tabId]);
-  await panel.waitForSelector('.editbox canvas', { timeout: 10000 }).catch(() => {});
-  check('right-click "Identify the font in this image" opens the image', (await panel.locator('.editbox canvas').count()) === 1);
-  await panel.locator('button', { hasText: 'Use another image' }).click();
+  await panel.waitForSelector('.ipic canvas', { timeout: 10000 }).catch(() => {});
+  check('right-click "Identify the font in this image" opens the image', (await panel.locator('.ipic canvas').count()) === 1);
+  await panel.locator('button', { hasText: 'Use another' }).click();
 
   // HEIC (iPhone) photo
   const heic = '/tmp/claude-0/-home-user-font-finder-plus/d778d12b-bf83-5531-b188-a6c1d99ab026/scratchpad/heic/example.heic';
   if (fs.existsSync(heic)) {
     await panel.setInputFiles('input[aria-label="Upload an image"]', heic);
-    await panel.waitForSelector('.editbox canvas', { timeout: 30000 }).catch(() => {});
-    const hc = await panel.evaluate(() => { const c = document.querySelector('.editbox canvas'); return c ? { w: c.width, h: c.height } : document.querySelector('.notice')?.textContent ?? 'no notice'; });
+    await panel.waitForSelector('.ipic canvas', { timeout: 30000 }).catch(() => {});
+    const hc = await panel.evaluate(() => { const c = document.querySelector('.ipic canvas'); return c ? { w: c.width, h: c.height } : document.querySelector('.notice')?.textContent ?? 'no notice'; });
     check('HEIC photos open', !!hc && hc.w > 100, JSON.stringify(hc));
-    await panel.locator('button', { hasText: 'Use another image' }).click().catch(() => {});
+    await panel.locator('button', { hasText: 'Use another' }).click().catch(() => {});
   }
 
   if (logs.length) console.log('  logs:\n   ' + logs.slice(0, 12).join('\n   '));
   // Share card: fonts used on the site
   await panel.locator('.tabs button', { hasText: 'Page' }).click();
   await panel.waitForSelector('.fcard');
-  await panel.locator('button', { hasText: 'Share card' }).last().click();
+  await panel.locator('.pstatus button[aria-label="Share card"]').click();
   await panel.waitForSelector('canvas.cardcanvas', { timeout: 10000 });
   await panel.waitForTimeout(1500);
   const siteCard = await panel.evaluate(() => { const c = document.querySelector('canvas.cardcanvas'); return { w: c.width, h: c.height }; });
@@ -691,28 +730,28 @@ try {
   await postPage.close();
   await panel.bringToFront();
   await panel.locator('.tabs button', { hasText: 'Image' }).click();
-  if (await panel.locator('button', { hasText: 'Use another image' }).count()) await panel.locator('button', { hasText: 'Use another image' }).click();
+  if (await panel.locator('button', { hasText: 'Use another' }).count()) await panel.locator('button', { hasText: 'Use another' }).click();
   await panel.setInputFiles('input[aria-label="Upload an image"]', postPath);
-  await panel.waitForSelector('.editbox canvas', { timeout: 10000 });
-  await panel.locator('button', { hasText: 'Read the text' }).click();
+  await panel.waitForSelector('.ipic canvas', { timeout: 10000 });
   await panel.waitForSelector('#allfonts', { timeout: 90000 }).catch(() => {});
   await panel.waitForFunction(() => document.querySelector('#allfonts') && !/Comparing letters|Matching…/.test(document.querySelector('#allfonts').textContent), null, { timeout: 90000 }).catch(() => {});
   const allText = await panel.locator('#allfonts').innerText().catch(() => '');
-  check('a post with several fonts opens "Every font in the image"', (await panel.locator('.seg button[aria-selected="true"]').innerText().catch(() => '')) === 'Every font in the image');
+  check('a post with several fonts opens "Every font in the image"', (await panel.locator('#allfonts').count()) === 1 && (await panel.locator('.ocrline').count()) === 0 && (await panel.locator('#allfonts button', { hasText: 'Pick one line instead' }).count()) === 1);
   check('each text style is matched on its own', (await panel.locator('.blockcard').count()) >= 4, `${await panel.locator('.blockcard').count()} blocks`);
   check('font names written in the image are found', /Clash Display/.test(allText) && /Space Mono/.test(allText) && /Fraunces/.test(allText), allText.replace(/\s+/g, ' ').slice(0, 200));
-  const monoCard = await panel.evaluate(() => [...document.querySelectorAll('.blockcard')].find((c) => /Named here:\s*Space Mono/.test(c.textContent))?.textContent ?? '');
-  check('a name written in its own font is confirmed two ways (name and letters)', /Likely this font\s*Space Mono/.test(monoCard) && /Confirmed two ways/.test(monoCard), monoCard.replace(/\s+/g, ' ').slice(0, 200));
+  const monoCard = await panel.evaluate(() => [...document.querySelectorAll('.blockcard')].find((c) => c.querySelector('.nmrow b')?.textContent === 'Space Mono')?.textContent ?? '');
+  check('a name written in its own font is confirmed two ways (name and letters)', /Name and letters match|the letters match Space Mono/.test(monoCard), monoCard.replace(/\s+/g, ' ').slice(0, 200));
   check('paid or other-catalogue names say where to get them', /Get it from Indian Type Foundry/.test(allText));
-  const clashCard = await panel.evaluate(() => [...document.querySelectorAll('.blockcard')].find((c) => /Named here:\s*Clash Display/.test(c.textContent))?.textContent ?? '');
-  check('a block named as one font but looking like another is not called "Likely"', /The image names Clash Display/.test(clashCard) && !/Likely this font/.test(clashCard), clashCard.replace(/\s+/g, ' ').slice(0, 160));
+  const clashCard = await panel.evaluate(() => [...document.querySelectorAll('.blockcard')].find((c) => /Clash Display/.test(c.textContent))?.textContent ?? '');
+  check('a block named as one font but looking like another is not called "Likely"', /The image names Clash Display/.test(clashCard) && !/Likely this font|Name and letters match/.test(clashCard), clashCard.replace(/\s+/g, ' ').slice(0, 160));
   const colsBefore = await panel.evaluate(async () => (await new Promise((r) => { const q = indexedDB.open('font-finder-plus'); q.onsuccess = () => { const t = q.result.transaction('collections').objectStore('collections').count(); t.onsuccess = () => r(t.result); }; q.onerror = () => r(-1); })));
-  await panel.locator('#allfonts button', { hasText: 'Save all to a new collection' }).click();
+  await panel.locator('#allfonts button', { hasText: 'Save all' }).click();
   await panel.waitForSelector('.toast', { timeout: 10000 }).catch(() => {});
   const saveToast = await panel.locator('.toast').innerText().catch(() => '');
   check('Save all saves every font found to a new collection', /Saved [3-9] fonts to a new collection/.test(saveToast), saveToast);
   void colsBefore;
-  await panel.locator('#allfonts .named', { hasText: 'Clash Display' }).locator('button', { hasText: 'Details' }).first().click();
+  // Clash Display has a block of its own: its Details is on that card.
+  await panel.locator('#allfonts button', { hasText: 'Details for Clash Display' }).first().click();
   await panel.waitForSelector('button[aria-label="Back"]', { timeout: 10000 });
   const namedDetail = await panel.locator('body').innerText();
   check('Details on a named font says who makes it and where to get it', /Get it from Indian Type Foundry \(Fontshare\)/.test(namedDetail) && /named in an image/.test(namedDetail), namedDetail.replace(/\s+/g, ' ').slice(0, 160));
@@ -730,17 +769,17 @@ try {
   await listPage.close();
   await panel.bringToFront();
   await panel.locator('.tabs button', { hasText: 'Image' }).click();
-  if (await panel.locator('button', { hasText: 'Use another image' }).count()) await panel.locator('button', { hasText: 'Use another image' }).click();
+  if (await panel.locator('button', { hasText: 'Use another' }).count()) await panel.locator('button', { hasText: 'Use another' }).click();
   await panel.setInputFiles('input[aria-label="Upload an image"]', listPath);
-  await panel.waitForSelector('.editbox canvas', { timeout: 10000 });
-  await panel.locator('button', { hasText: 'Read the text' }).click();
+  await panel.waitForSelector('.ipic canvas', { timeout: 10000 });
   await panel.waitForSelector('#allfonts', { timeout: 90000 }).catch(() => {});
   await panel.waitForFunction(() => document.querySelector('#allfonts') && !/Comparing letters|Matching…/.test(document.querySelector('#allfonts').textContent), null, { timeout: 120000 }).catch(() => {});
-  const listCards = await panel.evaluate(() => [...document.querySelectorAll('.blockcard')].map((c) => c.textContent.replace(/\s+/g, ' ')));
-  const listNamed = (n) => listCards.filter((c) => new RegExp(`(Named here|Possible font name \\(not confirmed\\)):\\s*${n}`).test(c));
-  check('a list of fonts gets one sample per name, columns kept apart', ['Inter', 'Fraunces', 'Geist Mono', 'Space Mono', 'Lobster', 'Coolvetica'].every((n) => listNamed(n).length === 1), listCards.map((c) => c.slice(0, 70)).join(' || ').slice(0, 600));
-  check('two names side by side on one line are split ("Instrument Serif" and "Tusker Grotesk")', listNamed('Instrument Serif').length === 1 && listNamed('Tusker Grotesk').length === 1 && !listCards.some((c) => /Instrument Serif Tusker/.test(c)));
-  const listConfirmed = listCards.filter((c) => /Confirmed two ways/.test(c)).length;
+  // Each card is named by its heading (the name written in the picture, or the closest font), or says "The image names X".
+  const listCards = await panel.evaluate(() => [...document.querySelectorAll('.blockcard')].map((c) => ({ name: c.querySelector('.nmrow b')?.textContent ?? '', text: c.textContent.replace(/\s+/g, ' ') })));
+  const listNamed = (n) => listCards.filter((c) => c.name === n || c.text.includes(`The image names ${n},`)).map((c) => c.text);
+  check('a list of fonts gets one sample per name, columns kept apart', ['Inter', 'Fraunces', 'Geist Mono', 'Space Mono', 'Lobster', 'Coolvetica'].every((n) => listNamed(n).length === 1), listCards.map((c) => c.text.slice(0, 70)).join(' || ').slice(0, 600));
+  check('two names side by side on one line are split ("Instrument Serif" and "Tusker Grotesk")', listNamed('Instrument Serif').length === 1 && listNamed('Tusker Grotesk').length === 1 && !listCards.some((c) => /Instrument Serif Tusker/.test(c.text)));
+  const listConfirmed = listCards.filter((c) => /Name and letters match|the letters match/.test(c.text)).length;
   check('free fonts named and set in themselves are confirmed by their letters', listConfirmed >= 3, `${listConfirmed} confirmed`);
   check('a name not in any list says it cannot be checked, with closest free fonts', listNamed('Tusker Grotesk').some((c) => /not in the font lists we check/.test(c)), listNamed('Tusker Grotesk')[0]?.slice(0, 200));
   await panel.screenshot({ path: path.join(out, 'panel-fontlist.png'), fullPage: true });
@@ -748,7 +787,7 @@ try {
   // A font's details belong to the page they were opened from.
   await panel.locator('.tabs button', { hasText: 'Page' }).click();
   await panel.waitForSelector('.fcard', { timeout: 15000 }).catch(() => {});
-  await panel.locator('.fcard').first().locator('button', { hasText: 'Details' }).click();
+  await panel.locator('.fcard').first().locator('button.go', { hasText: 'Details' }).click();
   await panel.waitForSelector('button[aria-label="Back"]', { timeout: 10000 }).catch(() => {});
   await page.goto(`http://127.0.0.1:${PORT}/page2.html`, { waitUntil: 'networkidle' });
   await panel.waitForFunction(() => !document.querySelector('button[aria-label="Back"]'), null, { timeout: 15000 }).catch(() => {});
@@ -772,10 +811,15 @@ try {
 
   // Phase 9: Fonts I've seen (off by default, local, searchable, pause and delete per site).
   const seenCount = () => panel.evaluate(async () => (await new Promise((r) => { const q = indexedDB.open('font-finder-plus'); q.onsuccess = () => { try { const t = q.result.transaction('seen').objectStore('seen').count(); t.onsuccess = () => r(t.result); } catch { r(-1); } }; q.onerror = () => r(-1); })));
-  await panel.locator('.tabs button', { hasText: 'Library' }).click();
-  await panel.locator('button', { hasText: "Fonts I've seen" }).click();
+  // Wait for the saved fonts to load: the tiles move up when the empty state gives way to the list.
+  const openSeen = async () => {
+    await panel.locator('.tabs button', { hasText: 'Library' }).click();
+    await panel.waitForSelector('#lib-search', { timeout: 10000 }).catch(() => {});
+    await panel.locator('.libtile', { hasText: "Fonts I've seen" }).click();
+  };
+  await openSeen();
   await panel.waitForSelector('#seen-off', { timeout: 5000 }).catch(() => {});
-  check("Fonts I've seen is off by default and records nothing", (await panel.locator('#seen-off').count()) === 1 && (await seenCount()) === 0, `count ${await seenCount()}`);
+  check("Fonts I've seen is off by default and records nothing", (await panel.locator('#seen-off').count()) === 1 && (await seenCount()) === 0, `count ${await seenCount()} · ${(await panel.locator('body').innerText()).replace(/\s+/g, ' ').slice(0, 200)}`);
   await panel.locator('#seen-off button', { hasText: 'Turn on' }).click();
   await page.goto(`http://127.0.0.1:${PORT}/page2.html`, { waitUntil: 'networkidle' });
   await panel.waitForSelector('.fcard', { timeout: 20000 }).catch(() => {});
@@ -783,8 +827,7 @@ try {
   await panel.waitForSelector('.fcard', { timeout: 20000 }).catch(() => {});
   await panel.waitForTimeout(800);
   check('once on, the fonts of pages you read are recorded', (await seenCount()) >= 3, `count ${await seenCount()}`);
-  await panel.locator('.tabs button', { hasText: 'Library' }).click();
-  await panel.locator('button', { hasText: "Fonts I've seen" }).click();
+  await openSeen();
   await panel.waitForSelector('.seenrow', { timeout: 5000 }).catch(() => {});
   await panel.fill('#seen-search', 'serif');
   await panel.waitForTimeout(400);
@@ -792,16 +835,17 @@ try {
   check('search "serif" finds the serif seen on the site, with where it was seen', serifs.some((t) => /Fraunces/.test(t) && /127\.0\.0\.1/.test(t)) && !serifs.some((t) => /^Inter\b/.test(t)), serifs.map((t) => t.split('\n')[0]).join(', '));
   await panel.fill('#seen-search', 'mono');
   await panel.waitForTimeout(400);
-  const monos = await panel.locator('.seenrow').allInnerTexts();
+  // The style (Mono) is in the name's tooltip.
+  const monos = await panel.locator('.seenrow').evaluateAll((rows) => rows.map((r) => `${r.innerText}\n${r.querySelector('.namebtn')?.title ?? ''}`));
   check('search "mono" finds the code fonts', monos.length >= 1 && monos.every((t) => /Mono|Monospace/i.test(t)), monos.map((t) => t.split('\n')[0]).join(', '));
   await panel.fill('#seen-search', '');
-  await panel.locator('button', { hasText: 'Pause on this site' }).click();
+  await panel.locator('button[aria-label="Pause recording on 127.0.0.1"]').click();
   await panel.waitForTimeout(300);
   check('pausing on a site is remembered', /Paused on 127\.0\.0\.1/.test(await panel.locator('body').innerText()) && (await sw.evaluate(async () => (await chrome.storage.local.get('seenPaused')).seenPaused)).includes('127.0.0.1'));
   await panel.locator('button[aria-label="Delete 127.0.0.1 from the history"]').click();
   await panel.waitForTimeout(400);
   check('deleting a site removes its fonts from the history', (await seenCount()) === (await panel.evaluate(async () => 0)) || !(await panel.locator('.seenrow', { hasText: '127.0.0.1' }).count()));
-  await panel.locator('button', { hasText: 'Resume here' }).click().catch(() => {});
+  await panel.locator('button[aria-label="Resume recording on 127.0.0.1"]').click().catch(() => {});
   await panel.locator('button[aria-label="Back"]').click();
   await panel.locator('.tabs button', { hasText: 'Page' }).click();
   await panel.waitForSelector('.fcard', { timeout: 20000 }).catch(() => {});
@@ -822,7 +866,7 @@ try {
     await panel.waitForTimeout(600);
     const sv = await panel.evaluate(async () => (await window.axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] })).violations.map((x) => ({ id: x.id, impact: x.impact, n: x.nodes.length, html: x.nodes.slice(0, 3).map((n) => n.html.slice(0, 140)) })));
     for (const x of sv) a11y.push({ theme, tab: 'Settings', ...x });
-    await panel.locator('button[aria-label="Settings"]').click();
+    await panel.locator('button[aria-label="Back"]').click();
   }
   await fs.promises.writeFile(path.join(out, 'a11y.json'), JSON.stringify(a11y, null, 2));
   check('accessibility: no WCAG A/AA violations in the panel', a11y.length === 0, a11y.map((x) => `${x.theme}/${x.tab}:${x.id}(${x.n})`).join(', '));
