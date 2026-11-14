@@ -307,7 +307,9 @@ function FontCard({ f, tester, tabId, host, swappedTo, onOpen, toast }: { f: Pag
         </div>
       )}
       {f.source === 'adobe' && !catalogFamily && (
-        <a className="linkbtn" style={{ fontSize: 12, alignSelf: 'flex-start' }} href={adobeFontsUrl(name)} target="_blank" rel="noreferrer">Find it on Adobe Fonts <Icon icon={ArrowUpRight01Icon} size={12} /></a>
+        <div className="fcard-links">
+          <a className="btn sm" href={adobeFontsUrl(name)} target="_blank" rel="noreferrer">Find it on Adobe Fonts <Icon icon={ArrowUpRight01Icon} size={13} /></a>
+        </div>
       )}
       <div className="actions">
         <button className={outlined ? 'on' : ''} aria-pressed={outlined} title={outlined ? 'Remove the outlines' : 'Outline the text on the page that uses this font'} onClick={show}>

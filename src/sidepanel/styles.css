@@ -452,3 +452,4 @@ a.btn { text-decoration: none; }
 .healthbar i.bad { background: var(--red-text); }
 .healthpart summary svg { transition: transform 0.15s ease; flex: none; }
 .healthpart[open] summary svg { transform: rotate(180deg); }
+.fcard-links { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 14px 12px; }
