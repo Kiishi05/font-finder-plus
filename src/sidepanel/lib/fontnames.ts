@@ -77,7 +77,7 @@ export function findFontNames(lines: OcrLine[]): NamedFont[] {
 
 // Words in a post that show it is about a typeface ("is an Helvetica-inspired typeface with 7 weights").
 const ABOUT_TYPE = /\b(fonts?|typefaces?|typography|type family|glyphs?|weights?|specimen|-inspired|inspired by|designed by|foundry|free for)\b/i;
-const COMMON_HEADINGS = /^(the|a|an|new|free|best|top|font|fonts|typeface|typography|design|hello|welcome)$/i;
+const COMMON_HEADINGS = /^(the|a|an|new|free|best|top|font|fonts|typeface|typography|design|hello|welcome|this|it|our|my|which|that|meet|introducing)$/i;
 
 /**
  * A name the picture seems to be about, even if it is in no list we have: in a
@@ -102,6 +102,8 @@ const FONT_LINK = "(?:https?://)?[\\w.-]+\\.[a-z]{2,}/\\S*(?:font|type|typeface|
 const LINK_THEN_NAME = new RegExp(`${FONT_LINK}\\s*[—–:-]+\\s*${NAME}`, 'gu');
 const NAME_THEN_LINK = new RegExp(`${NAME}\\s*[—–:-]+\\s*${FONT_LINK}`, 'gu');
 // "Font: Lil Grotesk", "Typeface — Amiamie", "set in Söhne".
+// "Lil Grotesk is a geometric sans serif font family".
+const IS_A = new RegExp(`${NAME}\\s+(?:is|was)\\s+an?\\s+(?:new\\s+|free\\s+)?(?:[\\p{L}-]+\\s+){0,5}(?:font|typeface|type family|font family|typefamily|family of fonts)\\b`, 'gu');
 const LABELLED = new RegExp(`\\b(?:font|typeface|type|set in|fonts? used|typefaces? used)\\s*[:—–-]+\\s*${NAME}`, 'giu');
 
 /**
@@ -126,7 +128,7 @@ export function namesFromContext(context: string[] | undefined): NamedFont[] {
     }
   };
   const text = context.join('\n');
-  for (const re of [LINK_THEN_NAME, NAME_THEN_LINK, LABELLED]) {
+  for (const re of [LINK_THEN_NAME, NAME_THEN_LINK, LABELLED, IS_A]) {
     re.lastIndex = 0;
     for (const m of text.matchAll(re)) add(m[1], true);
   }
@@ -136,4 +138,65 @@ export function namesFromContext(context: string[] | undefined): NamedFont[] {
     for (const n of findFontNames(lines)) if (!found.has(n.name)) found.set(n.name, { ...n, line: -1 });
   }
   return [...found.values()].slice(0, 8);
+}
+
+/** A font name from our lists (Google Fonts, foundries, free sites), ignoring case, spaces and style words. */
+export function lookupName(text: string): NamedFont | null {
+  const hit = getIndex().get(squash(text)) ?? getIndex().get(squash(text.replace(STYLE, ' ')));
+  return hit ? { name: hit.name, kind: hit.kind, known: hit.known, line: -1 } : null;
+}
+
+// Words that end many typeface names ("Tusker Grotesk", "Awesome Serif").
+const TYPE_WORDS = /\b(sans|serif|grotesk|grotesque|gothic|mono|display|neue|text|slab|script|condensed|rounded|pro|std|ui|code|type|typeface|font|book|round)$/i;
+
+/** Looks like a typeface name: one to four capitalised words, or ending in a type word. */
+export function nameLike(text: string): boolean {
+  const t = text.trim();
+  const words = t.split(/\s+/);
+  if (!t || t.length > 32 || words.length > 4) return false;
+  if (!words.every((w) => /^[A-Z0-9][\p{L}0-9'’&.-]*$/u.test(w))) return false;
+  if (words.some((w) => COMMON_HEADINGS.test(w))) return false;
+  // Only style words ("Bold", "Light Italic") are not a name of their own.
+  if (words.every((w) => /^(thin|hairline|extra|light|regular|book|medium|semi|bold|black|heavy|italic|condensed|display|ultra)$/i.test(w))) return false;
+  return words.length > 1 || t.length >= 4 || TYPE_WORDS.test(t);
+}
+
+/**
+ * Splits words that hold several names in a row ("Instrument Serif Tusker
+ * Grotesk") into the names. Returns word ranges, or null when the words are
+ * not a run of names. Names from our lists are taken first; what is left
+ * between them must itself look like a name.
+ */
+export function splitNames(words: string[]): [number, number][] | null {
+  const ix = getIndex();
+  const parts: [number, number][] = [];
+  let i = 0;
+  let pending = -1;
+  while (i < words.length) {
+    let took = 0;
+    for (let n = Math.min(4, words.length - i); n >= 1; n--) {
+      const key = squash(words.slice(i, i + n).join(' '));
+      if (key.length >= 3 && ix.has(key) && (n > 1 || /^[A-Z0-9]/.test(words[i]))) {
+        took = n;
+        break;
+      }
+    }
+    if (took) {
+      if (pending >= 0) parts.push([pending, i]);
+      pending = -1;
+      parts.push([i, i + took]);
+      i += took;
+    } else {
+      if (pending < 0) pending = i;
+      i++;
+      // A name ends at a type word ("Tusker Grotesk"): close it there.
+      if (TYPE_WORDS.test(words[i - 1]) && i < words.length) {
+        parts.push([pending, i]);
+        pending = -1;
+      }
+    }
+  }
+  if (pending >= 0) parts.push([pending, words.length]);
+  if (parts.length < 2) return null;
+  return parts.every(([a, b]) => nameLike(words.slice(a, b).join(' '))) ? parts : null;
 }

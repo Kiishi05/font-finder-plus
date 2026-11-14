@@ -8,6 +8,10 @@ export interface Settings {
   guideDismissed: boolean;
   testerText: string;
   testerSize: number;
+  /** Fonts I've seen: keep a history of the fonts on pages you read (off unless turned on). */
+  seenEnabled: boolean;
+  /** Sites where that history is paused. */
+  seenPaused: string[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -17,6 +21,8 @@ export const DEFAULT_SETTINGS: Settings = {
   guideDismissed: false,
   testerText: '',
   testerSize: 32,
+  seenEnabled: false,
+  seenPaused: [],
 };
 
 export async function getSettings(): Promise<Settings> {

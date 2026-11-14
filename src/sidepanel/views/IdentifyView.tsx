@@ -6,6 +6,7 @@ import { SaveFontButton } from '../components/SaveFontButton';
 import { ensureRecord, pageFontFiles } from '../lib/imagefonts';
 import { knownFont } from '../../shared/licences';
 import { findFontNames, namesFromContext } from '../lib/fontnames';
+import { splitSamples } from '../lib/segments';
 import { AllFonts, VERDICT_LABEL, blocksFor } from './identify/AllFonts';
 import { imageVerdict } from '../../shared/imagerank';
 import { Alert02Icon, ArrowUpRight01Icon, Delete02Icon, ImageCropIcon, ImageUploadIcon, PerspectiveIcon, RotateClockwiseIcon, ScanImageIcon, Target02Icon } from '../../shared/icons';
@@ -228,7 +229,8 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
     setError(null);
     setMatches(null);
     try {
-      const found = await recognize(prepared, setProgress);
+      // Columns and runs of names become separate samples.
+      const found = splitSamples(await recognize(prepared, setProgress));
       setLines(found);
       setCorrections({});
       setMode(blocksFor(found).length >= 2 || findFontNames(found).length || postNames.length || !found.length ? 'all' : 'line');

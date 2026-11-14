@@ -11,7 +11,7 @@ export const FINE_SHORTLIST = 25;
 
 /** Tuning, set from tests/lookalike-bench.mjs. */
 /** worst: how much a few clearly different letters count (a slab r, a rounded end) next to the average. */
-export const TUNE = { strict: 0.2, share: 0.3, worst: 1, corner: 1 };
+export const TUNE = { strict: 0.2, share: 0.35, worst: 1, corner: 1, ink: 0.5, scaled: 0.3, adv: 0.3 };
 
 export interface FinePrint {
   px: Uint8Array;
@@ -149,4 +149,116 @@ export function rerankFine(coarse: Match[], fine: Map<string, number>): Match[] 
       return f == null ? { ...m, score: Math.round(m.score * 0.9) } : { ...m, score: Math.round(m.score * (1 - TUNE.share) + fineShown(f) * TUNE.share) };
     })
     .sort((a, b) => b.score - a.score || (a.p ?? 9999) - (b.p ?? 9999));
+}
+
+// ------------------------------------------------------------- letters at a shared x-height
+// The prints above fit each letter to its own box, which hides how wide it is,
+// how tall its ascenders are next to its x-height, and how heavy its strokes
+// look. These prints draw every letter at the same x-height on a shared
+// baseline, the way two fonts look when one is swapped for the other.
+
+/** Cells across and down (each cell is 4 by 4 pixels when drawn). */
+export const SC_W = 40;
+export const SC_H = 44;
+/** x-height in pixels when drawn, and where the baseline sits. */
+export const SC_XH = 48;
+export const SC_BASE = 128;
+
+export interface ScaledPrint {
+  /** Ink per cell, 0 to 16. */
+  px: Uint8Array;
+  /** The letter thinned to its centre line, per cell (0 to 4): its construction, whatever its weight. */
+  sk?: Uint8Array;
+  /** Advance width in x-heights. */
+  adv: number;
+}
+
+function blur(a: Uint8Array): Float32Array {
+  const o = new Float32Array(a.length);
+  for (let y = 0; y < SC_H; y++) {
+    for (let x = 0; x < SC_W; x++) {
+      let s = 0, n = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const yy = y + dy, xx = x + dx;
+        if (yy < 0 || xx < 0 || yy >= SC_H || xx >= SC_W) continue;
+        s += a[yy * SC_W + xx] * (dx || dy ? 1 : 2);
+        n += dx || dy ? 1 : 2;
+      }
+      o[y * SC_W + x] = s / n;
+    }
+  }
+  return o;
+}
+
+/** 0 to 1: how alike two letters look at the same x-height (shape, width, height and weight together). */
+function jaccard(a: Float32Array, b: Float32Array): number {
+  let mn = 0, mx = 0;
+  for (let i = 0; i < a.length; i++) {
+    mn += Math.min(a[i], b[i]);
+    mx += Math.max(a[i], b[i]);
+  }
+  return mx ? mn / mx : 0;
+}
+
+export function scaledSimilarity(a: ScaledPrint, b: ScaledPrint): number {
+  const ink = jaccard(blur(a.px), blur(b.px));
+  const skel = a.sk && b.sk ? jaccard(blur(Uint8Array.from(blur(a.sk), (v) => v * 4)), blur(Uint8Array.from(blur(b.sk), (v) => v * 4))) : ink;
+  // Width shows at once when one font replaces another (a line gets longer), so it counts strongly.
+  const adv = a.adv > 0 && b.adv > 0 ? 1 - Math.min(1, Math.abs(Math.log(a.adv / b.adv)) / TUNE.adv) : 0.5;
+  return ink * TUNE.ink + skel * (0.75 - TUNE.ink) + adv * 0.25;
+}
+
+/** Mean of the letters both fonts have, with clearly different letters weighing more (null if too few). */
+export function scaledFontScore(q: Record<string, ScaledPrint | null>, c: Record<string, ScaledPrint | null>): number | null {
+  let s = 0, sq = 0, n = 0;
+  for (const ch of FINE_CHARS) {
+    const a = q[ch], b = c[ch];
+    if (!a || !b) continue;
+    const v = scaledSimilarity(a, b);
+    s += v;
+    sq += (1 - v) ** 2;
+    n++;
+  }
+  if (n < 15) return null;
+  return (s / n) * (1 - TUNE.worst) + (1 - Math.sqrt(sq / n)) * TUNE.worst;
+}
+
+/** Thins a 1-bit picture to lines one pixel wide (Zhang-Suen). */
+export function skeleton(px: Uint8Array, w: number, h: number): Uint8Array {
+  const a = Uint8Array.from(px);
+  const at = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= h ? 0 : a[y * w + x]);
+  let changed = true;
+  const del: number[] = [];
+  for (let pass = 0; changed && pass < 40; pass++) {
+    changed = false;
+    for (const step of [0, 1]) {
+      del.length = 0;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        if (!a[y * w + x]) continue;
+        const p = [at(x, y - 1), at(x + 1, y - 1), at(x + 1, y), at(x + 1, y + 1), at(x, y + 1), at(x - 1, y + 1), at(x - 1, y), at(x - 1, y - 1)];
+        const n = p.reduce((s, v) => s + v, 0);
+        if (n < 2 || n > 6) continue;
+        let t = 0;
+        for (let i = 0; i < 8; i++) if (!p[i] && p[(i + 1) % 8]) t++;
+        if (t !== 1) continue;
+        if (step === 0 ? p[0] * p[2] * p[4] || p[2] * p[4] * p[6] : p[0] * p[2] * p[6] || p[0] * p[4] * p[6]) continue;
+        del.push(y * w + x);
+      }
+      for (const i of del) a[i] = 0;
+      if (del.length) changed = true;
+    }
+  }
+  return a;
+}
+
+/**
+ * One value for the sharper look, on the fineFontScore scale: the letters fitted
+ * to their own box (shape details) and drawn at a shared x-height (width,
+ * height and construction), weighted by TUNE.scaled.
+ */
+export function fineAndScaled(fine: number | null, scaled: number | null): number | null {
+  if (scaled == null) return fine;
+  const onFine = 0.85 + ((scaled - 0.62) / 0.33) * 0.14;
+  if (fine == null) return onFine;
+  return fine * (1 - TUNE.scaled) + onFine * TUNE.scaled;
 }

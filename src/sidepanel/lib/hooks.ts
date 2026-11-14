@@ -1,3 +1,4 @@
+import { recordSeen } from '../../shared/seen';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { sendToExtension, sendToTab, type PingReply, type ScanReply, type ToExtension } from '../../shared/messages';
 import { DEFAULT_SETTINGS, getSettings, hasAllSitesAccess, onSettingsChanged, setSettings, type Settings } from '../../shared/settings';
@@ -139,13 +140,19 @@ export function usePageScan(tabId: number | null, ready: boolean, url: string | 
       scanCache.set(`${tabId}|${url}|${version}`, r.scan);
       remember(tabId, r.scan);
       setScan(r.scan);
+      // Fonts I've seen (only when turned on, and not paused for this site).
+      recordSeen(r.scan).catch(() => undefined);
     }
   }, [tabId, ready, url, version]);
 
   useEffect(() => {
     const cached = scanCache.get(cacheKey);
     // Keep showing the last scan of the same page while a refresh runs.
-    if (cached) setScan(cached);
+    if (cached) {
+      setScan(cached);
+      // Seen again (Fonts I've seen counts it once per hour per page).
+      recordSeen(cached).catch(() => undefined);
+    }
     else if (!version) setScan(null);
     if (ready && !cached) run();
     // eslint-disable-next-line react-hooks/exhaustive-deps

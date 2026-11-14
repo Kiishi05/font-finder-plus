@@ -42,6 +42,9 @@ export {
   ArrowReloadHorizontalIcon,
   StopCircleIcon,
   LanguageSquareIcon,
+  Clock01Icon,
+  PauseIcon,
+  PlayIcon,
 } from '@hugeicons/core-free-icons';
 
 export type IconNode = readonly (readonly [string, Record<string, string | number>])[];

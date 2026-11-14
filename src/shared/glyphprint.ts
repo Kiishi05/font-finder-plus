@@ -3,7 +3,7 @@
 // proportions. The same code makes the index of Google Fonts (build time) and
 // the prints of letters cut from an image (in the browser).
 
-import { CORNER_SIZE, FINE_CHARS, cornerOfInk, fineFromInk, type FinePrint } from './finematch';
+import { CORNER_SIZE, FINE_CHARS, SC_BASE, SC_H, SC_W, SC_XH, cornerOfInk, fineFromInk, skeleton, type FinePrint, type ScaledPrint } from './finematch';
 
 export const GLYPH_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 export const CELL = 16;
@@ -213,4 +213,72 @@ function canvasCorner(familyCss: string, weight: string, style: string): number 
   for (let i = 0; i < px.length; i++) px[i] = d[i * 4 + 3] > 127 ? 1 : 0;
   const ink = cropInk({ w: c.width, h: c.height, px });
   return ink ? cornerOfInk(ink) : null;
+}
+
+/** Letters drawn at a shared x-height on a shared baseline (see scaledSimilarity). */
+export function scaledPrintsFromCanvas(familyCss: string, weight = '400', style = 'normal'): Record<string, ScaledPrint | null> {
+  const W = SC_W * 4, H = SC_H * 4;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  const out: Record<string, ScaledPrint | null> = {};
+  if (!ctx) return out;
+  ctx.font = `${style} ${weight} 16px ${familyCss}`;
+  // Measure the x-height at a known size first (text size scaled up, as above).
+  const ink = (ch: string, k: number) => {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#000';
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    ctx.fillText(ch, 20 / k, SC_BASE / k);
+    const d = ctx.getImageData(0, 0, W, H).data;
+    let top = H, bottom = -1, left = W, right = -1;
+    const px = new Uint8Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 127) {
+      px[y * W + x] = 1;
+      if (y < top) top = y;
+      if (y > bottom) bottom = y;
+      if (x < left) left = x;
+      if (x > right) right = x;
+    }
+    return bottom < 0 ? null : { px, top, bottom, left, right };
+  };
+  const x = ink('x', 4);
+  if (!x) return out;
+  const k = (4 * SC_XH) / (x.bottom - x.top + 1);
+  for (const ch of FINE_CHARS) {
+    const g = ink(ch, k);
+    if (!g) {
+      out[ch] = null;
+      continue;
+    }
+    // Centre the letter's ink across the cell grid.
+    const shift = Math.round(W / 2 - (g.left + g.right) / 2);
+    const cells = new Uint8Array(SC_W * SC_H);
+    for (let y = 0; y < H; y++) for (let xx = 0; xx < W; xx++) {
+      if (!g.px[y * W + xx]) continue;
+      const tx = xx + shift;
+      if (tx < 0 || tx >= W) continue;
+      cells[(y >> 2) * SC_W + (tx >> 2)]++;
+    }
+    // Its centre line, from a half-size copy (fast enough to run on dozens of fonts).
+    const hw = W >> 1, hh = H >> 1;
+    const half = new Uint8Array(hw * hh);
+    for (let y = 0; y < hh; y++) for (let xx = 0; xx < hw; xx++) {
+      const sx = xx * 2 - shift;
+      let n = 0;
+      for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
+        const X = sx + dx, Y = y * 2 + dy;
+        if (X >= 0 && X < W) n += g.px[Y * W + X];
+      }
+      half[y * hw + xx] = n >= 2 ? 1 : 0;
+    }
+    const thin = skeleton(half, hw, hh);
+    const sk = new Uint8Array(SC_W * SC_H);
+    for (let y = 0; y < hh; y++) for (let xx = 0; xx < hw; xx++) if (thin[y * hw + xx]) sk[(y >> 1) * SC_W + (xx >> 1)]++;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    out[ch] = { px: cells, sk, adv: (ctx.measureText(ch).width * k) / SC_XH };
+  }
+  return out;
 }

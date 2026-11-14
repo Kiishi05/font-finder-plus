@@ -1,4 +1,4 @@
-import { LOOKALIKE_CHARS, finePrintsFromCanvas, printsFromCanvas } from '../shared/glyphprint';
+import { LOOKALIKE_CHARS, finePrintsFromCanvas, printsFromCanvas, scaledPrintsFromCanvas } from '../shared/glyphprint';
 import { FINE_CHARS } from '../shared/finematch';
 import type { FetchFontReply, PingReply, ScanReply, ToContent } from '../shared/messages';
 import { arrayBufferToBase64 } from '../shared/messages';
@@ -101,7 +101,12 @@ if (!window.__ffpLoaded) {
           .catch(() => undefined)
           .then(() => {
             const prints = finePrintsFromCanvas(fam, msg.weight, msg.style);
-            reply({ ok: true, prints: Object.fromEntries(Object.entries(prints).map(([k, v]) => [k, v ? { px: Array.from(v.px), aspect: v.aspect, corner: v.corner } : null])) });
+            const scaled = scaledPrintsFromCanvas(fam, msg.weight, msg.style);
+            reply({
+              ok: true,
+              prints: Object.fromEntries(Object.entries(prints).map(([k, v]) => [k, v ? { px: Array.from(v.px), aspect: v.aspect, corner: v.corner } : null])),
+              scaled: Object.fromEntries(Object.entries(scaled).map(([k, v]) => [k, v ? { px: Array.from(v.px), sk: v.sk ? Array.from(v.sk) : null, adv: v.adv } : null])),
+            });
           })
           .catch(() => reply({ ok: false }));
         return true;

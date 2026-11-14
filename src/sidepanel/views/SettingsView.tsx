@@ -104,6 +104,20 @@ export function SettingsView({ settings, update, toast }: Props) {
         </div>
       </section>
 
+      <section className="section" id="seen-settings">
+        <h2>[Fonts I've seen]</h2>
+        <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+          {settings.seenEnabled
+            ? `On. The fonts of pages you read are kept on this computer${settings.seenPaused.length ? `, except on ${settings.seenPaused.length} paused ${settings.seenPaused.length === 1 ? 'site' : 'sites'}` : ''}. Find them in Library > Fonts I've seen.`
+            : 'Off. Turn it on to keep a history of the fonts on pages you read, on this computer only.'}
+        </p>
+        <div className="row">
+          <button className={`btn sm${settings.seenEnabled ? '' : ' primary'}`} onClick={() => { update({ seenEnabled: !settings.seenEnabled }); toast(settings.seenEnabled ? "Fonts I've seen is off" : "Fonts I've seen is on"); }}>
+            {settings.seenEnabled ? 'Turn off' : 'Turn on'}
+          </button>
+        </div>
+      </section>
+
       <section className="section">
         <h2>[Help]</h2>
         <div className="row">

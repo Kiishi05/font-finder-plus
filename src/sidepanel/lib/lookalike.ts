@@ -11,8 +11,11 @@ import { db } from '../../shared/db';
 import type { FaceFile } from '../../shared/types';
 import { measureOnPage, shapeFor } from './shapes';
 import { blend } from '../../shared/lookalike-core';
-import { FINE_CHARS, FINE_SHORTLIST, fineFontScore, rerankFine, type FinePrint } from '../../shared/finematch';
-import { finePrintsFromCanvas } from '../../shared/glyphprint';
+import { FINE_CHARS, FINE_SHORTLIST, fineAndScaled, fineFontScore, rerankFine, scaledFontScore, type FinePrint, type ScaledPrint } from '../../shared/finematch';
+
+/** Both sharper prints of a font: fitted letters and letters at a shared x-height. */
+interface Sharp { fine: Record<string, FinePrint | null>; scaled: Record<string, ScaledPrint | null> }
+import { finePrintsFromCanvas, scaledPrintsFromCanvas } from '../../shared/glyphprint';
 import { shapeFromCanvas } from '../../shared/shape';
 import { facesForCoverage } from './coverage';
 import { getFontBytes } from './fonts';
@@ -124,7 +127,8 @@ export function freeLookalikes(i: LookalikeInput, tabId: number | null): Promise
         return { matches: coarse.slice(0, 10).map((m) => ({ ...m, score: Math.min(m.score, CLOSE_MATCH - 6) })), letters: false, x: shape.x ?? null };
       }
       // A sharper second look at the best candidates.
-      const query = pageDraws && !local ? await pageFinePrints(tabId!, i) : local ? finePrintsFromCanvas(`"${local}"`, i.weight, i.style) : i.kind !== 'web' ? finePrintsFromCanvas(`"${i.family.replace(/"/g, '')}", "FFP NotDef"`, i.weight, i.style) : null;
+      const drawHere = (css: string): Sharp => ({ fine: finePrintsFromCanvas(css, i.weight, i.style), scaled: scaledPrintsFromCanvas(css, i.weight, i.style) });
+      const query = pageDraws && !local ? await pageFinePrints(tabId!, i) : local ? drawHere(`"${local}"`) : i.kind !== 'web' ? drawHere(`"${i.family.replace(/"/g, '')}", "FFP NotDef"`) : null;
       const fine = query ? await fineScores(query, coarse.slice(0, FINE_SHORTLIST).map((m) => m.family), i.weight) : null;
       const matches = (fine && fine.size ? rerankFine(coarse, fine) : coarse).slice(0, 10);
       return { matches, letters: true, x: shape.x ?? null };
@@ -166,10 +170,10 @@ async function panelFace(i: LookalikeInput, tabId: number | null): Promise<strin
 
 // ------------------------------------------------------------- the sharper second look
 
-const candidatePrints = new Map<string, Promise<Record<string, FinePrint | null> | null>>();
+const candidatePrints = new Map<string, Promise<Sharp | null>>();
 
 /** Sharper prints of a Google Fonts family, drawn in this panel (only the needed letters are downloaded). */
-function googleFinePrints(family: string, weight: string): Promise<Record<string, FinePrint | null> | null> {
+function googleFinePrints(family: string, weight: string): Promise<Sharp | null> {
   const gf = googleFamily(family);
   const wght = gf?.a.find((a) => a[0] === 'wght');
   const w = Number(weight) || 400;
@@ -194,7 +198,7 @@ function googleFinePrints(family: string, weight: string): Promise<Record<string
       const face = new FontFace(name, await (await fetch(url)).arrayBuffer(), { weight: String(want) });
       await face.load();
       document.fonts.add(face);
-      const prints = finePrintsFromCanvas(`"${name}"`, String(want));
+      const prints: Sharp = { fine: finePrintsFromCanvas(`"${name}"`, String(want)), scaled: scaledPrintsFromCanvas(`"${name}"`, String(want)) };
       document.fonts.delete(face);
       return prints;
     })().catch(() => null);
@@ -203,19 +207,23 @@ function googleFinePrints(family: string, weight: string): Promise<Record<string
   return p;
 }
 
-async function pageFinePrints(tabId: number, i: LookalikeInput): Promise<Record<string, FinePrint | null> | null> {
-  const r = await sendToTab<{ ok: boolean; prints?: Record<string, { px: number[]; aspect: number; corner?: number | null } | null> }>(tabId, { type: 'ffp:fine-prints', family: i.family, weight: i.weight, style: i.style }, 10000);
+async function pageFinePrints(tabId: number, i: LookalikeInput): Promise<Sharp | null> {
+  type Wire = Record<string, { px: number[]; sk?: number[] | null; aspect?: number; adv?: number; corner?: number | null } | null>;
+  const r = await sendToTab<{ ok: boolean; prints?: Wire; scaled?: Wire }>(tabId, { type: 'ffp:fine-prints', family: i.family, weight: i.weight, style: i.style }, 15000);
   if (!r?.ok || !r.prints) return null;
-  return Object.fromEntries(Object.entries(r.prints).map(([k, v]) => [k, v ? { px: Uint8Array.from(v.px), aspect: v.aspect, corner: v.corner } : null]));
+  return {
+    fine: Object.fromEntries(Object.entries(r.prints).map(([k, v]) => [k, v ? { px: Uint8Array.from(v.px), aspect: v.aspect ?? 1, corner: v.corner } : null])),
+    scaled: Object.fromEntries(Object.entries(r.scaled ?? {}).map(([k, v]) => [k, v ? { px: Uint8Array.from(v.px), sk: v.sk ? Uint8Array.from(v.sk) : undefined, adv: v.adv ?? 0 } : null])),
+  };
 }
 
-async function fineScores(q: Record<string, FinePrint | null>, families: string[], weight: string): Promise<Map<string, number> | null> {
-  if (Object.values(q).filter(Boolean).length < 15) return null;
+async function fineScores(q: Sharp, families: string[], weight: string): Promise<Map<string, number> | null> {
+  if (Object.values(q.fine).filter(Boolean).length < 15) return null;
   const out = new Map<string, number>();
   await Promise.all(
     families.map(async (f) => {
       const c = await googleFinePrints(f, weight);
-      const v = c ? fineFontScore(q, c) : null;
+      const v = c ? fineAndScaled(fineFontScore(q.fine, c.fine), scaledFontScore(q.scaled, c.scaled)) : null;
       if (v != null) out.set(f, v);
     }),
   );

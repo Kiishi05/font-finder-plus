@@ -426,3 +426,8 @@ a.btn { text-decoration: none; }
 .rules { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
 .files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .files li { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 10px; background: var(--bg); min-width: 0; }
+
+/* Fonts I've seen */
+.seenrow { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; border-top: 1px solid var(--line); }
+.seenrow:first-of-type { border-top: 0; }
+.seenrow a { color: var(--ink); }

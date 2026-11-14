@@ -142,12 +142,33 @@ async function canvasMeasure(buf) {
     document.fonts.add(ff);
     const prints = G.printsFromCanvas(`"${name}"`);
     const fine = G.finePrintsFromCanvas(`"${name}"`);
+    const scaled = G.scaledPrintsFromCanvas(`"${name}"`);
     const shape = S.shapeFromCanvas(`"${name}"`);
     document.fonts.delete(ff);
-    return { prints, shape, fine: Object.fromEntries(Object.entries(fine).map(([k, v]) => [k, v ? { px: Array.from(v.px), aspect: v.aspect, corner: v.corner } : null])) };
+    return { prints, shape, fine: Object.fromEntries(Object.entries(fine).map(([k, v]) => [k, v ? { px: Array.from(v.px), aspect: v.aspect, corner: v.corner } : null])), scaled: Object.fromEntries(Object.entries(scaled).map(([k, v]) => [k, v ? { px: Array.from(v.px), sk: Array.from(v.sk), adv: v.adv } : null])) };
   }, Buffer.from(buf).toString('base64'));
 }
 
+const unwire = (r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v ? { px: Uint8Array.from(v.px), sk: v.sk ? Uint8Array.from(v.sk) : undefined, adv: v.adv } : null]));
+const scaledCache = new Map();
+async function canvasScaled(fam) {
+  if (scaledCache.has(fam)) return scaledCache.get(fam);
+  const file = path.join(cacheDir, `fine_${fam.replace(/\W+/g, '_')}.font`);
+  if (!fs.existsSync(file) || !browserPage) return null;
+  const r = await browserPage.evaluate(async (b64) => {
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const name = 'C' + Math.random().toString(36).slice(2);
+    const ff = new FontFace(name, bytes);
+    try { await ff.load(); } catch { return null; }
+    document.fonts.add(ff);
+    const sc = G.scaledPrintsFromCanvas(`"${name}"`);
+    document.fonts.delete(ff);
+    return Object.fromEntries(Object.entries(sc).map(([k, v]) => [k, v ? { px: Array.from(v.px), sk: Array.from(v.sk), adv: v.adv } : null]));
+  }, fs.readFileSync(file).toString('base64'));
+  const out = r ? unwire(r) : null;
+  scaledCache.set(fam, out);
+  return out;
+}
 const gfFile = async (fam) => {
   const file = path.join(cacheDir, `fine_${fam.replace(/\W+/g, '_')}.font`);
   if (!fs.existsSync(file)) {
@@ -184,11 +205,13 @@ export async function runBench({ quiet = false, share, canvas = false, fine = tr
     let shape = m.shapeFromFont(font);
     let queryPrints = null;
     let queryFine = null;
+    let queryScaled = null;
     if (canvas) {
       const c = await canvasMeasure(buf);
       shape = c.shape;
       queryPrints = c.prints.map((p) => ({ ...p, bits: Uint8Array.from(p.bits) }));
       queryFine = Object.fromEntries(Object.entries(c.fine).map(([k, v]) => [k, v ? { px: Uint8Array.from(v.px), aspect: v.aspect, corner: v.corner } : null]));
+      queryScaled = unwire(c.scaled);
     }
     if (!shape) continue;
     const self = src.startsWith('gf:') ? src.slice(3) : m.shapeOf(name.replace(/ \(.*$/, '')) ? name.replace(/ \(.*$/, '') : undefined;
@@ -202,7 +225,12 @@ export async function runBench({ quiet = false, share, canvas = false, fine = tr
       const scores = new Map();
       for (const c of blended.slice(0, m.FINE_SHORTLIST)) {
         const g = await gfFile(c.family).catch(() => null);
-        const v = g ? m.fineFontScore(q, finePrintsOf(g)) : null;
+        let v = g ? m.fineFontScore(q, finePrintsOf(g)) : null;
+        // As the page draws it: candidates drawn by the browser too, at a shared x-height.
+        if (g && queryScaled) {
+          const cs = await canvasScaled(c.family);
+          v = m.fineAndScaled(v, cs ? m.scaledFontScore(queryScaled, cs) : null);
+        }
         if (v != null) scores.set(c.family, v);
       }
       blended = m.rerankFine(blended, scores);
@@ -226,6 +254,14 @@ export async function runBench({ quiet = false, share, canvas = false, fine = tr
   return { rows, top1, top3, n: rows.length };
 }
 
+if (process.argv[2] === 'scaledsweep') {
+  for (const [scaled, share, adv = 0.15, ink = 0.3] of (process.env.GRID ? JSON.parse(process.env.GRID) : [[0, 0.3], [0.6, 0.3], [0.6, 0.5], [0.8, 0.5]])) {
+    m.TUNE.scaled = scaled; m.TUNE.share = share; m.TUNE.adv = adv; m.TUNE.ink = ink; scaledCache.clear();
+    const b = await runBench({ quiet: true, canvas: true });
+    console.log(`scaled ${scaled} share ${share} adv ${adv} ink ${ink}: page ${b.top1}/${b.n} (${b.top3})`);
+  }
+  process.exit(0);
+}
 if (process.argv[2] === 'worstsweep') {
   for (const [worst, corner] of (process.env.GRID ? JSON.parse(process.env.GRID) : [[0, 0.6], [0.5, 0.6], [1, 0.6]])) {
     m.TUNE.worst = worst; m.TUNE.corner = corner;
@@ -251,7 +287,7 @@ if (process.argv[2] === 'sweep') {
   }
   process.exit(0);
 }
-if (process.argv[1] === fileURLToPath(import.meta.url) && !['sweep', 'finesweep', 'worstsweep'].includes(process.argv[2])) {
+if (process.argv[1] === fileURLToPath(import.meta.url) && !['sweep', 'finesweep', 'worstsweep', 'scaledsweep'].includes(process.argv[2])) {
   const { top1, top3, n } = await runBench({ canvas: process.argv[2] === 'canvas' });
   fs.mkdirSync(path.join(root, 'tests/output'), { recursive: true });
   process.exit(top1 / n >= 0.85 && top3 / n >= 0.95 ? 0 : 1);

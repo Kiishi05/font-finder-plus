@@ -690,7 +690,7 @@ try {
   check('each text style is matched on its own', (await panel.locator('.blockcard').count()) >= 4, `${await panel.locator('.blockcard').count()} blocks`);
   check('font names written in the image are found', /Clash Display/.test(allText) && /Space Mono/.test(allText) && /Fraunces/.test(allText), allText.replace(/\s+/g, ' ').slice(0, 200));
   const monoCard = await panel.evaluate(() => [...document.querySelectorAll('.blockcard')].find((c) => /Named here:\s*Space Mono/.test(c.textContent))?.textContent ?? '');
-  check('the block set in Space Mono is matched to Space Mono (short text: never "Likely")', /Closest free fonts\s*Space Mono/.test(monoCard) && !/Likely this font/.test(monoCard), monoCard.replace(/\s+/g, ' ').slice(0, 160));
+  check('a name written in its own font is confirmed two ways (name and letters)', /Likely this font\s*Space Mono/.test(monoCard) && /Confirmed two ways/.test(monoCard), monoCard.replace(/\s+/g, ' ').slice(0, 200));
   check('paid or other-catalogue names say where to get them', /Get it from Indian Type Foundry/.test(allText));
   const clashCard = await panel.evaluate(() => [...document.querySelectorAll('.blockcard')].find((c) => /Named here:\s*Clash Display/.test(c.textContent))?.textContent ?? '');
   check('a block named as one font but looking like another is not called "Likely"', /The image names Clash Display/.test(clashCard) && !/Likely this font/.test(clashCard), clashCard.replace(/\s+/g, ' ').slice(0, 160));
@@ -708,6 +708,30 @@ try {
   await panel.waitForSelector('#allfonts', { timeout: 5000 }).catch(() => {});
   check('going back keeps the image results', (await panel.locator('#allfonts .blockcard').count()) >= 4);
   await panel.screenshot({ path: path.join(out, 'panel-image-allfonts.png'), fullPage: true });
+
+  // A list of fonts, two columns, each name set in its own font (like a "fonts I use" post).
+  const listPage = await ctx.newPage();
+  await listPage.goto(`http://127.0.0.1:${PORT}/fontlist.html`, { waitUntil: 'networkidle' });
+  await listPage.evaluate(() => document.fonts.ready);
+  const listPath = path.join(out, 'fontlist.png');
+  await listPage.locator('#list').screenshot({ path: listPath });
+  await listPage.close();
+  await panel.bringToFront();
+  await panel.locator('.tabs button', { hasText: 'Image' }).click();
+  if (await panel.locator('button', { hasText: 'Use another image' }).count()) await panel.locator('button', { hasText: 'Use another image' }).click();
+  await panel.setInputFiles('input[aria-label="Upload an image"]', listPath);
+  await panel.waitForSelector('.editbox canvas', { timeout: 10000 });
+  await panel.locator('button', { hasText: 'Read the text' }).click();
+  await panel.waitForSelector('#allfonts', { timeout: 90000 }).catch(() => {});
+  await panel.waitForFunction(() => document.querySelector('#allfonts') && !/Comparing letters|Matching…/.test(document.querySelector('#allfonts').textContent), null, { timeout: 120000 }).catch(() => {});
+  const listCards = await panel.evaluate(() => [...document.querySelectorAll('.blockcard')].map((c) => c.textContent.replace(/\s+/g, ' ')));
+  const listNamed = (n) => listCards.filter((c) => new RegExp(`(Named here|Possible font name \\(not confirmed\\)):\\s*${n}`).test(c));
+  check('a list of fonts gets one sample per name, columns kept apart', ['Inter', 'Fraunces', 'Geist Mono', 'Space Mono', 'Lobster', 'Coolvetica'].every((n) => listNamed(n).length === 1), listCards.map((c) => c.slice(0, 70)).join(' || ').slice(0, 600));
+  check('two names side by side on one line are split ("Instrument Serif" and "Tusker Grotesk")', listNamed('Instrument Serif').length === 1 && listNamed('Tusker Grotesk').length === 1 && !listCards.some((c) => /Instrument Serif Tusker/.test(c)));
+  const listConfirmed = listCards.filter((c) => /Confirmed two ways/.test(c)).length;
+  check('free fonts named and set in themselves are confirmed by their letters', listConfirmed >= 3, `${listConfirmed} confirmed`);
+  check('a name not in any list says it cannot be checked, with closest free fonts', listNamed('Tusker Grotesk').some((c) => /not in the font lists we check/.test(c)), listNamed('Tusker Grotesk')[0]?.slice(0, 200));
+  await panel.screenshot({ path: path.join(out, 'panel-fontlist.png'), fullPage: true });
 
   // A font's details belong to the page they were opened from.
   await panel.locator('.tabs button', { hasText: 'Page' }).click();
@@ -732,6 +756,42 @@ try {
   await panel.waitForFunction(() => /This is a PDF/.test(document.body.innerText), null, { timeout: 15000 }).catch(() => {});
   check('a PDF shows a clear message, not 0 fonts', /This is a PDF/.test(await panel.locator('body').innerText()));
   await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'networkidle' });
+  await panel.waitForSelector('.fcard', { timeout: 20000 }).catch(() => {});
+
+  // Phase 9: Fonts I've seen (off by default, local, searchable, pause and delete per site).
+  const seenCount = () => panel.evaluate(async () => (await new Promise((r) => { const q = indexedDB.open('font-finder-plus'); q.onsuccess = () => { try { const t = q.result.transaction('seen').objectStore('seen').count(); t.onsuccess = () => r(t.result); } catch { r(-1); } }; q.onerror = () => r(-1); })));
+  await panel.locator('.tabs button', { hasText: 'Library' }).click();
+  await panel.locator('button', { hasText: "Fonts I've seen" }).click();
+  await panel.waitForSelector('#seen-off', { timeout: 5000 }).catch(() => {});
+  check("Fonts I've seen is off by default and records nothing", (await panel.locator('#seen-off').count()) === 1 && (await seenCount()) === 0, `count ${await seenCount()}`);
+  await panel.locator('#seen-off button', { hasText: 'Turn on' }).click();
+  await page.goto(`http://127.0.0.1:${PORT}/page2.html`, { waitUntil: 'networkidle' });
+  await panel.waitForSelector('.fcard', { timeout: 20000 }).catch(() => {});
+  await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'networkidle' });
+  await panel.waitForSelector('.fcard', { timeout: 20000 }).catch(() => {});
+  await panel.waitForTimeout(800);
+  check('once on, the fonts of pages you read are recorded', (await seenCount()) >= 3, `count ${await seenCount()}`);
+  await panel.locator('.tabs button', { hasText: 'Library' }).click();
+  await panel.locator('button', { hasText: "Fonts I've seen" }).click();
+  await panel.waitForSelector('.seenrow', { timeout: 5000 }).catch(() => {});
+  await panel.fill('#seen-search', 'serif');
+  await panel.waitForTimeout(400);
+  const serifs = await panel.locator('.seenrow').allInnerTexts();
+  check('search "serif" finds the serif seen on the site, with where it was seen', serifs.some((t) => /Fraunces/.test(t) && /127\.0\.0\.1/.test(t)) && !serifs.some((t) => /^Inter\b/.test(t)), serifs.map((t) => t.split('\n')[0]).join(', '));
+  await panel.fill('#seen-search', 'mono');
+  await panel.waitForTimeout(400);
+  const monos = await panel.locator('.seenrow').allInnerTexts();
+  check('search "mono" finds the code fonts', monos.length >= 1 && monos.every((t) => /Mono|Monospace/i.test(t)), monos.map((t) => t.split('\n')[0]).join(', '));
+  await panel.fill('#seen-search', '');
+  await panel.locator('button', { hasText: 'Pause on this site' }).click();
+  await panel.waitForTimeout(300);
+  check('pausing on a site is remembered', /Paused on 127\.0\.0\.1/.test(await panel.locator('body').innerText()) && (await sw.evaluate(async () => (await chrome.storage.local.get('seenPaused')).seenPaused)).includes('127.0.0.1'));
+  await panel.locator('button[aria-label="Delete 127.0.0.1 from the history"]').click();
+  await panel.waitForTimeout(400);
+  check('deleting a site removes its fonts from the history', (await seenCount()) === (await panel.evaluate(async () => 0)) || !(await panel.locator('.seenrow', { hasText: '127.0.0.1' }).count()));
+  await panel.locator('button', { hasText: 'Resume here' }).click().catch(() => {});
+  await panel.locator('button[aria-label="Back"]').click();
+  await panel.locator('.tabs button', { hasText: 'Page' }).click();
   await panel.waitForSelector('.fcard', { timeout: 20000 }).catch(() => {});
 
   // Accessibility audit with axe-core, light and dark, on each main view.

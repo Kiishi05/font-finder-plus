@@ -308,3 +308,25 @@ export interface Board {
   createdAt: number;
   updatedAt: number;
 }
+
+/** A font seen on a site (Fonts I've seen). One record per font per site. */
+export interface SeenFont {
+  /** host|font key */
+  id: string;
+  host: string;
+  /** The font's key in the page scan. */
+  key: string;
+  family: string;
+  displayName: string;
+  catalogFamily: string | null;
+  kind: 'web' | 'local' | 'generic';
+  classification: Classification;
+  licenseType: LicenseType;
+  roles: string[];
+  firstSeen: number;
+  lastSeen: number;
+  /** How many times it was seen (one per page read). */
+  visits: number;
+  /** The last few pages it was on. */
+  pages: { url: string; title: string }[];
+}

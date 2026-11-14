@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useMemo, useState } from 'react';
 import { CLASS_LABEL, SOURCE_LABEL, licenseBadge } from '../../shared/catalog';
 import { db, deleteCollection } from '../../shared/db';
-import { DashboardSquare01Icon, Download01Icon, Upload01Icon, FolderAddIcon, GridViewIcon, Menu01Icon, PlusSignIcon, Search01Icon, Tick02Icon } from '../../shared/icons';
+import { Clock01Icon, DashboardSquare01Icon, Download01Icon, Upload01Icon, FolderAddIcon, GridViewIcon, Menu01Icon, PlusSignIcon, Search01Icon, Tick02Icon } from '../../shared/icons';
 import type { Classification, FontRecord, SavedFont, SourceKind } from '../../shared/types';
 import { Icon } from '../components/Icon';
 import { Select } from '../components/Select';
@@ -30,10 +30,11 @@ interface Props {
   onTester: (t: TesterState) => void;
   onOpen: (fontId: string) => void;
   onBoards: () => void;
+  onSeen: () => void;
   toast: (m: string) => void;
 }
 
-export function LibraryView({ tester, onTester, onOpen, onBoards, toast }: Props) {
+export function LibraryView({ tester, onTester, onOpen, onBoards, onSeen, toast }: Props) {
   const saved = useLiveQuery(() => db.savedFonts.orderBy('createdAt').reverse().toArray(), []) ?? [];
   const fonts = useLiveQuery(() => db.fonts.toArray(), []) ?? [];
   const collections = useLiveQuery(() => db.collections.orderBy('createdAt').toArray(), []) ?? [];
@@ -131,6 +132,7 @@ export function LibraryView({ tester, onTester, onOpen, onBoards, toast }: Props
 
       <div className="libtools">
         <button className="btn" onClick={onBoards}><Icon icon={DashboardSquare01Icon} size={15} />Boards</button>
+        <button className="btn" onClick={onSeen}><Icon icon={Clock01Icon} size={15} />Fonts I've seen</button>
         <button
           className="btn"
           title="Save your library as a file, to back it up or move it to another computer"

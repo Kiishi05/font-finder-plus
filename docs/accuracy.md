@@ -1,6 +1,6 @@
 # Font Finder Plus accuracy
 
-Version 0.1.0, measured 2026-11-13. Rerun with `npm run accuracy` (also runs before every `npm run package`).
+Version 0.1.0, measured 2026-11-14. Rerun with `npm run accuracy` (also runs before every `npm run package`).
 
 ## Identifying a font in an image
 
@@ -40,41 +40,41 @@ Fonts whose right free answer is known: copies of famous fonts that ship with Li
 
 | Measured from | Right family first | In the top 3 |
 |---|---|---|
-| Font files | 24 of 30 (80%) | 29 of 30 (97%) |
-| How the page draws it | 25 of 30 (83%) | 29 of 30 (97%) |
+| Font files | 25 of 30 (83%) | 28 of 30 (93%) |
+| How the page draws it | 24 of 30 (80%) | 29 of 30 (97%) |
 
 | Font | Should find | Rank (files) | Top 3 found |
 |---|---|---|---|
-| Liberation Sans | Arimo | 1 | Arimo 100, Switzer 77, Archivo 75 |
-| Liberation Serif | Tinos | 1 | Tinos 100, STIX Two Text 69, Charis SIL 69 |
-| Liberation Mono | Cousine | 1 | Cousine 94, Roboto Mono 68, Fragment Mono 64 |
-| FreeSans (Helvetica copy) | Arimo | 2 | Almarai 85, Arimo 76, Switzer 72 |
-| FreeSerif (Times copy) | Tinos or STIX Two Text | 1 | STIX Two Text 78, Charis SIL 70, Libertinus Serif 64 |
-| FreeMono (Courier copy) | Courier Prime | 1 | Courier Prime 57, Cutive Mono 38, Libertinus Mono 31 |
-| Carlito (Calibri metrics) | Lato | 1 | Lato 84, Hind Siliguri 69, Commissioner 69 |
-| Noto Sans | Open Sans | 1 | Open Sans 90, Lunasima 83, Telex 75 |
-| Open Sans | Noto Sans | 1 | Noto Sans 90, Noto Sans Display 83, Plein 76 |
-| Public Sans | Libre Franklin | 1 | Libre Franklin 77, Geist 71, Special Gothic 69 |
-| Libre Franklin | Public Sans | 1 | Public Sans 77, Special Gothic 76, Pontano Sans 67 |
-| Heebo (Roboto Latin) | Roboto | 1 | Roboto 100, Vazirmatn 97, Roboto Flex 94 |
+| Liberation Sans | Arimo | 1 | Arimo 100, Switzer 77, Archivo 74 |
+| Liberation Serif | Tinos | 1 | Tinos 100, STIX Two Text 68, Charis SIL 68 |
+| Liberation Mono | Cousine | 1 | Cousine 93, Roboto Mono 66, Fragment Mono 61 |
+| FreeSans (Helvetica copy) | Arimo | 2 | Almarai 85, Arimo 74, Switzer 72 |
+| FreeSerif (Times copy) | Tinos or STIX Two Text | 1 | STIX Two Text 78, Charis SIL 69, Libertinus Serif 63 |
+| FreeMono (Courier copy) | Courier Prime | 1 | Courier Prime 54, Cutive Mono 35, Libertinus Mono 29 |
+| Carlito (Calibri metrics) | Lato | 1 | Lato 84, Open Sans 68, Hind Siliguri 68 |
+| Noto Sans | Open Sans | 1 | Open Sans 89, Lunasima 81, Telex 74 |
+| Open Sans | Noto Sans | 1 | Noto Sans 89, Noto Sans Display 82, Plein 76 |
+| Public Sans | Libre Franklin | 1 | Libre Franklin 75, Geist 70, Special Gothic 67 |
+| Libre Franklin | Public Sans | 1 | Public Sans 75, Special Gothic 75, Pontano Sans 66 |
+| Heebo (Roboto Latin) | Roboto | 1 | Roboto 100, Vazirmatn 97, Roboto Flex 93 |
 | Yantramanav (Roboto Latin) | Roboto or Heebo | 1 | Heebo 85, Roboto 84, Roboto Flex 81 |
-| Assistant (Source Sans Latin) | Source Sans 3 | 2 | Varta 99, Source Sans 3 95, IBM Plex Sans 69 |
-| Cairo (Titillium Latin) | Titillium Web | 1 | Titillium Web 100, Open Sans 67, Mako 67 |
-| Readex Pro (Lexend) | Lexend | 1 | Lexend 86, Funnel Sans 73, Figtree 72 |
-| Crimson Pro | Crimson Text | 1 | Crimson Text 70, Yrsa 70, Spectral 69 |
-| Crimson Text | Crimson Pro | 5 | Amiri 83, Average 72, Spectral 71 |
-| Fira Code | Fira Mono | 1 | Fira Mono 100, Noto Sans Mono 69, Spline Sans Mono 67 |
-| PT Sans Caption | PT Sans | 2 | Golos Text 73, PT Sans 66, Excon 66 |
-| PT Serif Caption | PT Serif | 2 | Sentient 74, PT Serif 69, Recia 68 |
-| Ubuntu Sans | Ubuntu | 1 | Ubuntu 90, Excon 61, Commissioner 58 |
-| Roboto Flex | Roboto | 2 | Heebo 94, Roboto 93, Vazirmatn 90 |
+| Assistant (Source Sans Latin) | Source Sans 3 | 2 | Varta 98, Source Sans 3 95, IBM Plex Sans 68 |
+| Cairo (Titillium Latin) | Titillium Web | 1 | Titillium Web 100, Open Sans 66, Plein 66 |
+| Readex Pro (Lexend) | Lexend | 1 | Lexend 85, Funnel Sans 72, Figtree 70 |
+| Crimson Pro | Crimson Text | 1 | Crimson Text 70, Yrsa 69, Spectral 68 |
+| Crimson Text | Crimson Pro | 5 | Amiri 82, Average 71, Spectral 70 |
+| Fira Code | Fira Mono | 1 | Fira Mono 100, Noto Sans Mono 67, Spline Sans Mono 66 |
+| PT Sans Caption | PT Sans | 3 | Golos Text 72, Excon 66, PT Sans 64 |
+| PT Serif Caption | PT Serif | 4 | Sentient 74, Recia 68, Bespoke Serif 68 |
+| Ubuntu Sans | Ubuntu | 1 | Ubuntu 89, Excon 61, Commissioner 58 |
+| Roboto Flex | Roboto | 1 | Roboto 93, Heebo 93, Vazirmatn 90 |
 | Atkinson Hyperlegible Next | Atkinson Hyperlegible | 1 | Atkinson Hyperlegible 95, Nunito Sans 64, Zalando Sans 64 |
-| Lato | Carlito | 1 | Carlito 84, Commissioner 81, Open Sans 71 |
-| Titillium Web | Cairo | 1 | Cairo 97, Open Sans 67, Plein 66 |
-| Source Sans 3 | Assistant or Varta | 1 | Varta 98, Assistant 92, IBM Plex Sans 73 |
-| Lexend | Readex Pro | 1 | Readex Pro 82, Be Vietnam Pro 70, Sen 69 |
-| Fira Mono | Fira Code | 1 | Fira Code 100, Noto Sans Mono 70, Spline Sans Mono 66 |
-| Inter Tight | Inter | 1 | Inter 96, TikTok Sans 84, Liter 83 |
+| Lato | Carlito | 1 | Carlito 84, Commissioner 80, Open Sans 70 |
+| Titillium Web | Cairo | 1 | Cairo 97, Plein 66, Open Sans 65 |
+| Source Sans 3 | Assistant or Varta | 1 | Varta 98, Assistant 92, IBM Plex Sans 72 |
+| Lexend | Readex Pro | 1 | Readex Pro 81, Be Vietnam Pro 69, Sen 68 |
+| Fira Mono | Fira Code | 1 | Fira Code 100, Noto Sans Mono 67, Spline Sans Mono 65 |
+| Inter Tight | Inter | 1 | Inter 96, TikTok Sans 83, Liter 83 |
 
 ## What this does not measure
 

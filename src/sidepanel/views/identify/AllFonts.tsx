@@ -1,23 +1,36 @@
 // "Fonts in this image": every text style in a picture matched on its own, plus
 // font names written in it ("Font: Clash Display"). Save them all at once.
 import { useEffect, useMemo, useState } from 'react';
-import { LICENSE_LABEL, googleFamily, googleFontsUrl, licenseBadge } from '../../../shared/catalog';
+import { LICENSE_LABEL, allGoogleFamilies, googleFamily, googleFontsUrl, licenseBadge } from '../../../shared/catalog';
 import { ArrowUpRight01Icon, FolderAddIcon } from '../../../shared/icons';
 import { SaveFontButton } from '../../components/SaveFontButton';
 import { imageVerdict, type Verdict } from '../../../shared/imagerank';
 import { knownFont, licenceTypeFor } from '../../../shared/licences';
-import { CATALOGUES_CHECKED, SOURCE_NAME, freeFont, freeLicenceLabel } from '../../../shared/freecatalog';
+import { CATALOGUES_CHECKED, SOURCE_NAME, allFreeFonts, freeFont, freeLicenceLabel } from '../../../shared/freecatalog';
+import { closeSpellings, wordLooksLike } from '../../lib/wordcheck';
 import type { PageScan } from '../../../shared/types';
 import { Icon } from '../../components/Icon';
 import { groupBlocks, type TextBlock } from '../../lib/blocks';
-import { findFontNames, possibleName, type NamedFont } from '../../lib/fontnames';
+import { findFontNames, lookupName, nameLike, namesFromContext, possibleName, type NamedFont } from '../../lib/fontnames';
 import { useGoogleFontReady } from '../../lib/google';
 import { cutGlyphs } from '../../lib/imageprep';
 import { ensureRecord, newImageCollection, pageFontFiles, recordForName, saveWithImage } from '../../lib/imagefonts';
 import { matchGlyphs, type ImageMatch } from '../../lib/matcher';
 import type { OcrLine } from '../../lib/ocr';
 
-interface BlockResult { matches: ImageMatch[]; letters: number; verdict: Verdict }
+interface BlockResult {
+  matches: ImageMatch[];
+  letters: number;
+  verdict: Verdict;
+  /** For a block with a name written in it: do its letters look like that font? */
+  nameCheck?: 'agrees' | 'differs' | 'unchecked';
+  /** The name was misread; this is the font whose drawing matches the picture. */
+  corrected?: { name: NamedFont; read: string };
+}
+
+let free: string[] | null = null;
+/** Names of the free fonts we can draw (Google Fonts and Fontshare). */
+const freeNames = () => (free ??= [...allGoogleFamilies(), ...allFreeFonts().filter((f) => f.s === 'fontshare').map((f) => f.name)]);
 
 const LETTERS = /[A-Za-z0-9]/;
 const lettersIn = (b: TextBlock) => b.lines.reduce((n, l) => n + l.line.symbols.filter((s) => LETTERS.test(s.text)).length, 0);
@@ -28,8 +41,30 @@ export const VERDICT_LABEL: Record<Verdict, string> = {
   unlikely: 'Probably a paid or custom font',
 };
 
-/** Blocks worth matching (enough letters), at most 8. */
+/** Lines that are font names in a list of fonts ("Helvetica Neue", "Coolvetica", "Inter"...), or null if this is not such a list. */
+export function fontList(lines: OcrLine[]): Map<number, NamedFont> | null {
+  const named = new Map<number, NamedFont>();
+  let listed = 0;
+  lines.forEach((l, i) => {
+    const t = l.text.replace(/^\s*\d+[.)]\s*/, '').trim();
+    if (!nameLike(t)) return;
+    const hit = lookupName(t);
+    if (hit) listed++;
+    named.set(i, hit ? { ...hit, line: i } : { name: t, kind: 'unknown', known: null, line: i });
+  });
+  // A list: several short lines that read as names, at least two of them fonts we know.
+  return named.size >= 4 && listed >= 2 && named.size >= lines.length * 0.5 ? named : null;
+}
+
+const blockOf = (line: OcrLine, index: number): TextBlock => ({ lines: [{ line, index }], box: { ...line.bbox }, text: line.text, size: line.bbox.y1 - line.bbox.y0 });
+
+/** Blocks worth matching (enough letters): at most 8, or one per name (up to 20) in a list of fonts. */
 export function blocksFor(lines: OcrLine[]): TextBlock[] {
+  const list = fontList(lines);
+  if (list) {
+    const rest = groupBlocks(lines.map((l, i) => (list.has(i) ? { ...l, symbols: [] } : l))).filter((b) => lettersIn(b) >= 4).slice(0, 4);
+    return [...[...list.keys()].sort((a, b) => lines[a].bbox.y0 - lines[b].bbox.y0 || lines[a].bbox.x0 - lines[b].bbox.x0).map((i) => blockOf(lines[i], i)), ...rest].slice(0, 24);
+  }
   return groupBlocks(lines)
     .filter((b) => lettersIn(b) >= 4)
     // Leave out bits that were not really read: low confidence and no real word.
@@ -51,7 +86,10 @@ export function AllFonts({ image, lines, postNames = [], scan, tabId, samePage, 
 }) {
   const blocks = useMemo(() => blocksFor(lines), [lines]);
   const names = useMemo(() => {
-    const found = findFontNames(lines);
+    const list = fontList(lines);
+    // "Lil Grotesk is a geometric sans serif font family", written in the image.
+    const described = namesFromContext(lines.map((l) => l.text)).map((n) => ({ ...n, line: lines.findIndex((l) => l.text.includes(n.name)) })).filter((n) => n.line >= 0);
+    const found = [...(list ? [...list.values()] : []), ...findFontNames(lines).filter((n) => !list?.has(n.line)), ...described];
     // The biggest text, if the post is about a typeface, may be the font's own name.
     const biggest = [...blocks].sort((a, b) => b.size - a.size)[0];
     const guess = possibleName(lines, biggest && biggest.lines.length === 1 ? biggest.lines[0].index : null, found);
@@ -59,7 +97,8 @@ export function AllFonts({ image, lines, postNames = [], scan, tabId, samePage, 
     const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
     // The post's names come first: they are spelled out, while lettering in a picture can be misread.
     const fromPost = postNames.filter((n) => !inImage.some((m) => squash(m.name) === squash(n.name)));
-    return [...fromPost, ...inImage.filter((n) => !(n.kind === 'unknown' && fromPost.length))];
+    const all = [...fromPost, ...inImage.filter((n) => !(n.kind === 'unknown' && fromPost.length && n.line < 0))];
+    return all.filter((n, i) => all.findIndex((m) => squash(m.name) === squash(n.name)) === i);
   }, [lines, blocks, postNames]);
   const [results, setResults] = useState<(BlockResult | null)[]>([]);
   const [pick, setPick] = useState<Record<number, string>>({});
@@ -72,8 +111,56 @@ export function AllFonts({ image, lines, postNames = [], scan, tabId, samePage, 
       const extra = samePage && scan ? await pageFontFiles(scan.fonts, tabId) : [];
       for (let i = 0; i < blocks.length; i++) {
         const glyphs = cutGlyphs(image, blocks[i].lines, {});
-        const matches = glyphs.length >= 2 ? await matchGlyphs(glyphs, 4, extra).catch(() => []) : [];
-        const r: BlockResult = { matches, letters: glyphs.length, verdict: imageVerdict(matches.map((m) => m.score), glyphs.length) };
+        const all = glyphs.length >= 2 ? await matchGlyphs(glyphs, 80, extra).catch(() => []) : [];
+        const b = blocks[i];
+        // One line of a few words: the whole word can be drawn in each candidate and compared with the picture.
+        const single = b.lines.length === 1 && b.text.trim().length >= 3 && b.text.length <= 40;
+        let named = names.find((n) => b.lines.some((l) => l.index === n.line)) ?? null;
+        // A name set in a showy font is often misread ("Lobster" as "Tobater"): try close spellings of free fonts.
+        let corrected: BlockResult['corrected'];
+        if (named?.kind === 'unknown' && single) {
+          let best: { name: string; v: number } | null = null;
+          for (const c of closeSpellings(named.name, freeNames())) {
+            const v = Math.max(await wordLooksLike(image, b.box, c, c), await wordLooksLike(image, b.box, c, c, true));
+            if (v >= 0.72 && (!best || v > best.v)) best = { name: c, v };
+          }
+          if (best) {
+            const hit = lookupName(best.name);
+            if (hit) {
+              corrected = { name: { ...hit, line: named.line }, read: named.name };
+              named = corrected.name;
+            }
+          }
+        }
+        // Re-rank the closest fonts by how the whole word looks when drawn in each.
+        let ranked = all;
+        if (single && all.length) {
+          const top = all.filter((m) => !m.onPage).slice(0, 6);
+          const words = await Promise.all(top.map((m) => wordLooksLike(image, b.box, b.text.trim(), m.family, m.bold)));
+          const mixed = top.map((m, k) => ({ ...m, score: words[k] ? Math.round(m.score * 0.5 + words[k] * 100 * 0.5) : Math.round(m.score * 0.8) }));
+          ranked = [...all.filter((m) => m.onPage), ...mixed.sort((x, y) => y.score - x.score), ...all.filter((m) => !m.onPage).slice(6)];
+        }
+        let matches = ranked.slice(0, 4);
+        let verdict = imageVerdict(matches.map((m) => m.score), glyphs.length);
+        // A name is written here: check it against the letters and the drawn word, when we have that font.
+        let nameCheck: BlockResult['nameCheck'];
+        if (named && glyphs.length >= 3) {
+          const nm = named;
+          const free = !!googleFamily(nm.name) || freeFont(nm.name)?.s === 'fontshare';
+          if (!free) nameCheck = 'unchecked';
+          else {
+            const own = ranked.find((m) => m.family.toLowerCase() === nm.name.toLowerCase());
+            const drawn = single ? Math.max(await wordLooksLike(image, b.box, b.text.trim(), nm.name), await wordLooksLike(image, b.box, b.text.trim(), nm.name, true)) : 0;
+            const byLetters = !!own && !!ranked[0] && own.score >= Math.max(45, ranked[0].score - 12);
+            if (byLetters || drawn >= 0.7) {
+              nameCheck = 'agrees';
+              const first: ImageMatch = own ? { ...own, score: Math.max(own.score, Math.round(drawn * 100)) } : { family: googleFamily(nm.name)?.family ?? nm.name, bold: false, score: Math.round(drawn * 100), reason: 'The words drawn in this font match the picture.', best: [], missing: 0, onPage: false };
+              matches = [first, ...ranked.filter((m) => m.family !== first.family)].slice(0, 4);
+              verdict = 'exact';
+            } else nameCheck = 'differs';
+          }
+        }
+        const r: BlockResult = { matches, letters: glyphs.length, verdict, nameCheck, corrected };
         if (!live) return;
         setResults((prev) => prev.map((x, j) => (j === i ? r : x)));
       }
@@ -81,7 +168,7 @@ export function AllFonts({ image, lines, postNames = [], scan, tabId, samePage, 
     return () => {
       live = false;
     };
-  }, [blocks, image, samePage, scan, tabId]);
+  }, [blocks, image, samePage, scan, tabId, names]);
 
   // A name written inside a block names that block's font ("Clash Display" set in Clash Display).
   const nameOf = (b: TextBlock) => names.find((n) => b.lines.some((l) => l.index === n.line)) ?? null;
@@ -143,7 +230,7 @@ export function AllFonts({ image, lines, postNames = [], scan, tabId, samePage, 
 
       <div className="blocks">
         {blocks.map((b, i) => hidden(i) ? null : (
-          <BlockCard key={i} i={blocks.slice(0, i).filter((_, j) => !hidden(j)).length} total={shownCount} block={b} image={image} result={results[i]} named={nameOf(b)} picked={chosen(i)} onPick={(f) => setPick({ ...pick, [i]: f })} onOpen={open} toast={toast} />
+          <BlockCard key={i} i={blocks.slice(0, i).filter((_, j) => !hidden(j)).length} total={shownCount} block={b} image={image} result={results[i]} named={results[i]?.corrected?.name ?? nameOf(b)} picked={chosen(i)} onPick={(f) => setPick({ ...pick, [i]: f })} onOpen={open} toast={toast} />
         ))}
       </div>
       {hiddenCount > 0 && !pending && <span className="muted" style={{ fontSize: 11.5 }}>{hiddenCount} more {hiddenCount === 1 ? 'bit' : 'bits'} of text could not be read clearly enough to compare, so {hiddenCount === 1 ? 'it is' : 'they are'} left out.</span>}
@@ -225,6 +312,10 @@ function BlockCard({ i, total, block, image, result, named, picked, onPick, onOp
           <WhereToGet name={named.name} />
         </div>
       )}
+      {named && result?.corrected && <span className="muted" style={{ fontSize: 11.5 }}>Read as "{result.corrected.read}", but the word drawn in {named.name} matches the picture.</span>}
+      {named && result?.nameCheck === 'agrees' && <span className="muted" style={{ fontSize: 11.5 }}>Confirmed two ways: the name is written here, and its letters match {named.name}.</span>}
+      {named && result?.nameCheck === 'differs' && <span className="muted" style={{ fontSize: 11.5 }}>The letters do not look like {named.name}, so the name may be written in another font. The matches below go by the letters.</span>}
+      {named && result?.nameCheck === 'unchecked' && <span className="muted" style={{ fontSize: 11.5 }}>{named.kind === 'unknown' ? `${named.name} is not in the font lists we check, so its letters cannot be compared.` : `${named.name} is a known font, but not one from Google Fonts or Fontshare, so its letters cannot be compared here.`} The closest free fonts by its letters are below.</span>}
       {!result && <span className="muted" style={{ fontSize: 12 }}>Comparing letters…</span>}
       {result && !m && <span className="muted" style={{ fontSize: 12 }}>Too few letters could be cut out to compare. Joined-up script lettering often cannot be split into letters.</span>}
       {result && m && verdict && (

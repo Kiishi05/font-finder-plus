@@ -14,6 +14,7 @@ import { IdentifyView, type IdentifyRequest } from './views/IdentifyView';
 import { ShareView } from './views/ShareView';
 import { SiteShareView } from './views/SiteShareView';
 import { BoardEditor, BoardsView } from './views/BoardsView';
+import { SeenView } from './views/SeenView';
 
 export type View =
   | { name: 'page' }
@@ -21,6 +22,7 @@ export type View =
   | { name: 'system' }
   | { name: 'image' }
   | { name: 'boards' }
+  | { name: 'seen' }
   | { name: 'board'; id: number }
   | { name: 'share'; fontId: string; back: View }
   | { name: 'siteshare' }
@@ -82,8 +84,8 @@ export function App() {
     if (!sameTab || !samePage) setView(view.from === 'image' ? { name: 'image' } : { name: 'page' });
   }, [tab.tabId, tab.ping?.url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const top = view.name === 'detail' ? view.from : view.name === 'boards' || view.name === 'board' ? 'library' : view.name === 'share' ? 'library' : view.name === 'siteshare' ? 'page' : view.name;
-  const fullScreen = view.name === 'detail' || view.name === 'boards' || view.name === 'board' || view.name === 'share' || view.name === 'siteshare';
+  const top = view.name === 'detail' ? view.from : view.name === 'boards' || view.name === 'board' || view.name === 'seen' ? 'library' : view.name === 'share' ? 'library' : view.name === 'siteshare' ? 'page' : view.name;
+  const fullScreen = view.name === 'detail' || view.name === 'seen' || view.name === 'boards' || view.name === 'board' || view.name === 'share' || view.name === 'siteshare';
 
   return (
     <div className="app">
@@ -106,7 +108,7 @@ export function App() {
         <PageView tab={tab} tester={tester} onTester={setTester} onOpen={(usage, fontId) => setView({ name: 'detail', fontId, usage, from: 'page', pageUrl: tab.ping?.url, tabId: tab.tabId })} onShare={() => setView({ name: 'siteshare' })} toast={showToast} />
       )}
       {view.name === 'library' && (
-        <LibraryView tester={libTester} onTester={setLibTester} onOpen={(fontId) => setView({ name: 'detail', fontId, from: 'library' })} onBoards={() => setView({ name: 'boards' })} toast={showToast} />
+        <LibraryView tester={libTester} onTester={setLibTester} onOpen={(fontId) => setView({ name: 'detail', fontId, from: 'library' })} onBoards={() => setView({ name: 'boards' })} onSeen={() => setView({ name: 'seen' })} toast={showToast} />
       )}
       {view.name === 'system' && <SystemView tab={tab} toast={showToast} />}
       {/* Kept open behind a font's details, so going back keeps the image and its results. */}
@@ -139,6 +141,7 @@ export function App() {
           toast={showToast}
         />
       )}
+      {view.name === 'seen' && <SeenView settings={settings} update={updateSettings} host={tab.ping?.host ?? null} onBack={() => setView({ name: 'library' })} onOpenFontId={(fontId) => setView({ name: 'detail', fontId, from: 'library' })} toast={showToast} />}
       {view.name === 'boards' && <BoardsView onBack={() => setView({ name: 'library' })} onOpen={(id) => setView({ name: 'board', id })} />}
       {view.name === 'board' && <BoardEditor id={view.id} onBack={() => setView({ name: 'boards' })} toast={showToast} />}
       {view.name === 'siteshare' && <SiteShareView tab={tab} onBack={() => setView({ name: 'page' })} toast={showToast} />}

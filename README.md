@@ -65,9 +65,16 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
 In the Image tab, paste, upload or drop a picture (or right-click one on a page). After **Read the text**:
 
 - **Every font in the image** (the default when there is more than one text style): each block of text in a different size or style is matched on its own. Font names written in the image ("Font: Clash Display", or a list of names) are looked up in Google Fonts and the known foundry list. **Save all to a new collection** saves every font found, with the image.
+- **Lists of fonts** ("the only fonts I need"): each name becomes its own sample, even when two columns sit on one row or two names run together ("Instrument Serif Tusker Grotesk"). A free font named and set in itself is **confirmed two ways**: the name, and its letters (each letter, and the whole word drawn in that font and compared with the picture). A name that is misread in a showy font ("Lobster" read as "Tobater") is corrected only when the word drawn in the corrected font matches the picture. Names in no list we check are shown as not confirmed, with the closest free fonts by their letters and a web search link (the search happens only if you click it).
+- **Names in the text**: "Lil Grotesk is a geometric sans serif font family", written in the image or in the post around it, and links such as "site.com/fonts/... - Lunchtype".
+- **Closest fonts by the whole word**: for a short line, the best candidates are drawn with the same words and compared with the picture, so the ranking follows how the text actually looks.
 - **Pick one line** compares just the lines you choose, with letters you can correct.
 - Each match is labelled **Likely this font** (only for very close matches, right every time in the accuracy test), **Closest free fonts**, or **Probably a paid or custom font**.
 - **Details** opens the full font page: who made it, the licence, where to get it (Google Fonts, the foundry, or Fontshare), letters, languages and look-alikes.
+
+## Fonts I've seen
+
+Library > **Fonts I've seen** keeps a history of the fonts on the pages you read with the panel, so you can find them later ("where did I see that serif?"). It is **off until you turn it on** (there, or in Settings). Search by name, site, kind of font (serif, sans, mono, script, display), role (heading, body, code) or licence (free, paid). Pause it on any site, delete one site, or delete everything. It is stored only in this browser on this computer.
 
 ## Figma plugin
 
@@ -103,7 +110,7 @@ The manifest allows WebAssembly (`'wasm-unsafe-eval'` in the extension's content
 - Identify from images runs on this computer: text recognition, matching and the image never leave it.
 - Local Font Access (installed styles) runs only when you click, and the font list never leaves your computer.
 - Your Google Fonts API key is stored only in `chrome.storage.local`. It is never written to code, logs or the library, and it is only sent to Google's Web Fonts API when you use it.
-- **Delete all my data** in Settings > Privacy clears the library, collections, boards, history and screenshots.
+- **Fonts I've seen** is off unless you turn it on, and its history stays in this browser. **Delete all my data** in Settings > Privacy clears the library, collections, boards, Fonts I've seen and screenshots.
 - The test suite checks this: it records every request the extension makes during a full run and fails if any goes to a host other than Google Fonts, Fontshare or the page's own font files.
 
 ## How the real font is found
