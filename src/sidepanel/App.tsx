@@ -31,6 +31,8 @@ export type View =
 export function App() {
   const [view, setView] = useState<View>({ name: 'page' });
   const imageScroll = useRef(0);
+  // Settings is a sub page: Back returns to the view it was opened from.
+  const settingsBack = useRef<View>({ name: 'page' });
   const [settings, updateSettings] = useSettings();
   const tab = useActiveTab();
   const [toast, showToast] = useToast();
@@ -84,7 +86,7 @@ export function App() {
   }, [tab.tabId, tab.ping?.url]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const top = view.name === 'detail' ? view.from : view.name === 'boards' || view.name === 'board' || view.name === 'seen' ? 'library' : view.name === 'share' ? 'library' : view.name === 'siteshare' ? 'page' : view.name;
-  const fullScreen = view.name === 'detail' || view.name === 'seen' || view.name === 'boards' || view.name === 'board' || view.name === 'share' || view.name === 'siteshare';
+  const fullScreen = view.name === 'detail' || view.name === 'settings' || view.name === 'seen' || view.name === 'boards' || view.name === 'board' || view.name === 'share' || view.name === 'siteshare';
 
   return (
     <div className="app">
@@ -96,7 +98,7 @@ export function App() {
             <button aria-current={top === 'system' ? 'page' : undefined} onClick={() => setView({ name: 'system' })}>System</button>
             <button aria-current={top === 'library' ? 'page' : undefined} onClick={() => setView({ name: 'library' })}>Library</button>
           </nav>
-          <button className="iconbtn" aria-label="Settings" aria-current={view.name === 'settings' ? 'page' : undefined} onClick={() => setView(view.name === 'settings' ? { name: 'page' } : { name: 'settings' })}>
+          <button className="iconbtn" aria-label="Settings" onClick={() => { settingsBack.current = view; setView({ name: 'settings' }); }}>
             <Icon icon={Settings02Icon} />
           </button>
         </div>
@@ -122,7 +124,7 @@ export function App() {
           />
         </div>
       )}
-      {view.name === 'settings' && <SettingsView settings={settings} update={updateSettings} toast={showToast} />}
+      {view.name === 'settings' && <SettingsView settings={settings} update={updateSettings} toast={showToast} onBack={() => setView(settingsBack.current)} onOpenSeen={() => setView({ name: 'seen' })} />}
       {view.name === 'detail' && (
         <FontDetail
           fontId={view.fontId}

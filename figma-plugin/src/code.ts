@@ -24,6 +24,8 @@ figma.showUI(__html__, { width: 420, height: 640, themeColors: true });
 
 let index: Index | null = null;
 let lastPayload: FigmaPayload | null = null;
+/** The specimen page made last, for "Go to the specimen page". */
+let lastPageId: string | null = null;
 async function getIndex(fresh = false): Promise<Index> {
   if (!index || fresh) index = familyIndex((await figma.listAvailableFontsAsync()).map((f) => f.fontName as AvailableFont));
   return index;
@@ -157,6 +159,7 @@ async function build(p: FigmaPayload, choices: Choice[], opts: Opts) {
   let collection: VariableCollection | null = null;
   const vars = new Map<string, Variable>();
   if (opts.variables) {
+    progress('Adding variables…');
     try {
       const name = `Typography · ${site}`;
       collection = (await figma.variables.getLocalVariableCollectionsAsync()).find((c) => c.name === name) ?? figma.variables.createVariableCollection(name);
@@ -191,6 +194,7 @@ async function build(p: FigmaPayload, choices: Choice[], opts: Opts) {
   const styleIds = new Map<string, string>();
   let made = 0;
   if (opts.styles) {
+    progress('Making text styles…');
     const local = await figma.getLocalTextStylesAsync();
     for (const s of p.styles) {
       const f = byKey.get(s.fontKey);
@@ -232,7 +236,9 @@ async function build(p: FigmaPayload, choices: Choice[], opts: Opts) {
   // one block per font with an "Aa" card, then every text style with its values and a sample).
   let page: PageNode | null = null;
   if (opts.specimen) {
+    progress('Drawing the specimen page…');
     page = figma.createPage();
+    lastPageId = page.id;
     page.name = `Typography · ${site}`;
     await figma.setCurrentPageAsync(page);
     const root = column(`Style guide · ${site}`, 0, 0);
@@ -452,6 +458,12 @@ figma.ui.onmessage = async (msg: { type: string; [k: string]: unknown }) => {
       figma.notify(`Font Finder Plus: ${r.styles} text styles${r.page ? ` and the page "${r.page}"` : ''} created.`);
     } else if (msg.type === 'recheck') {
       figma.ui.postMessage({ type: 'rechecked', result: await recheck() });
+    } else if (msg.type === 'goto-page') {
+      const node = lastPageId ? await figma.getNodeByIdAsync(lastPageId) : null;
+      if (node && node.type === 'PAGE') {
+        await figma.setCurrentPageAsync(node);
+        if (node.children.length) figma.viewport.scrollAndZoomIntoView([node.children[0]]);
+      } else figma.notify('The specimen page is no longer in this file.');
     } else if (msg.type === 'open') figma.openExternal(String(msg.url));
     else if (msg.type === 'close') figma.closePlugin();
   } catch (err) {
