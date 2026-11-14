@@ -23,8 +23,8 @@ export function SaveFontButton({ fontId, name, onSave, toast }: { fontId: string
     }
   };
   return (
-    <button className={`btn sm${saved ? ' done' : ''}`} aria-pressed={!!saved} title={saved ? 'Saved. Click to remove it from your library' : 'Save to your library'} onClick={click} disabled={busy}>
-      <Icon icon={Bookmark02Icon} size={13} filled={!!saved} />{saved ? 'Saved' : 'Save'}
+    <button className={`btn sm savebtn${saved ? ' saved' : ''}`} aria-pressed={!!saved} title={saved ? 'Saved. Click to remove it from your library' : 'Save to your library'} onClick={click} disabled={busy}>
+      <Icon icon={Bookmark02Icon} size={15} filled={!!saved} />{saved ? 'Saved' : 'Save'}
     </button>
   );
 }

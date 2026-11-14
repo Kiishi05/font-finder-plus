@@ -70,3 +70,16 @@ export function iconSvg(icon: unknown, size = 16, strokeWidth = 1.5, filled = fa
     .join('');
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true">${inner}</svg>`;
 }
+
+// Page tab icons
+export {
+  AlertCircleIcon,
+  ArrowRight02Icon,
+  CursorPointer01Icon,
+  FileLockedIcon,
+  InformationCircleIcon,
+  MoreHorizontalIcon,
+  PuzzleIcon,
+  SearchRemoveIcon,
+  WifiDisconnected01Icon,
+} from '@hugeicons/core-free-icons';
