@@ -609,23 +609,18 @@ function Guide({ force = false }: { force?: boolean }) {
         <li><span className="n">2</span><span><b>Click</b> to pin the card in place, click again to unpin. While it is pinned, click any value in it to copy it.</span></li>
         <li><span className="n">3</span><span>To stop, click <b>Stop</b> on the black bar at the bottom of the web page, or close this panel. The switch at the top of this panel turns hovering on and off too.</span></li>
         <li><span className="n">4</span><span>This panel lists every font on the page. <b>Details</b> shows the file facts and a link to Google Fonts when it is there.</span></li>
-        <li>
-          <span className="n">5</span>
-          <span className="stack" style={{ gap: 8 }}>
-            <span>
-              <b>Read every page by itself.</b> Chrome normally lets the extension read a page only after you click its icon there. Allow access to all sites and the panel reads each page you open, without clicking. You can turn it off in Settings.
-            </span>
-            {allSites ? (
-              <span className="row" style={{ gap: 6, color: 'var(--ink)' }}><Icon icon={Tick02Icon} size={15} />Access to all sites is on</span>
-            ) : (
-              <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={async () => setAllSites(await requestAllSitesAccess())}>Allow access to all sites</button>
-            )}
-          </span>
-        </li>
+        <li><span className="n">5</span><span><b>Read every page by itself.</b> Chrome normally lets the extension read a page only after you click its icon there. Allow access to all sites and the panel reads each page you open, without clicking. You can turn it off in Settings.</span></li>
       </ol>
-      <p className="sub">
-        Another way to start: right-click anywhere on the web page itself (not in this panel) and choose <b>Inspect fonts on this page</b>.
-      </p>
+      <div className="guidefoot">
+        <p className="sub">
+          Another way to start: right-click anywhere on the web page itself (not in this panel) and choose <b>Inspect fonts on this page</b>.
+        </p>
+        {allSites ? (
+          <span className="guideok"><Icon icon={Tick02Icon} size={15} />Access to all sites is on</span>
+        ) : (
+          <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={async () => setAllSites(await requestAllSitesAccess())}>Allow access to all sites</button>
+        )}
+      </div>
     </section>
   );
 }
