@@ -70,3 +70,12 @@ export function iconSvg(icon: unknown, size = 16, strokeWidth = 1.5, filled = fa
     .join('');
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" aria-hidden="true">${inner}</svg>`;
 }
+
+// library icons
+export {
+  MoreHorizontalIcon as LibMoreIcon,
+  FilterHorizontalIcon as LibFilterIcon,
+  Edit02Icon as LibEditIcon,
+  BookmarkAdd02Icon as LibBookmarkAddIcon,
+  Folder01Icon as LibFolderIcon,
+} from '@hugeicons/core-free-icons';
