@@ -44,8 +44,8 @@ export function Screenshots({ fontId, tabId, onPage, toast }: { fontId: string; 
   };
 
   return (
-    <div className="stack" style={{ gap: 6 }}>
-      <span className="label">[Where you saw it]</span>
+    <div className="dshots">
+      <h3>Where you saw it</h3>
       {shots.length > 0 && (
         <div className="shots">
           {shots.map((s, i) =>
@@ -54,17 +54,17 @@ export function Screenshots({ fontId, tabId, onPage, toast }: { fontId: string; 
                 <button className="shotimg" title={s.pageUrl} onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL(`sidepanel.html?shot=${s.id}`) })}>
                   <img src={urls[i]} alt={`Screenshot of ${s.pageUrl}`} />
                 </button>
-                <span className="muted" style={{ fontSize: 10.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{safeHost(s.pageUrl)}</span>
-                <button className="iconbtn sm" aria-label="Delete screenshot" title="Delete screenshot" onClick={() => remove(s.id!)}><Icon icon={Delete02Icon} size={13} /></button>
+                <span className="dnote" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{safeHost(s.pageUrl)}</span>
+                <button className="iconbtn sm danger tip" data-tip="Delete" aria-label="Delete screenshot" onClick={() => remove(s.id!)}><Icon icon={Delete02Icon} size={15} /></button>
               </div>
             ) : null,
           )}
         </div>
       )}
       {onPage ? (
-        <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={capture} disabled={busy}><Icon icon={Camera01Icon} size={13} />{busy ? 'Taking…' : 'Save a screenshot of this page'}</button>
+        <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={capture} disabled={busy}><Icon icon={Camera01Icon} size={15} />{busy ? 'Taking…' : 'Save a screenshot of this page'}</button>
       ) : (
-        !shots.length && <span className="muted" style={{ fontSize: 12 }}>Open this font from the Page tab on a site to save a screenshot of where you saw it.</span>
+        !shots.length && <span className="dnote">Open this font from the Page tab on a site to save a screenshot of where you saw it.</span>
       )}
     </div>
   );

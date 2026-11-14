@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { freeSourceOf } from '../../../shared/catalog';
-import { ArrowUpRight01Icon } from '../../../shared/icons';
+import { ArrowDown01Icon, ArrowUpRight01Icon, Target02Icon } from '../../../shared/icons';
 import type { Match } from '../../../shared/similar';
 import { freeLookalikes, type LookalikeInput, type LookalikeResult } from '../../lib/lookalike';
 import type { Classification } from '../../../shared/types';
@@ -9,6 +9,7 @@ import { trySwap, undoSwap, useGoogleFont, useSwaps } from '../../lib/google';
 import type { ShapeResult } from '../../lib/shapes';
 
 interface Props {
+  id?: string;
   shape: ShapeResult | null;
   loading: boolean;
   exclude: string;
@@ -22,10 +23,13 @@ interface Props {
   toast: (m: string) => void;
 }
 
-export function SimilarCard({ shape, loading, pageKey, tabId, input, sampleText, toast }: Props) {
+const FIRST = 3;
+
+export function SimilarCard({ id, shape, loading, pageKey, tabId, input, sampleText, toast }: Props) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [matchX, setMatchX] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [all, setAll] = useState(false);
   const swaps = useSwaps(tabId);
   const current = pageKey ? swaps[pageKey] ?? null : null;
 
@@ -59,36 +63,42 @@ export function SimilarCard({ shape, loading, pageKey, tabId, input, sampleText,
     }
   };
 
+  const shown = all ? matches : matches.slice(0, FIRST);
   return (
-    <section className="section">
-      <h2>[Similar free fonts] Closest matches</h2>
-      {loading && !shape && <span className="muted" style={{ fontSize: 12 }}>Measuring the font…</span>}
-      {shape && letters === undefined && <span className="muted" style={{ fontSize: 12 }}>Comparing letter shapes…</span>}
-      {letters === false && <span className="muted" style={{ fontSize: 11.5 }}>Compared by proportions only (its letters could not be drawn), so these are rougher.</span>}
-      {!loading && !shape && <span className="muted" style={{ fontSize: 12 }}>The font could not be measured, so similar fonts cannot be found. This happens when its file cannot be read.</span>}
+    <section className="section" id={id}>
+      <div className="sechead"><h2>Similar free fonts</h2>{matches.length > 0 && <span className="count">{matches.length}</span>}</div>
+      {loading && !shape && <p className="sub">Measuring the font…</p>}
+      {shape && letters === undefined && <p className="sub">Comparing letter shapes…</p>}
+      {letters === false && <p className="sub">Compared by proportions only (its letters could not be drawn), so these are rougher.</p>}
+      {!loading && !shape && <p className="sub">The font could not be measured, so similar fonts cannot be found. This happens when its file cannot be read.</p>}
       {shape && (
         <>
           {pageKey && (
-            <div className="row" style={{ justifyContent: 'space-between' }}>
-              <label className="row" style={{ gap: 6, fontSize: 12.5 }}>
-                <input type="checkbox" checked={matchX} onChange={(e) => setMatchX(e.target.checked)} />
-                Keep the original x-height when trying
-              </label>
-              {current && tabId != null && <button className="btn sm" onClick={() => undoSwap(tabId, pageKey)}>Undo</button>}
+            <div className="dopt">
+              <span className="grow">Keep the original x-height when trying</span>
+              {current && tabId != null && <button className="linkbtn" onClick={() => undoSwap(tabId, pageKey)}>Undo</button>}
+              <button className="switch" role="switch" aria-checked={matchX} aria-label="Keep the original x-height when trying" onClick={() => setMatchX(!matchX)} />
             </div>
           )}
-          <div className="matches">
-            {matches.map((m) => (
-              <MatchRow key={m.family} m={m} text={sampleText} active={current === m.family} busy={busy === m.family} canTry={!!pageKey && tabId != null} onTry={() => (current === m.family && tabId != null && pageKey ? undoSwap(tabId, pageKey) : tryIt(m.family))} />
-            ))}
-          </div>
-          <span className="muted" style={{ fontSize: 11.5 }}>
+          {shown.length > 0 && (
+            <div className="dinners">
+              {shown.map((m) => (
+                <MatchRow key={m.family} m={m} text={sampleText} active={current === m.family} busy={busy === m.family} canTry={!!pageKey && tabId != null} onTry={() => (current === m.family && tabId != null && pageKey ? undoSwap(tabId, pageKey) : tryIt(m.family))} />
+              ))}
+            </div>
+          )}
+          {matches.length > FIRST && (
+            <button className="linkbtn dmore" aria-expanded={all} onClick={() => setAll(!all)}>
+              {all ? 'Show fewer' : `Show all ${matches.length}`} <Icon icon={ArrowDown01Icon} size={14} className={all ? 'flip' : undefined} />
+            </button>
+          )}
+          <p className="dnote">
             Free fonts from Google Fonts and Fontshare, ranked by how alike their letters look and by measured proportions (x-height, width, weight, contrast).
             {shape.from === 'page' ? ' The font file could not be read, so the font was measured from how the page draws it.' : ''}
             {shape.from === 'rendered' ? ' Measured from how the installed font draws.' : ''}
             {shape.notRegular ? ' Measured from a non-regular weight, so weight counts for less.' : ''}
             {' '}Similar is not identical; check details like the shapes of a, g and R.
-          </span>
+          </p>
         </>
       )}
     </section>
@@ -97,21 +107,25 @@ export function SimilarCard({ shape, loading, pageKey, tabId, input, sampleText,
 
 function MatchRow({ m, text, active, busy, canTry, onTry }: { m: Match; text: string; active: boolean; busy: boolean; canTry: boolean; onTry: () => void }) {
   const css = useGoogleFont(m.family);
+  const src = freeSourceOf(m.family);
   return (
-    <div className={`match${active ? ' on' : ''}`}>
-      <div className="row" style={{ alignItems: 'baseline' }}>
-        <b className="grow" style={{ fontSize: 12.5 }}>{m.family}</b>
-        <span className="mono" style={{ fontSize: 11.5 }}>{m.score}%</span>
+    <div className={`match dinner${active ? ' on' : ''}`}>
+      <div className="row">
+        <b>{m.family}</b>
+        <span className="lic free"><i />Free</span>
+        <span className="grow" />
+        <span className="pct">{m.score}% alike</span>
       </div>
       <div className="mprev" dir="auto" style={{ fontFamily: css }}>{text || m.family}</div>
-      <span className="muted" style={{ fontSize: 11.5 }}>{m.reason}</span>
-      <div className="row" style={{ gap: 6 }}>
+      <span className="why">{m.reason}</span>
+      <div className="btns">
         {canTry && (
-          <button className={`btn sm${active ? ' done' : ''}`} onClick={onTry} disabled={busy}>
-            {busy ? 'Loading…' : active ? 'Showing on page · Undo' : 'Try on page'}
+          <button className={`btn sm${active ? ' primary' : ''}`} aria-pressed={active} onClick={onTry} disabled={busy}>
+            <Icon icon={Target02Icon} size={15} />
+            {busy ? 'Loading…' : active ? 'Showing on page' : 'Try on page'}
           </button>
         )}
-        <a className="btn sm ghost" href={freeSourceOf(m.family).url} target="_blank" rel="noreferrer">{freeSourceOf(m.family).site} <Icon icon={ArrowUpRight01Icon} size={13} /></a>
+        <a className="linkbtn" href={src.url} target="_blank" rel="noreferrer">{src.site} <Icon icon={ArrowUpRight01Icon} size={13} /></a>
       </div>
     </div>
   );

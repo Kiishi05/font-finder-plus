@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useRef, useState } from 'react';
 import { db } from '../../shared/db';
-import { ArrowLeft01Icon, Copy01Icon, Download01Icon } from '../../shared/icons';
+import { ArrowLeft01Icon, Copy01Icon, Download01Icon, Tick02Icon } from '../../shared/icons';
 import { Icon } from '../components/Icon';
 import { Select } from '../components/Select';
 import { SIZES, canvasBlob, cardFontFor, downloadBlob, drawShareCard, fontCssFor, slug, type CardSize, type Theme } from '../lib/cards';
@@ -18,6 +18,7 @@ export function ShareView({ fontId, onBack, toast }: { fontId: string; onBack: (
   const [second, setSecond] = useState('');
   const [watermark, setWatermark] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -42,7 +43,17 @@ export function ShareView({ fontId, onBack, toast }: { fontId: string; onBack: (
   }, [rec, size, theme, text, weight, second, watermark, records.length]);
 
   if (rec === undefined) return null;
-  if (!rec) return <div className="empty"><p>This font is not in your library yet. Save it first.</p></div>;
+  if (!rec) {
+    return (
+      <>
+        <div className="subtop">
+          <button className="backbtn" aria-label="Back" onClick={onBack}><Icon icon={ArrowLeft01Icon} size={18} /></button>
+          <span className="crumb"><span>Share card</span></span>
+        </div>
+        <div className="empty"><div className="et"><h2>Nothing to share yet</h2><p>This font is not in your library yet. Save it first.</p></div></div>
+      </>
+    );
+  }
   const name = rec.displayName ?? rec.family;
   const file = `${slug(name)}-${size}.png`;
 
@@ -57,7 +68,8 @@ export function ShareView({ fontId, onBack, toast }: { fontId: string; onBack: (
     try {
       const blob = await canvasBlob(canvas.current);
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      toast('Copied the image');
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
     } catch {
       toast('Chrome did not allow copying the image. Use Download instead.');
     }
@@ -65,16 +77,16 @@ export function ShareView({ fontId, onBack, toast }: { fontId: string; onBack: (
 
   return (
     <>
-      <div className="topbar">
-        <button className="iconbtn" aria-label="Back" onClick={onBack}><Icon icon={ArrowLeft01Icon} /></button>
-        <span className="label grow" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>[Share card] / [{name}]</span>
+      <div className="subtop">
+        <button className="backbtn tip" data-tip="Back to the font" aria-label="Back" onClick={onBack}><Icon icon={ArrowLeft01Icon} size={18} /></button>
+        <span className="crumb"><span>Share card ·</span><b>{name}</b></span>
       </div>
-      <section className="section">
+      <section className="section dshare">
         <canvas ref={canvas} className="cardcanvas" aria-label={`Share card for ${name}`} />
-        <span className="mono muted" style={{ fontSize: 10.5 }}>{SIZES[size][0]} × {SIZES[size][1]} px · PNG</span>
+        <p className="dnote">{SIZES[size][0]} × {SIZES[size][1]} px, PNG</p>
       </section>
-      <section className="section">
-        <h2>[Card]</h2>
+      <section className="section dshare">
+        <div className="sechead"><h2>Card</h2></div>
         <div className="seg" role="group" aria-label="Size">
           <button aria-pressed={size === 'landscape'} onClick={() => setSize('landscape')}>Landscape 1200×675</button>
           <button aria-pressed={size === 'portrait'} onClick={() => setSize('portrait')}>Portrait 1080×1350</button>
@@ -82,8 +94,8 @@ export function ShareView({ fontId, onBack, toast }: { fontId: string; onBack: (
         <div className="seg" role="group" aria-label="Theme">
           {(['light', 'dark', 'green'] as Theme[]).map((t) => <button key={t} aria-pressed={theme === t} onClick={() => setTheme(t)}>{t[0].toUpperCase() + t.slice(1)}</button>)}
         </div>
-        <label className="stack" style={{ gap: 4 }}>
-          <span className="label">[Text]</span>
+        <label className="dfield">
+          <span className="dlabel">Text</span>
           <textarea className="field" rows={2} value={text} onChange={(e) => setText(e.target.value)} aria-label="Card text" />
         </label>
         <div className="grid2" style={{ gap: 6 }}>
@@ -95,11 +107,11 @@ export function ShareView({ fontId, onBack, toast }: { fontId: string; onBack: (
           <button className="switch" role="switch" aria-checked={watermark} aria-label="Watermark" onClick={() => setWatermark(!watermark)} />
         </div>
       </section>
-      <div className="row" style={{ gap: 6 }}>
-        <button className="btn primary" style={{ flex: 1, height: 40 }} onClick={download} disabled={busy}><Icon icon={Download01Icon} size={15} />Download PNG</button>
-        <button className="btn" style={{ flex: 1, height: 40 }} onClick={copy}><Icon icon={Copy01Icon} size={15} />Copy image</button>
+      <div className="dshareacts">
+        <button className="btn primary" onClick={download} disabled={busy}><Icon icon={Download01Icon} size={15} />Download PNG</button>
+        <button className={`btn${copied ? ' copied' : ''}`} onClick={copy}><Icon icon={copied ? Tick02Icon : Copy01Icon} size={15} />{copied ? 'Copied' : 'Copy image'}</button>
       </div>
-      <span className="muted" style={{ fontSize: 11.5 }}>Check the font's licence before sharing images made with a paid font.</span>
+      <p className="dnote" style={{ padding: '0 4px' }}>Check the font's licence before sharing images made with a paid font.</p>
     </>
   );
 }

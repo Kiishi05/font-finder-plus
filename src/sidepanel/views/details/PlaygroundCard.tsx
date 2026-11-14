@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SourceCodeIcon } from '../../../shared/icons';
+import { SourceCodeIcon, Target02Icon } from '../../../shared/icons';
 import { sendToTab } from '../../../shared/messages';
 import { Icon } from '../../components/Icon';
 import { useGoogleFont } from '../../lib/google';
-import { copyToClipboard } from '../../lib/hooks';
+import { CopyButton } from './CopyButton';
 
 export interface Axis { tag: string; name: string; min: number; max: number; default: number }
 
@@ -13,7 +13,7 @@ const NAMES: Record<string, string> = { wght: 'Weight', wdth: 'Width', opsz: 'Op
  * Variable font playground. Uses the site's own file when it is variable
  * (and can then apply settings on the page), or the Google Fonts version.
  */
-export function PlaygroundCard({ axes, fromFile, fontCss, googleFamily, pageKey, tabId, text, toast }: { axes: Axis[]; fromFile: boolean; fontCss: string; googleFamily: string | null; pageKey: string | null; tabId: number | null; text: string; toast: (m: string) => void }) {
+export function PlaygroundCard({ id, axes, fromFile, fontCss, googleFamily, pageKey, tabId, text, toast }: { id?: string; axes: Axis[]; fromFile: boolean; fontCss: string; googleFamily: string | null; pageKey: string | null; tabId: number | null; text: string; toast: (m: string) => void }) {
   const gfCss = useGoogleFont(!fromFile ? googleFamily : null, { axes: true });
   const css = fromFile ? fontCss : gfCss;
   const initial = useMemo(() => Object.fromEntries(axes.map((a) => [a.tag, a.default])), [axes]);
@@ -40,29 +40,33 @@ export function PlaygroundCard({ axes, fromFile, fontCss, googleFamily, pageKey,
 
   if (!axes.length) return null;
   return (
-    <section className="section">
-      <h2>[Variable playground]</h2>
-      <p dir="auto" style={{ margin: 0, fontFamily: css, fontSize: 34, lineHeight: 1.15, fontVariationSettings: settings, overflowWrap: 'anywhere' }}>{text}</p>
+    <section className="section" id={id}>
+      <div className="sechead"><h2>Variable</h2><span className="count">{axes.length} {axes.length === 1 ? 'axis' : 'axes'}</span></div>
+      <p className="dplay" dir="auto" style={{ fontFamily: css, fontVariationSettings: settings }}>{text}</p>
       <div className="axes">
         {axes.map((a) => {
           const step = a.max - a.min > 20 ? 1 : 0.1;
           return (
             <label key={a.tag} className="axis">
-              <span>{NAMES[a.tag] ?? a.name} <span className="mono muted" style={{ fontSize: 10.5 }}>{a.tag}</span></span>
+              <span>{NAMES[a.tag] ?? a.name} <span className="faint mono" style={{ fontSize: 11 }}>{a.tag}</span></span>
               <input type="range" min={a.min} max={a.max} step={step} value={vals[a.tag] ?? a.default} onChange={(e) => setVals({ ...vals, [a.tag]: Number(e.target.value) })} />
-              <span className="mono" style={{ fontSize: 11.5, textAlign: 'right' }}>{Math.round((vals[a.tag] ?? a.default) * 10) / 10}</span>
+              <span style={{ fontSize: 12.5, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Math.round((vals[a.tag] ?? a.default) * 10) / 10}</span>
             </label>
           );
         })}
       </div>
-      <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-        <button className="btn sm" onClick={async () => (await copyToClipboard(`font-variation-settings: ${settings};`)) && toast('Copied CSS')}><Icon icon={SourceCodeIcon} size={13} />Copy CSS</button>
-        <button className="btn sm ghost" onClick={() => setVals(initial)}>Reset</button>
-        {canLive && (live ? <button className="btn sm done" onClick={stopLive}>Showing on page · Stop</button> : <button className="btn sm" onClick={() => setLive(true)}>Apply on page</button>)}
+      <div className="dfoot">
+        {canLive && (
+          <button className={`btn sm${live ? ' primary' : ''}`} aria-pressed={live} onClick={() => (live ? stopLive() : setLive(true))}>
+            <Icon icon={Target02Icon} size={15} />{live ? 'Showing on page' : 'Apply on page'}
+          </button>
+        )}
+        <CopyButton className="btn sm" icon={SourceCodeIcon} label="Copy CSS" text={`font-variation-settings: ${settings};`} onFail={() => toast('Could not copy')} />
+        <button className="linkbtn" onClick={() => setVals(initial)}>Reset</button>
       </div>
-      <span className="muted" style={{ fontSize: 11.5 }}>
+      <p className="dnote">
         {fromFile ? 'Using the font file from this site.' : 'Using the Google Fonts version. The site loads a fixed weight, so these settings cannot be shown on the page.'}
-      </span>
+      </p>
     </section>
   );
 }

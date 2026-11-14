@@ -1,13 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Copy01Icon, Search01Icon } from '../../../shared/icons';
+import { ArrowRight01Icon, Copy01Icon, Search01Icon } from '../../../shared/icons';
 import { Icon } from '../../components/Icon';
 import { Select } from '../../components/Select';
 import { copyToClipboard } from '../../lib/hooks';
 import { blockOf, charName, hex, isCombining, isDrawable } from '../../lib/unicode';
 
 const PAGE = 240;
+/** Two rows of eight before "See all". */
+const PREVIEW = 16;
 
+/** The drawable characters of a font, for the count in the section heading. */
+export function glyphCount(codepoints: Set<number> | null): number {
+  if (!codepoints) return 0;
+  let n = 0;
+  for (const cp of codepoints) if (isDrawable(cp)) n++;
+  return n;
+}
+
+/**
+ * The font's letters: two rows first, then every character with search, groups
+ * and a close-up of the one you pick. Sits inside the Letters and languages card.
+ */
 export function GlyphsCard({ codepoints, fontCss, note, toast }: { codepoints: Set<number> | null; fontCss: string; note: string; toast: (m: string) => void }) {
+  const [open, setOpen] = useState(false);
   const [block, setBlock] = useState('all');
   const [query, setQuery] = useState('');
   const [shown, setShown] = useState(PAGE);
@@ -19,6 +34,15 @@ export function GlyphsCard({ codepoints, fontCss, note, toast }: { codepoints: S
     for (const cp of list) m.set(blockOf(cp), (m.get(blockOf(cp)) ?? 0) + 1);
     return [...m.entries()];
   }, [list]);
+  // The preview starts with letters people recognise, not with punctuation.
+  const preview = useMemo(() => {
+    const pick = [...'AaBbCcGgQqRr&?01'].map((c) => c.codePointAt(0)!).filter((cp) => codepoints?.has(cp));
+    for (const cp of list) {
+      if (pick.length >= PREVIEW) break;
+      if (!pick.includes(cp) && cp > 0x20) pick.push(cp);
+    }
+    return pick.slice(0, PREVIEW);
+  }, [list, codepoints]);
 
   const filtered = useMemo(() => {
     const q = query.trim();
@@ -32,37 +56,32 @@ export function GlyphsCard({ codepoints, fontCss, note, toast }: { codepoints: S
     return out;
   }, [list, block, query]);
 
-  if (!codepoints) {
-    return (
-      <section className="section">
-        <h2>[Glyphs]</h2>
-        <span className="muted" style={{ fontSize: 12 }}>{note}</span>
-      </section>
-    );
-  }
+  if (!codepoints) return <p className="sub">{note}</p>;
 
   const ch = (cp: number) => (isCombining(cp) ? '◌' : '') + String.fromCodePoint(cp);
+  const grid = open ? filtered.slice(0, shown) : preview;
   return (
-    <section className="section">
-      <h2>[Glyphs] {list.length} characters</h2>
-      <div className="row" style={{ gap: 6 }}>
-        <label className="tester-input grow" style={{ height: 34, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 9 }}>
-          <Icon icon={Search01Icon} size={14} />
-          <input aria-label="Find a character" placeholder="Type a letter or U+00E9" value={query} onChange={(e) => { setQuery(e.target.value); setShown(PAGE); }} />
-        </label>
-        <div style={{ width: 150 }}>
-          <Select label="Character group" value={block} onChange={(v) => { setBlock(v); setShown(PAGE); }} options={[{ value: 'all', label: `All (${list.length})` }, ...blocks.map(([b, n]) => ({ value: b, label: `${b} (${n})` }))]} />
+    <div className="dglyphs">
+      {open && (
+        <div className="dsearch">
+          <label className="dfind grow">
+            <Icon icon={Search01Icon} size={15} />
+            <input aria-label="Find a character" placeholder="Type a letter or U+00E9" value={query} onChange={(e) => { setQuery(e.target.value); setShown(PAGE); }} />
+          </label>
+          <div className="dgroup">
+            <Select label="Character group" value={block} onChange={(v) => { setBlock(v); setShown(PAGE); }} options={[{ value: 'all', label: `All (${list.length})` }, ...blocks.map(([b, n]) => ({ value: b, label: `${b} (${n})` }))]} />
+          </div>
         </div>
-      </div>
+      )}
       {sel != null && (
         <div className="glyphsel">
           <span className="big" style={{ fontFamily: fontCss }}>{ch(sel)}</span>
           <div className="stack" style={{ gap: 4, minWidth: 0 }}>
             <b className="mono" style={{ fontSize: 13 }}>U+{hex(sel)}</b>
             <CharName cp={sel} />
-            <span className="muted" style={{ fontSize: 11.5 }}>{blockOf(sel)}</span>
+            <span className="dnote">{blockOf(sel)}</span>
             <div className="chips">
-              <button className="chip" onClick={async () => (await copyToClipboard(String.fromCodePoint(sel))) && toast('Copied character')}><Icon icon={Copy01Icon} size={12} />Character</button>
+              <button className="chip" onClick={async () => (await copyToClipboard(String.fromCodePoint(sel))) && toast('Copied character')}><Icon icon={Copy01Icon} size={13} />Character</button>
               <button className="chip" onClick={async () => (await copyToClipboard(`\\${hex(sel)}`)) && toast('Copied CSS code')}>CSS \{hex(sel)}</button>
               <button className="chip" onClick={async () => (await copyToClipboard(`&#x${hex(sel)};`)) && toast('Copied HTML code')}>HTML &amp;#x{hex(sel)};</button>
             </div>
@@ -70,14 +89,19 @@ export function GlyphsCard({ codepoints, fontCss, note, toast }: { codepoints: S
         </div>
       )}
       <div className="glyphs" style={{ fontFamily: fontCss }}>
-        {filtered.slice(0, shown).map((cp) => (
-          <button key={cp} className={sel === cp ? 'on' : ''} title={`U+${hex(cp)}`} onClick={() => setSel(cp)}>{ch(cp)}</button>
+        {grid.map((cp) => (
+          <button key={cp} className={sel === cp ? 'on' : ''} title={`U+${hex(cp)}`} aria-pressed={sel === cp} onClick={() => setSel(sel === cp ? null : cp)}>{ch(cp)}</button>
         ))}
       </div>
-      {filtered.length === 0 && <span className="muted" style={{ fontSize: 12 }}>No matching characters in this font.</span>}
-      {filtered.length > shown && <button className="btn sm" onClick={() => setShown(shown + PAGE * 2)}>Show more ({filtered.length - shown} left)</button>}
-      <span className="muted" style={{ fontSize: 11.5 }}>{note}</span>
-    </section>
+      {open && filtered.length === 0 && <p className="sub">No matching characters in this font.</p>}
+      {open && filtered.length > shown && <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={() => setShown(shown + PAGE * 2)}>Show more ({filtered.length - shown} left)</button>}
+      {list.length > preview.length && (
+        <button className="linkbtn dmore" aria-expanded={open} onClick={() => { setOpen(!open); setQuery(''); setBlock('all'); setShown(PAGE); }}>
+          {open ? 'Show fewer letters' : `See all ${list.length} letters`} <Icon icon={ArrowRight01Icon} size={14} className={open ? 'up' : undefined} />
+        </button>
+      )}
+      {open && <p className="dnote">{note}</p>}
+    </div>
   );
 }
 

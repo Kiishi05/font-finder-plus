@@ -13,63 +13,63 @@ const PAID_RULES = [
   'Free trial or personal-use versions do not cover client or commercial work.',
 ];
 
-const TONE: Record<Allowed, string> = { yes: 'free', conditions: 'free', licence: 'warn', check: 'neutral', no: 'neutral', unknown: 'neutral' };
+/** ok: allowed. paid: needs a licence. chk: check (grey ring). no: not allowed. */
+const TONE: Record<Allowed, string> = { yes: 'ok', conditions: 'ok', licence: 'paid', check: 'chk', no: 'no', unknown: 'chk' };
 
-export function LicenceCard({ name, licenseType, source, parsed, fromCatalogue }: { name: string; licenseType: LicenseType; source: string; parsed: ParsedFontFile | null; fromCatalogue: boolean }) {
+export function LicenceCard({ id, name, licenseType, source, parsed, fromCatalogue }: { id?: string; name: string; licenseType: LicenseType; source: string; parsed: ParsedFontFile | null; fromCatalogue: boolean }) {
   const known = knownFont(name) ?? (parsed?.familyName ? knownFont(parsed.familyName) : null);
   const s = summaryFor(licenseType, known, source);
   return (
-    <section className="section">
-      <h2>[Licence] Can I use it?</h2>
-      <div className="stack" style={{ gap: 2 }}>
-        <b style={{ fontSize: 14 }}>{s.name}</b>
-        <span className="muted" style={{ fontSize: 12.5 }}>{s.short}</span>
+    <section className="section" id={id}>
+      <div className="sechead"><h2>Licence</h2></div>
+      <div className="dverdict">
+        <p><b>{s.name.replace(/\.$/, '')}.</b> {s.short}</p>
         {known && (
-          <span style={{ fontSize: 12.5 }}>
+          <p className="dnote">
             {known.licence === 'commercial' ? 'Sold by ' : 'From '}
             <a href={known.url} target="_blank" rel="noreferrer">{known.by}</a>
             {known.note ? `. ${known.note}` : ''}
-          </span>
+          </p>
         )}
-        {fromCatalogue && <span className="muted" style={{ fontSize: 11.5 }}>Licence from the Google Fonts catalogue.</span>}
+        {fromCatalogue && <p className="dnote">Licence from the Google Fonts catalogue.</p>}
       </div>
-      <div className="uses">
+      <div className="duses">
         {USES.map((u) => {
           const v = s.uses[u.key];
           return (
-            <div key={u.key} className="use">
+            <div key={u.key} className="duse">
               <span>{u.label}</span>
-              <span className={`lic ${TONE[v.a]}`}><i />{ALLOWED_LABEL[v.a]}</span>
-              {v.note && <span className="muted note">{v.note}</span>}
+              <span className={`st ${TONE[v.a]}`}><i />{ALLOWED_LABEL[v.a]}</span>
+              {v.note && <span className="dnote">{v.note}</span>}
             </div>
           );
         })}
       </div>
       {s.notes.map((n) => (
-        <span key={n} className="muted" style={{ fontSize: 12 }}>{n}</span>
+        <p key={n} className="dnote">{n}</p>
       ))}
       {(licenseType === 'commercial' || licenseType === 'unknown') && (
-        <details className="filelicence" open={licenseType === 'commercial'}>
+        <details className="dfold">
           <summary>Common rules in paid font licences</summary>
-          <span className="muted" style={{ fontSize: 11.5 }}>General rules most foundries use. They are not this font's terms: check its own licence.</span>
+          <p className="dnote">General rules most foundries use. They are not this font's terms: check its own licence.</p>
           <ul className="rules">
             {PAID_RULES.map((r) => <li key={r}>{r}</li>)}
           </ul>
         </details>
       )}
       {(parsed?.licenseDescription || parsed?.licenseUrl || parsed?.copyright) && (
-        <details className="filelicence" open>
-          <summary>What the font file itself says (shown as written)</summary>
-          {parsed?.copyright && <p>{parsed.copyright}</p>}
-          {parsed?.licenseDescription && <p>{parsed.licenseDescription.slice(0, 600)}{parsed.licenseDescription.length > 600 ? '…' : ''}</p>}
-          {parsed?.licenseUrl && <a href={parsed.licenseUrl} target="_blank" rel="noreferrer">Licence link in the file</a>}
+        <details className="dfold">
+          <summary>What the font file itself says</summary>
+          {parsed?.copyright && <p className="dnote">{parsed.copyright}</p>}
+          {parsed?.licenseDescription && <p className="dnote">{parsed.licenseDescription.slice(0, 600)}{parsed.licenseDescription.length > 600 ? '…' : ''}</p>}
+          {parsed?.licenseUrl && <a className="linkbtn" href={parsed.licenseUrl} target="_blank" rel="noreferrer">Licence link in the file <Icon icon={ArrowUpRight01Icon} size={13} /></a>}
         </details>
       )}
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        {s.url ? (
-          <a className="btn sm" href={s.url} target="_blank" rel="noreferrer">Read the full licence <Icon icon={ArrowUpRight01Icon} size={13} /></a>
-        ) : <span />}
-        <span className="muted" style={{ fontSize: 11 }}>This is a summary, not legal advice.</span>
+      <div className="dfoot">
+        {s.url && (
+          <a className="btn sm" href={s.url} target="_blank" rel="noreferrer">Read the full licence <Icon icon={ArrowUpRight01Icon} size={14} /></a>
+        )}
+        <span className="dnote">A summary, not legal advice.</span>
       </div>
     </section>
   );
