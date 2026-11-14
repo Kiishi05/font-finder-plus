@@ -114,7 +114,7 @@ function startHtml() {
       </button>
       <ol class="steps">
         <li><span class="n">1</span><span>In Chrome, open a website and click the Font Finder Plus icon</span></li>
-        <li><span class="n">2</span><span>Click <b>Send to Figma</b> on the Page or System tab</span></li>
+        <li><span class="n">2</span><span>Click <b>Copy for Figma</b> on the Page or System tab</span></li>
         <li><span class="n">3</span><span>Come back here and paste</span></li>
       </ol>
       ${manual ? '<textarea id="manual" aria-label="Paste here" placeholder="Paste into this box"></textarea>' : '<button class="link" id="showmanual">Paste into a box instead</button>'}
@@ -251,7 +251,7 @@ function doneHtml() {
 function handleText(t: string) {
   const p = parsePayload(t);
   if (!p) {
-    if (t.trim()) toast('That is not from Font Finder Plus. In Chrome, click Send to Figma in the side panel first.');
+    if (t.trim()) toast('That is not from Font Finder Plus. In Chrome, click Copy for Figma in the side panel first.');
     return;
   }
   payload = p;

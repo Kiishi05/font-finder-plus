@@ -596,7 +596,7 @@ function Comparison({ a, b }: { a: { scan: PageScan; system: SystemScan; styles:
     ['Size scale', scaleText(a.styles), b.system ? scaleText(bStyles) : '…'],
     ['Readability', readText(a.system.issues.length), b.system ? readText(b.system.issues.length) : '…'],
   ];
-  const mark = (yes: boolean) => (yes ? <span className="yes" aria-label="Yes"><Icon icon={Tick02Icon} size={14} /></span> : <span className="no" aria-label="No">–</span>);
+  const mark = (yes: boolean) => (yes ? <span className="yes" role="img" aria-label="Yes"><Icon icon={Tick02Icon} size={14} /></span> : <span className="no" role="img" aria-label="No">–</span>);
   return (
     <>
       <table className="cmp">

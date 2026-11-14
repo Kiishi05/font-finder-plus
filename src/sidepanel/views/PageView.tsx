@@ -701,7 +701,7 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
           return (
             <li key={r.f.key}>
               <span className="from">{r.name}</span>
-              <span className="to" aria-label="to"><Icon icon={ArrowRight02Icon} size={16} /></span>
+              <span className="to" role="img" aria-label="to"><Icon icon={ArrowRight02Icon} size={16} /></span>
               <span className="dest">
                 {r.match && src ? (
                   <>
