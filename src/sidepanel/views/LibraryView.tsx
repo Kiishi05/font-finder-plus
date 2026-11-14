@@ -58,7 +58,8 @@ interface Props {
 }
 
 export function LibraryView({ tester, onTester, onOpen, onBoards, onSeen, toast }: Props) {
-  const saved = useLiveQuery(() => db.savedFonts.orderBy('createdAt').reverse().toArray(), []) ?? [];
+  const savedQ = useLiveQuery(() => db.savedFonts.orderBy('createdAt').reverse().toArray(), []);
+  const saved = savedQ ?? [];
   const fonts = useLiveQuery(() => db.fonts.toArray(), []) ?? [];
   const collections = useLiveQuery(() => db.collections.orderBy('createdAt').toArray(), []) ?? [];
   const boardCount = useLiveQuery(() => db.boards.count(), []) ?? 0;
@@ -212,6 +213,8 @@ export function LibraryView({ tester, onTester, onOpen, onBoards, onSeen, toast 
     </div>
   );
 
+  // Wait for the library to load, so the empty layout never flashes and then jumps.
+  if (savedQ === undefined) return <div className="libv" aria-busy="true" />;
   if (saved.length === 0) {
     return (
       <div className="libv">
