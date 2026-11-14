@@ -508,3 +508,5 @@ a.btn { text-decoration: none; }
 .tip::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translate(-50%, 2px); background: var(--ink); color: var(--card); font: 500 11.5px/1 var(--ui); padding: 6px 8px; border-radius: 8px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 120ms ease-out, transform 160ms var(--ease-out); z-index: 20; }
 .tip:hover::after, .tip:focus-visible::after { opacity: 1; transform: translate(-50%, 0); transition-delay: 250ms; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+/* A view that shows its own sub-page header hides the main top bar (e.g. the collection editor). */
+.app:has(.subtop) > .topbar { display: none; }
