@@ -1,4 +1,6 @@
+import { Alert02Icon } from '../../shared/icons';
 import { useMissing } from '../lib/missing';
+import { Icon } from './Icon';
 import { languageSample } from '../lib/samples';
 import type { TesterState } from './Tester';
 
@@ -14,6 +16,7 @@ export function MissingNote({ css, text, ready, tester, name, style }: { css: st
       : `${n === 1 ? '1 character you typed is' : `${n} characters you typed are`} not in ${name} (${quoted}) and ${n === 1 ? 'shows as a box' : 'show as boxes'}.`;
   return (
     <div className="missing" style={style} role="note">
+      <Icon icon={Alert02Icon} size={15} />
       <span>{msg}</span>
     </div>
   );

@@ -3,7 +3,30 @@ import { useEffect, useRef, useState } from 'react';
 import { CLASS_LABEL, SOURCE_LABEL, freeSourceOf, licenseBadge, adobeFontsUrl } from '../../shared/catalog';
 import { declarationCss } from '../../shared/css';
 import { db, saveFont } from '../../shared/db';
-import { Share08Icon, Alert02Icon, ArrowDown01Icon, ArrowRight01Icon, ArrowUp01Icon, Bookmark02Icon, CloseIcon, SourceCodeIcon, Target02Icon, ArrowUpRight01Icon } from '../../shared/icons';
+import {
+  Share08Icon,
+  Alert02Icon,
+  AlertCircleIcon,
+  ArrowDown01Icon,
+  ArrowReloadHorizontalIcon,
+  ArrowRight01Icon,
+  ArrowRight02Icon,
+  ArrowUp01Icon,
+  ArrowUpRight01Icon,
+  Bookmark02Icon,
+  CloseIcon,
+  Copy01Icon,
+  CursorPointer01Icon,
+  FileLockedIcon,
+  InformationCircleIcon,
+  PuzzleIcon,
+  ScanImageIcon,
+  SearchRemoveIcon,
+  SourceCodeIcon,
+  Target02Icon,
+  Tick02Icon,
+  WifiDisconnected01Icon,
+} from '../../shared/icons';
 import { sendToExtension, sendToTab } from '../../shared/messages';
 import { bestFileUrl, fontId, recordFromUsage } from '../../shared/records';
 import { hasAllSitesAccess, requestAllSitesAccess } from '../../shared/settings';
@@ -40,6 +63,67 @@ export function roleSummary(f: PageFontUsage, max = 3): string {
     .join(' · ');
 }
 
+/** "Headings, links": what a font is used for, most used first, in a sentence. */
+function roleNames(f: PageFontUsage, max = 2): string {
+  const names = Object.entries(f.roles)
+    .sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0))
+    .slice(0, max)
+    .map(([r]) => ROLE_LABEL[r as Role]);
+  return names.map((n, i) => (i ? n.toLowerCase() : n)).join(', ');
+}
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+
+/** True for about 1.6 seconds after `flash()`, for "Copied" ticks. */
+function useFlash(): [boolean, () => void] {
+  const [on, setOn] = useState(false);
+  const t = useRef<number>();
+  useEffect(() => () => window.clearTimeout(t.current), []);
+  return [
+    on,
+    () => {
+      setOn(true);
+      window.clearTimeout(t.current);
+      t.current = window.setTimeout(() => setOn(false), 1600);
+    },
+  ];
+}
+
+function useOnline(): boolean {
+  const [online, setOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const on = () => setOnline(navigator.onLine);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', on);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', on);
+    };
+  }, []);
+  return online;
+}
+
+/** The empty and error card: an icon square, a heading and a line, then steps and buttons. */
+function Empty({ icon, title, children, steps, actions, tone }: { icon: unknown; title: string; children?: React.ReactNode; steps?: React.ReactNode[]; actions?: React.ReactNode; tone?: 'amber' }) {
+  return (
+    <section className="empty">
+      <span className={`eic${tone ? ` ${tone}` : ''}`}><Icon icon={icon} size={22} /></span>
+      <div className="et">
+        <h2>{title}</h2>
+        {children}
+      </div>
+      {steps && (
+        <ol className="steps">
+          {steps.map((s, i) => (
+            <li key={i}><span className="n">{i + 1}</span><span>{s}</span></li>
+          ))}
+        </ol>
+      )}
+      {actions && <div className="eacts">{actions}</div>}
+    </section>
+  );
+}
+
 interface Props {
   tab: TabState;
   tester: TesterState;
@@ -54,6 +138,9 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
   const { scan, loading, error, rescan } = usePageScan(tab.tabId, ready, tab.ping?.url, tab.fontsVersion);
   const [canInject, setCanInject] = useState(false);
   const swaps = useSwaps(ready ? tab.tabId : null);
+  const online = useOnline();
+  const [cssCopied, flashCss] = useFlash();
+  const [errCopied, flashErr] = useFlash();
 
   useEffect(() => {
     hasAllSitesAccess().then(setCanInject);
@@ -83,52 +170,113 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
     sendToExtension({ type: 'ffp:inject', tabId: tab.tabId, startInspecting: true }).then(() => tab.refresh());
   }, [ready, canInject, tab.tabId, tab.injectError, tab]);
 
+  const offline = !online && (
+    <Empty icon={WifiDisconnected01Icon} title="You're offline" tone="amber">
+      <p>The fonts on this page still show. Free look-alikes and Google Fonts previews come back when you reconnect.</p>
+    </Empty>
+  );
+
   if (!ready) {
+    if (tab.injectError) {
+      const fileAccess = tab.injectError.includes(FILE_ACCESS_HINT);
+      if (fileAccess) {
+        return (
+          <>
+            <Empty
+              icon={FileLockedIcon}
+              title="Allow access to files on your computer"
+              steps={['Click Open extension settings', <>Turn on “{FILE_ACCESS_HINT}”</>, 'Come back and reload this page']}
+              actions={<button className="btn primary" onClick={() => chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` })}>Open extension settings</button>}
+            >
+              <p>This page is a file on your computer. Chrome only lets extensions read files when you turn that on.</p>
+            </Empty>
+            <Guide />
+          </>
+        );
+      }
+      const blocked = /does not let|blocks every extension/i.test(tab.injectError);
+      return (
+        <>
+          <Empty icon={PuzzleIcon} title={blocked ? "Chrome doesn't let extensions read this page" : "This page can't be read"}>
+            <p>{tab.injectError}</p>
+            <p className="faint">You can still identify fonts from a screenshot: open the Image tab and paste or upload it.</p>
+          </Empty>
+          <Guide />
+        </>
+      );
+    }
+    if (canInject) return <Loading host={null} />;
     return (
       <>
-        <div className="empty">
-          <h2>{tab.injectError ? 'This page cannot be read' : canInject ? 'Reading this page…' : 'Read the fonts on this page'}</h2>
-          {tab.injectError ? (
-            <>
-              <p>{tab.injectError}</p>
-              {tab.injectError.includes(FILE_ACCESS_HINT) && (
-                <button className="btn primary" onClick={() => chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` })}>Open the extension's details page</button>
-              )}
-              {!tab.injectError.includes(FILE_ACCESS_HINT) && <p className="muted">You can still identify fonts from a screenshot: open the Image tab and paste or upload it.</p>}
-            </>
-          ) : canInject ? (
-            <p>If nothing appears, reload the page.</p>
-          ) : (
-            <>
-              <p>
-                Chrome only lets the extension read a page after you click its icon on that page. Click the <b>Ff</b> icon in Chrome's toolbar
-                (top right; if you do not see it, click the puzzle piece and pin Font Finder Plus), or press <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd>.
-              </p>
-              <p>To read every page by itself, without clicking each time, allow access to all sites. You can turn this off in Settings.</p>
-              <button
-                className="btn primary"
-                onClick={async () => {
-                  const ok = await requestAllSitesAccess();
-                  setCanInject(ok);
-                }}
-              >
-                Allow access to all sites
-              </button>
-            </>
-          )}
-        </div>
-        <Guide force />
+        <Empty
+          icon={CursorPointer01Icon}
+          title="See the fonts on any page"
+          steps={[
+            'Open the page you want to check',
+            <>Click the <b>Ff</b> icon in Chrome's toolbar, or press <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd>. No icon? Click the puzzle piece and pin Font Finder Plus.</>,
+            'Hover any text to see its font',
+          ]}
+          actions={
+            <button
+              className="btn"
+              onClick={async () => {
+                const ok = await requestAllSitesAccess();
+                setCanInject(ok);
+              }}
+            >
+              Allow access to all sites
+            </button>
+          }
+        >
+          <p>Open a website, then click the Font Finder Plus icon in the toolbar. This panel fills in with every font on the page.</p>
+          <p className="faint">To read every page by itself, without clicking each time, allow access to all sites. You can turn this off in Settings.</p>
+        </Empty>
+        <Guide />
       </>
     );
   }
 
   if (tab.ping?.pdf) {
     return (
-      <div className="empty">
-        <h2>This is a PDF</h2>
+      <Empty icon={InformationCircleIcon} title="This is a PDF">
         <p>Chrome shows PDFs in its own viewer, which extensions cannot read. Fonts inside a PDF are not web fonts, so they cannot be listed here.</p>
-        <p className="muted">To identify a font in it, open the Image tab and use Select an area on the text, or take a screenshot and paste it there.</p>
-      </div>
+        <p className="faint">To identify a font in it, open the Image tab and use Select an area on the text, or take a screenshot and paste it there.</p>
+      </Empty>
+    );
+  }
+
+  const host = tab.ping!.host || tab.ping!.title;
+
+  if (loading && !scan) return <Loading host={host} />;
+
+  if (error && !scan) {
+    return (
+      <>
+        {offline}
+        <Empty
+          icon={AlertCircleIcon}
+          title="Couldn't finish reading this page"
+          actions={
+            <>
+              <button className="btn primary" onClick={rescan} disabled={loading}><Icon icon={ArrowReloadHorizontalIcon} size={16} />{loading ? 'Reading…' : 'Try again'}</button>
+              <button
+                className="btn"
+                onClick={async () => {
+                  if (await copyToClipboard(`${error}\n${tab.ping?.url ?? ''}`)) {
+                    flashErr();
+                    toast('Copied the error details');
+                  }
+                }}
+              >
+                <Icon icon={errCopied ? Tick02Icon : Copy01Icon} size={16} />{errCopied ? 'Copied' : 'Copy details'}
+              </button>
+            </>
+          }
+        >
+          <p>Something on the page stopped Font Finder Plus partway. Trying again usually works. If it keeps happening, copy the details and send them to us.</p>
+          <p className="faint">{error}</p>
+        </Empty>
+      </>
     );
   }
 
@@ -143,56 +291,105 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
     const css = scan.fonts
       .map((f) => `/* ${f.family} · ${roleSummary(f, 2)} */\n${declarationCss(parseFamilyList(f.declaredStacks[0] ?? f.family), f.sample, f.family)}`)
       .join('\n\n');
-    if (await copyToClipboard(css)) toast('Copied CSS for all fonts');
+    if (await copyToClipboard(css)) {
+      flashCss();
+      toast('Copied CSS for all fonts');
+    }
   };
+
+  // No text with a font: offer to read the letters from a picture of the area instead.
+  const selectArea = async () => {
+    if (tab.tabId == null) return;
+    const r = await sendToTab<{ rect: { x: number; y: number; w: number; h: number; dpr: number } | null }>(tab.tabId, { type: 'ffp:select-area' }, 120000);
+    if (!r) {
+      toast('The page did not answer. Reload the page and try again.');
+      return;
+    }
+    if (!r.rect) {
+      sendToTab(tab.tabId, { type: 'ffp:hide-ui', hidden: false });
+      return;
+    }
+    // The Image tab picks this up and reads the area (the same path as Identify this picture).
+    await chrome.storage.session.set({ 'identify:pending': { rect: r.rect, tabId: tab.tabId, pageUrl: tab.ping?.url ?? '', context: [], at: Date.now() } });
+  };
+
+  const noFonts = !!scan && !scan.fonts.length;
+  const asPictures = drawsTextAsPictures(scan?.url);
 
   return (
     <>
-      <div className="status">
-        <span className={`dot${tab.inspecting ? ' live' : ''}`} />
-        <div className="stack grow">
-          <span className="label">{tab.inspecting ? '[Inspecting] hover any text' : '[Paused] turn on to hover'}</span>
-          <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tab.ping!.host || tab.ping!.title}</span>
+      <section className="section pstatus" aria-label="This page">
+        <div className="st1">
+          <span className={`pdot${tab.inspecting ? ' live' : ''}`} aria-hidden="true" />
+          <span className="who">
+            <span>{tab.inspecting ? 'Inspecting · hover any text' : 'Paused · turn on to hover'}</span>
+            <b title={host}>{host}</b>
+          </span>
+          {scan && <span className="count">{plural(scan.fonts.length, 'font')}</span>}
+          <button className="switch" role="switch" aria-checked={tab.inspecting} aria-label="Hover to inspect" onClick={toggle} />
         </div>
-        {scan && <span className="mono muted" style={{ fontSize: 10.5 }}>{scan.fonts.length} {scan.fonts.length === 1 ? 'font' : 'fonts'}</span>}
-        <button className="switch" role="switch" aria-checked={tab.inspecting} aria-label="Hover inspector" onClick={toggle} />
-      </div>
+        {scan && !noFonts && (
+          <div className="st2">
+            <SendToFigma scan={scan} tabId={tab.tabId} toast={toast} label="Copy for Figma" className="btn sm figmabtn" primary />
+            <span className="grow" />
+            <button className="iconbtn sm tip" data-tip={cssCopied ? 'Copied' : 'Copy all CSS'} aria-label={cssCopied ? 'Copied' : 'Copy all CSS'} onClick={copyAll}>
+              <Icon icon={cssCopied ? Tick02Icon : SourceCodeIcon} size={17} />
+            </button>
+            <button className="iconbtn sm tip" data-tip="Share card" aria-label="Share card" onClick={onShare}>
+              <Icon icon={Share08Icon} size={17} />
+            </button>
+            <button className={`iconbtn sm tip${loading ? ' spinning' : ''}`} data-tip={loading ? 'Reading…' : 'Scan again'} aria-label={loading ? 'Reading the page' : 'Scan again'} onClick={rescan} disabled={loading}>
+              <Icon icon={ArrowReloadHorizontalIcon} size={17} />
+            </button>
+          </div>
+        )}
+      </section>
+
+      {offline}
 
       <Guide />
 
-      <Tester value={tester} onChange={onTester} />
+      {error && <div className="pnote warn"><Icon icon={Alert02Icon} size={16} /><span>{error}</span></div>}
 
-      {loading && !scan && <div className="notice neutral">Reading the fonts on this page…</div>}
-      {error && <div className="notice amber"><Icon icon={Alert02Icon} size={15} />{error}</div>}
-
-      {scan?.notLoaded.map((n) => (
-        <div key={n.family} className="notice amber">
-          <Icon icon={Alert02Icon} size={15} />
-          <span>
-            {n.reason === 'failed'
-              ? `${n.family} is a web font in the CSS, but it did not load.`
-              : `${n.family} is in the CSS, but this page does not load it and it is not installed on this computer.`}{' '}
-            {n.fellBackTo} shows instead on {n.count} {n.count === 1 ? 'element' : 'elements'}.
-          </span>
-        </div>
-      ))}
+      {noFonts ? (
+        <Empty
+          icon={SearchRemoveIcon}
+          title="No text on this page uses a font"
+          actions={
+            <>
+              <button className="btn primary" onClick={selectArea}><Icon icon={ScanImageIcon} size={16} />Select an area on the page</button>
+              <button className="btn" onClick={rescan} disabled={loading}>{loading ? 'Reading…' : 'Check again'}</button>
+            </>
+          }
+        >
+          <p>The words here are probably part of pictures or a canvas. Select the area and Font Finder Plus reads the letters from the picture instead.</p>
+        </Empty>
+      ) : (
+        <Tester value={tester} onChange={onTester} />
+      )}
 
       {scan && <MakeItFree fonts={scan.fonts} tabId={tab.tabId} swaps={swaps} toast={toast} />}
 
-      {scan?.fonts.map((f) => (
-        <FontCard key={f.key} f={f} tester={tester} tabId={tab.tabId} host={scan.host} swappedTo={swaps[f.key] ?? null} onOpen={onOpen} toast={toast} />
-      ))}
+      {!!scan?.notLoaded.length && <NotLoaded items={scan.notLoaded} />}
 
-      {drawsTextAsPictures(scan?.url) && (
-        <div className="notice neutral">
-          <Icon icon={Alert02Icon} size={15} />
-          <span>{drawsTextAsPictures(scan?.url)} The fonts listed here are the app's own interface, not your document. To identify a font in the document, use Select an area in the Image tab.</span>
+      {!!scan?.fonts.length && (
+        <div className="pcards">
+          {scan.fonts.map((f, i) => (
+            <FontCard key={f.key} index={i} f={f} tester={tester} tabId={tab.tabId} host={scan.host} swappedTo={swaps[f.key] ?? null} onOpen={onOpen} toast={toast} />
+          ))}
+        </div>
+      )}
+
+      {asPictures && (
+        <div className="pnote">
+          <Icon icon={InformationCircleIcon} size={16} />
+          <span>{asPictures} The fonts listed here are the app's own interface, not your document. To identify a font in the document, use Select an area in the Image tab.</span>
         </div>
       )}
 
       {!!scan?.pictureText?.count && (
-        <div className="notice neutral">
-          <Icon icon={Alert02Icon} size={15} />
+        <div className="pnote">
+          <Icon icon={InformationCircleIcon} size={16} />
           <span>
             {scan.pictureText.count === 1 ? 'Some text on this page is' : `${scan.pictureText.count} pieces of text on this page are`} drawn as pictures (SVG or images)
             {scan.pictureText.examples.length ? `, such as ${scan.pictureText.examples.map((e) => `“${e}”`).join(', ')}` : ''}. Pictures have no font to read, so they are not listed. To identify one, hover it and click Identify this picture, or use Select an area in the Image tab.
@@ -201,32 +398,71 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
       )}
 
       {!!scan?.iconFonts?.length && (
-        <div className="notice neutral">
-          Icon {scan.iconFonts.length === 1 ? 'font' : 'fonts'} on this page, not listed because {scan.iconFonts.length === 1 ? 'it draws' : 'they draw'} symbols rather than text: {scan.iconFonts.join(', ')}.
+        <div className="pnote">
+          <Icon icon={InformationCircleIcon} size={16} />
+          <span>Icon {scan.iconFonts.length === 1 ? 'font' : 'fonts'} on this page, not listed because {scan.iconFonts.length === 1 ? 'it draws' : 'they draw'} symbols rather than text: {scan.iconFonts.join(', ')}.</span>
         </div>
       )}
 
-      {scan && !scan.fonts.length && <div className="notice neutral">No visible text found on this page yet.</div>}
-      {scan?.truncated && <div className="notice neutral">This page is very large. The first 6,000 text elements were checked.</div>}
-
-      {scan && (
-        <div className="figmarow" style={{ marginTop: 'auto' }}>
-          <SendToFigma scan={scan} tabId={tab.tabId} toast={toast} />
-          <span className="muted">Copies every font, its licence, a free stand-in and the type styles for the Font Finder Plus Figma plugin.</span>
-        </div>
-      )}
-      {scan && (
-        <div className="row" style={{ gap: 6 }}>
-          <button className="btn" style={{ flex: 1, height: 40, borderRadius: 12 }} onClick={copyAll}>Copy all CSS</button>
-          <button className="btn" style={{ flex: 1, height: 40, borderRadius: 12 }} onClick={onShare}><Icon icon={Share08Icon} size={15} />Share card</button>
-          <button className="btn" style={{ flex: 1, height: 40, borderRadius: 12 }} onClick={rescan} disabled={loading}>{loading ? 'Reading…' : 'Scan again'}</button>
+      {scan?.truncated && (
+        <div className="pnote">
+          <Icon icon={InformationCircleIcon} size={16} />
+          <span>This page is very large. The first 6,000 text elements were checked.</span>
         </div>
       )}
     </>
   );
 }
 
-function FontCard({ f, tester, tabId, host, swappedTo, onOpen, toast }: { f: PageFontUsage; tester: TesterState; tabId: number | null; host: string; swappedTo: string | null; onOpen: Props['onOpen']; toast: (m: string) => void }) {
+/** Reading the page: a spinner line and three placeholder cards. */
+function Loading({ host }: { host: string | null }) {
+  return (
+    <>
+      <section className="section ploading" role="status">
+        <span className="spin" aria-hidden="true" />
+        <span>{host ? <>Reading the fonts on <b>{host}</b>…</> : 'Reading this page…'}</span>
+      </section>
+      {[0, 1, 2].map((i) => (
+        <section key={i} className="section pskel" aria-hidden="true"><i className="s1" /><i className="s2" /><i className="s3" /></section>
+      ))}
+      {!host && <p className="sub" style={{ padding: '0 6px' }}>If nothing appears, reload the page.</p>}
+    </>
+  );
+}
+
+/** "2 fonts did not load": one row that opens to say which, and what shows instead. */
+function NotLoaded({ items }: { items: { family: string; reason: string; fellBackTo: string; count: number }[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className={`notloaded${open ? ' open' : ''}`}>
+      <button className="nlhead" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Icon icon={Alert02Icon} size={16} />
+        <span className="grow">
+          <b>{items.length === 1 ? '1 font did not load' : `${items.length} fonts did not load`}</b>
+          <span className="sub">Other fonts show instead</span>
+        </span>
+        <span className="chev"><Icon icon={ArrowRight01Icon} size={16} /></span>
+      </button>
+      {open && (
+        <ul className="nllist">
+          {items.map((n) => (
+            <li key={n.family}>
+              <b>{n.family}</b>
+              <span>
+                {n.reason === 'failed'
+                  ? 'A web font in the CSS, but it did not load.'
+                  : 'In the CSS, but this page does not load it and it is not installed on this computer.'}{' '}
+                {n.fellBackTo} shows instead on {plural(n.count, 'element')}.
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function FontCard({ f, index, tester, tabId, host, swappedTo, onOpen, toast }: { f: PageFontUsage; index: number; tester: TesterState; tabId: number | null; host: string; swappedTo: string | null; onOpen: Props['onOpen']; toast: (m: string) => void }) {
   const id = fontId(f.family, f.source);
   const saved = useLiveQuery(() => db.savedFonts.where('fontId').equals(id).first(), [id]);
   const record = useLiveQuery(() => db.fonts.get(id), [id]);
@@ -238,9 +474,13 @@ function FontCard({ f, tester, tabId, host, swappedTo, onOpen, toast }: { f: Pag
   const badge = licenseBadge(record?.licenseType ?? f.licenseType);
   const text = sampleText(tester, name);
   const where = catalogFamily ? (f.source === 'google' ? 'Google Fonts' : `${SOURCE_LABEL[f.source]} · on Google Fonts`) : SOURCE_LABEL[f.source];
+  const [cssCopied, flashCss] = useFlash();
 
   const copyCss = async () => {
-    if (await copyToClipboard(declarationCss(parseFamilyList(f.declaredStacks[0] ?? f.family), f.sample, f.family))) toast(`Copied CSS for ${name}`);
+    if (await copyToClipboard(declarationCss(parseFamilyList(f.declaredStacks[0] ?? f.family), f.sample, f.family))) {
+      flashCss();
+      toast(`Copied CSS for ${name}`);
+    }
   };
   const [picking, setPicking] = useState(false);
   // Save and unsave. Right after saving, the collections appear so the font
@@ -277,29 +517,45 @@ function FontCard({ f, tester, tabId, host, swappedTo, onOpen, toast }: { f: Pag
     if (r && !r.shown && !r.cleared) toast(r.hidden ? `${name} is only in hidden parts of the page, like a closed menu. Open it and try again.` : `${name} is not on the page right now`);
   };
 
+  // Things worth knowing that are not on every card.
+  const extra = [
+    f.hiddenCount > 0 ? (f.hiddenCount === f.elementCount ? 'All hidden right now (menus or pop-ups)' : `${f.hiddenCount} hidden right now`) : null,
+    (f.memberFamilies?.length ?? 1) > 1
+      ? `${f.memberFamilies!.length} separate font files (${(f.styleNames ?? []).slice(0, 4).join(', ')}${(f.styleNames?.length ?? 0) > 4 ? '…' : ''})`
+      : name !== f.family
+        ? `CSS name ${f.family}`
+        : null,
+  ].filter(Boolean);
+
   return (
-    <article className={`fcard${tester.invert ? ' invert' : ''}`}>
+    <article className={`fcard pcard${tester.invert ? ' invert' : ''}`}>
       <div className="fcard-head">
-        <span className="fname" style={{ flexWrap: 'wrap' }}>
-          {name}
-          <span className="label">[{CLASS_LABEL[classification]} · {where}]</span>
+        <span className="idx">{String(index + 1).padStart(2, '0')}</span>
+        <span className="fname">{name}</span>
+        <span className={`lic ${badge.text === 'System' ? 'system' : badge.tone}`}><i />{badge.text}</span>
+        <span className="grow" />
+        <span className="ptools">
+          <button className="iconbtn sm tip" aria-pressed={outlined} data-tip={outlined ? 'Hide outlines' : 'Show on page'} aria-label={outlined ? 'Hide outlines' : `Show ${name} on the page`} onClick={show}>
+            <Icon icon={Target02Icon} size={17} />
+          </button>
+          <button className="iconbtn sm tip" data-tip={cssCopied ? 'Copied' : 'Copy CSS'} aria-label={cssCopied ? 'Copied' : `Copy CSS for ${name}`} onClick={copyCss}>
+            <Icon icon={cssCopied ? Tick02Icon : SourceCodeIcon} size={17} />
+          </button>
+          <button className="iconbtn sm tip" aria-pressed={!!saved} aria-expanded={picking} data-tip={saved ? 'Saved' : 'Save'} aria-label={saved ? `Saved. Click to remove ${name} from your library` : `Save ${name} to your library`} onClick={save}>
+            <Icon icon={Bookmark02Icon} size={17} filled={!!saved} />
+          </button>
         </span>
-        <span className={`lic ${badge.tone}`}><i />{badge.text}</span>
       </div>
       <div
         dir="auto"
         className={`specimen clamp${tester.align === 'center' ? ' center' : ''}`}
         style={{ fontFamily: preview.css, fontSize: tester.size, fontWeight: Number(f.sample.fontWeight) || 400, fontStyle: f.sample.fontStyle }}
         title={preview.failed ? 'The font file could not be loaded here, so a fallback is shown.' : undefined}
+        onClick={() => onOpen(f, id)}
       >
         {text}
       </div>
       {f.kind !== 'generic' && <MissingNote css={preview.css} text={text} ready={preview.ready && !preview.failed} tester={tester} name={name} />}
-      <div className="fmeta label">
-        Used for {roleSummary(f) || 'text'}
-        {f.hiddenCount > 0 && (f.hiddenCount === f.elementCount ? ' · all hidden right now (menus or pop-ups)' : ` · ${f.hiddenCount} hidden right now`)}
-        {(f.memberFamilies?.length ?? 1) > 1 ? <> · {f.memberFamilies!.length} separate font files ({(f.styleNames ?? []).slice(0, 4).join(', ')}{(f.styleNames?.length ?? 0) > 4 ? '…' : ''})</> : name !== f.family && <> · CSS name {f.family}</>}
-      </div>
       {swappedTo && tabId != null && (
         <div className="swapnote">
           <span>Showing <b>{swappedTo}</b> on the page instead</span>
@@ -308,27 +564,22 @@ function FontCard({ f, tester, tabId, host, swappedTo, onOpen, toast }: { f: Pag
       )}
       {f.source === 'adobe' && !catalogFamily && (
         <div className="fcard-links">
-          <a className="btn sm" href={adobeFontsUrl(name)} target="_blank" rel="noreferrer">Find it on Adobe Fonts <Icon icon={ArrowUpRight01Icon} size={13} /></a>
+          <a className="btn sm" href={adobeFontsUrl(name)} target="_blank" rel="noreferrer">Find it on Adobe Fonts <Icon icon={ArrowUpRight01Icon} size={14} /></a>
         </div>
       )}
-      <div className="actions">
-        <button className={outlined ? 'on' : ''} aria-pressed={outlined} title={outlined ? 'Remove the outlines' : 'Outline the text on the page that uses this font'} onClick={show}>
-          <Icon icon={Target02Icon} size={16} />{outlined ? 'Hide outlines' : 'Show on page'}
-        </button>
-        <button title="Copy the font-family, size, weight and line height as CSS" onClick={copyCss}>
-          <Icon icon={SourceCodeIcon} size={16} />Copy CSS
-        </button>
-        <button className={saved ? 'on' : ''} aria-expanded={picking} title={saved ? 'Saved. Click to remove it from your library' : 'Save to your library'} onClick={save}>
-          <Icon icon={Bookmark02Icon} size={16} filled={!!saved} />{saved ? 'Saved' : 'Save'}
-        </button>
-        <button className="primary" title="See everything about this font" onClick={() => onOpen(f, id)}>
-          <Icon icon={ArrowRight01Icon} size={16} />Details
+      <div className="fmeta">
+        <span className="grow">
+          <span title={`Used for ${roleSummary(f, 7) || 'text'} · ${where}`}>{[CLASS_LABEL[classification], roleNames(f) || 'Text', plural(f.elementCount, 'element')].join(' · ')}</span>
+          {extra.length > 0 && <span className="fextra">{extra.join(' · ')}</span>}
+        </span>
+        <button className="go" aria-label={`Details for ${name}`} onClick={() => onOpen(f, id)}>
+          Details<Icon icon={ArrowRight01Icon} size={14} />
         </button>
       </div>
       {picking && saved?.id != null && (
         <div className="cardpicker">
           <CollectionPicker savedId={saved.id} />
-          <button className="linkbtn" style={{ alignSelf: 'flex-start', fontSize: 12 }} onClick={() => setPicking(false)}>Done</button>
+          <button className="linkbtn" style={{ alignSelf: 'flex-start', fontSize: 12.5 }} onClick={() => setPicking(false)}>Done</button>
         </div>
       )}
     </article>
@@ -344,35 +595,35 @@ function Guide({ force = false }: { force?: boolean }) {
   }, []);
   if (settings.guideDismissed && !force) return null;
   return (
-    <section className="guide" aria-label="How it works">
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <span className="label">[How it works]</span>
+    <section className="section guide" aria-label="How it works">
+      <div className="sechead">
+        <h2>How it works</h2>
         {!force && (
-          <button className="iconbtn sm" aria-label="Hide this guide" title="Hide this guide" onClick={() => update({ guideDismissed: true })}>
-            <Icon icon={CloseIcon} size={14} />
+          <button className="iconbtn sm tip" data-tip="Hide" aria-label="Hide this guide" onClick={() => update({ guideDismissed: true })}>
+            <Icon icon={CloseIcon} size={15} />
           </button>
         )}
       </div>
-      <ol>
+      <ol className="steps">
         <li><span className="n">1</span><span><b>Hover</b> any text on the web page. A card shows the font, size, weight and spacing.</span></li>
         <li><span className="n">2</span><span><b>Click</b> to pin the card in place, click again to unpin. While it is pinned, click any value in it to copy it.</span></li>
         <li><span className="n">3</span><span>To stop, click <b>Stop</b> on the black bar at the bottom of the web page, or close this panel. The switch at the top of this panel turns hovering on and off too.</span></li>
         <li><span className="n">4</span><span>This panel lists every font on the page. <b>Details</b> shows the file facts and a link to Google Fonts when it is there.</span></li>
         <li>
           <span className="n">5</span>
-          <span className="stack" style={{ gap: 6 }}>
+          <span className="stack" style={{ gap: 8 }}>
             <span>
               <b>Read every page by itself.</b> Chrome normally lets the extension read a page only after you click its icon there. Allow access to all sites and the panel reads each page you open, without clicking. You can turn it off in Settings.
             </span>
             {allSites ? (
-              <span className="lic free"><i />Access to all sites is on</span>
+              <span className="row" style={{ gap: 6, color: 'var(--ink)' }}><Icon icon={Tick02Icon} size={15} />Access to all sites is on</span>
             ) : (
               <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={async () => setAllSites(await requestAllSitesAccess())}>Allow access to all sites</button>
             )}
           </span>
         </li>
       </ol>
-      <p className="hint" style={{ margin: 0 }}>
+      <p className="sub">
         Another way to start: right-click anywhere on the web page itself (not in this panel) and choose <b>Inspect fonts on this page</b>.
       </p>
     </section>
@@ -382,8 +633,8 @@ function Guide({ force = false }: { force?: boolean }) {
 /**
  * Swap paid or unknown-licence web fonts for their closest free Google Fonts
  * match, live on the page, to preview the site with free fonts.
+ * Matches below CLOSE_MATCH are marked as not close.
  */
-/** Matches below this are not offered as swaps in Make it free. */
 function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; tabId: number | null; swaps: Record<string, string>; toast: (m: string) => void }) {
   const candidates = fonts.filter((f) => f.kind === 'web' && !f.catalogFamily);
   const ids = candidates.map((f) => fontId(f.family, f.source));
@@ -431,43 +682,52 @@ function MakeItFree({ fonts, tabId, swaps, toast }: { fonts: PageFontUsage[]; ta
     toast(n ? `Showing ${n} free ${n === 1 ? 'font' : 'fonts'} on the page` : 'Could not swap these fonts');
   };
   return (
-    <section className="section">
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h2>[Make it free]</h2>
+    <section className="section mif" aria-label="Make it free">
+      <div className="sechead">
+        <h2>Make it free</h2>
         {rows.length > 5 && (
-          <button className="linkbtn row" style={{ gap: 4, textDecoration: 'none', fontSize: 12 }} aria-expanded={all} onClick={() => setAll(!all)}>
+          <button className="linkbtn row" style={{ gap: 4, textDecoration: 'none', fontSize: 12.5 }} aria-expanded={all} onClick={() => setAll(!all)}>
             {all ? 'Show fewer' : `Show all ${rows.length}`}
             <Icon icon={all ? ArrowUp01Icon : ArrowDown01Icon} size={14} />
           </button>
         )}
       </div>
-      <span style={{ fontSize: 12.5 }}>
-        {rows.length === 1 ? 'One font on this page is' : `${rows.length} fonts on this page are`} paid or have an unknown licence. Preview the page with the closest free fonts from Google Fonts and Fontshare instead.
-      </span>
-      <div className="freelist">
-        {(all ? rows : rows.slice(0, 5)).map((r) => (
-          <div key={r.f.key} className="freerow">
-            <span className="grow">{r.name}</span>
-            <span className="muted">to</span>
-            <span className="grow" style={{ textAlign: 'right' }}>{r.match ? (
-                <>
-                  <b>{r.match.family}</b> <span className="mono muted" style={{ fontSize: 11 }}>{r.match.score}%</span>
-                  <br />
-                  {r.match.score >= CLOSE_MATCH ? (
-                    <span className="lic free" style={{ fontSize: 11 }}><i />Free on {freeSourceOf(r.match.family).site} · {freeSourceOf(r.match.family).licence}</span>
-                  ) : (
-                    <span className="lic warn" style={{ fontSize: 11 }} title="No free font is close to this one. This is the nearest, but it will look noticeably different."><i />Not a close match · free on {freeSourceOf(r.match.family).site}</span>
-                  )}
-                </>
-              ) : r.state === 'measuring' ? <span className="muted">Measuring…</span> : <span className="muted" title="The font file could not be read and the page could not draw its letters for measuring.">Could not be measured</span>}</span>
-          </div>
-        ))}
+      <p className="info">
+        {rows.length === 1 ? 'One font here is' : `${rows.length} fonts here are`} paid or have an unknown licence. Preview the page with the closest free fonts from Google Fonts and Fontshare instead.
+      </p>
+      <ul className="mflist">
+        {(all ? rows : rows.slice(0, 5)).map((r) => {
+          const src = r.match ? freeSourceOf(r.match.family) : null;
+          return (
+            <li key={r.f.key}>
+              <span className="from">{r.name}</span>
+              <span className="to" aria-label="to"><Icon icon={ArrowRight02Icon} size={16} /></span>
+              <span className="dest">
+                {r.match && src ? (
+                  <>
+                    <span title={`Free on ${src.site} · ${src.licence}`}>
+                      <b>{r.match.family}</b>
+                      <span className="pct">{r.match.score}%</span>
+                    </span>
+                    {r.match.score < CLOSE_MATCH && (
+                      <span className="far" title="No free font is close to this one. This is the nearest, but it will look noticeably different.">Not a close match</span>
+                    )}
+                  </>
+                ) : r.state === 'measuring' ? (
+                  <span className="far">Measuring…</span>
+                ) : (
+                  <span className="far" title="The font file could not be read and the page could not draw its letters for measuring.">Could not be measured</span>
+                )}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="row" style={{ gap: 8 }}>
+        <button className="btn primary" onClick={swapAll} disabled={busy || !rows.some((r) => r.match)}>{busy ? 'Loading fonts…' : anySwapped ? 'Swap again' : 'Swap all on the page'}</button>
+        {anySwapped && <button className="btn" onClick={() => undoSwap(tabId, null)}>Undo all</button>}
       </div>
-      <div className="row" style={{ gap: 6 }}>
-        <button className="btn sm primary" onClick={swapAll} disabled={busy || !rows.some((r) => r.match)}>{busy ? 'Loading fonts…' : anySwapped ? 'Swap again' : 'Swap all on the page'}</button>
-        {anySwapped && <button className="btn sm" onClick={() => undoSwap(tabId, null)}>Undo all</button>}
-      </div>
-      <span className="muted" style={{ fontSize: 11.5 }}>The closest free fonts from Google Fonts and Fontshare, the same as in each font's Similar fonts. Matches under {CLOSE_MATCH}% are marked: they are the nearest free option but look noticeably different. Nothing changes on the real site; reloading the page also undoes it.</span>
+      <small>The same matches as each font's Similar fonts. Under {CLOSE_MATCH}% is marked as not a close match. Nothing changes on the real site, and reloading the page undoes it.</small>
     </section>
   );
 }

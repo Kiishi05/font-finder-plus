@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CLASS_LABEL, licenseBadge } from '../../shared/catalog';
-import { ArrowLeft01Icon, Copy01Icon, Download01Icon, PlusSignIcon, Tick02Icon } from '../../shared/icons';
+import { ArrowLeft01Icon, Copy01Icon, Download01Icon, PlusSignIcon, Share08Icon, Tick02Icon } from '../../shared/icons';
 import type { PageFontUsage } from '../../shared/types';
 import { Icon } from '../components/Icon';
 import { SIZES, canvasBlob, downloadBlob, drawSiteCard, fontCssForUsage, slug, type CardSize, type Theme } from '../lib/cards';
@@ -23,6 +23,9 @@ export function SiteShareView({ tab, onBack, toast }: { tab: TabState; onBack: (
   const [theme, setTheme] = useState<Theme>('light');
   const [watermark, setWatermark] = useState(true);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const [copied, setCopied] = useState(false);
+  const copyTimer = useRef<number>();
+  useEffect(() => () => window.clearTimeout(copyTimer.current), []);
   const picked = chosen ?? fonts.slice(0, 3).map((f) => f.key);
 
   useEffect(() => {
@@ -45,20 +48,23 @@ export function SiteShareView({ tab, onBack, toast }: { tab: TabState; onBack: (
 
   return (
     <>
-      <div className="topbar">
-        <button className="iconbtn" aria-label="Back" onClick={onBack}><Icon icon={ArrowLeft01Icon} /></button>
-        <span className="label grow">[Share card] / [Fonts used on {scan?.host ?? 'this page'}]</span>
+      <div className="subtop">
+        <button className="backbtn" aria-label="Back" onClick={onBack}><Icon icon={ArrowLeft01Icon} size={18} /></button>
+        <span className="crumb"><span>Page /</span><b>Share card</b></span>
       </div>
       {!scan ? (
-        <div className="empty"><p>Open this from the Page tab of a site you have inspected.</p></div>
+        <section className="empty">
+          <span className="eic"><Icon icon={Share08Icon} size={22} /></span>
+          <div className="et"><h2>Nothing to share yet</h2><p>Open this from the Page tab of a site you have inspected.</p></div>
+        </section>
       ) : (
         <>
-          <section className="section">
+          <section className="section shareprev">
+            <div className="sechead"><h2>Fonts used on {scan.host}</h2><span className="count">{SIZES[size][0]} × {SIZES[size][1]} px · PNG</span></div>
             <canvas ref={canvas} className="cardcanvas" aria-label={`Fonts used on ${scan.host}`} />
-            <span className="mono muted" style={{ fontSize: 10.5 }}>{SIZES[size][0]} × {SIZES[size][1]} px · PNG</span>
           </section>
           <section className="section">
-            <h2>[Fonts on the card] Up to 5</h2>
+            <h2>Fonts on the card<span className="count">Up to 5</span></h2>
             <div className="chips">
               {fonts.map((f) => {
                 const on = picked.includes(f.key);
@@ -70,29 +76,34 @@ export function SiteShareView({ tab, onBack, toast }: { tab: TabState; onBack: (
                 );
               })}
             </div>
-            <div className="seg" role="group" aria-label="Size">
+            <h2 className="minor">Size</h2>
+            <div className="seg shareseg" role="group" aria-label="Size">
               <button aria-pressed={size === 'landscape'} onClick={() => setSize('landscape')}>Landscape 1200×675</button>
               <button aria-pressed={size === 'portrait'} onClick={() => setSize('portrait')}>Portrait 1080×1350</button>
             </div>
-            <div className="seg" role="group" aria-label="Theme">
+            <h2 className="minor">Theme</h2>
+            <div className="seg shareseg" role="group" aria-label="Theme">
               {(['light', 'dark', 'green'] as Theme[]).map((t) => <button key={t} aria-pressed={theme === t} onClick={() => setTheme(t)}>{t[0].toUpperCase() + t.slice(1)}</button>)}
             </div>
             <div className="row">
-              <span className="grow" style={{ fontSize: 12.5 }}>Watermark "Font Finder Plus"</span>
+              <span className="grow">Watermark “Font Finder Plus”</span>
               <button className="switch" role="switch" aria-checked={watermark} aria-label="Watermark" onClick={() => setWatermark(!watermark)} />
             </div>
           </section>
-          <div className="row" style={{ gap: 6 }}>
-            <button className="btn primary" style={{ flex: 1, height: 40 }} onClick={async () => canvas.current && downloadBlob(await canvasBlob(canvas.current), file)}><Icon icon={Download01Icon} size={15} />Download PNG</button>
-            <button className="btn" style={{ flex: 1, height: 40 }} onClick={async () => {
+          <div className="shareacts">
+            <button className="btn primary wide" onClick={async () => canvas.current && downloadBlob(await canvasBlob(canvas.current), file)}><Icon icon={Download01Icon} size={16} />Download PNG</button>
+            <button className="btn wide" onClick={async () => {
               if (!canvas.current) return;
               try {
                 await navigator.clipboard.write([new ClipboardItem({ 'image/png': await canvasBlob(canvas.current) })]);
                 toast('Copied the image');
+                setCopied(true);
+                window.clearTimeout(copyTimer.current);
+                copyTimer.current = window.setTimeout(() => setCopied(false), 1600);
               } catch {
                 toast('Chrome did not allow copying the image. Use Download instead.');
               }
-            }}><Icon icon={Copy01Icon} size={15} />Copy image</button>
+            }}><Icon icon={copied ? Tick02Icon : Copy01Icon} size={16} />{copied ? 'Copied' : 'Copy image'}</button>
           </div>
         </>
       )}
