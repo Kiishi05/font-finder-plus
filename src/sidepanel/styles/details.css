@@ -1,1 +1,212 @@
-/* details view: redesign styles */
+/* details view: redesign styles (font details, share card) */
+
+/* Grey boxes inside the white cards (similar fonts, pairs, the licence verdict).
+   Buttons inside them sit one step away: white. */
+.dview { --dinner: var(--field); display: flex; flex-direction: column; gap: 8px; }
+.dview .subtop { margin-bottom: 0; padding-bottom: 4px; }
+.dview .crumb, .subtop .crumb { font-size: 12.5px; color: var(--faint); }
+.subtop .crumb b { color: var(--ink); }
+.dview .section h3, .dshots h3, .dsubhead h3 { margin: 0; font: 500 13px/1.3 var(--ui); color: var(--ink); }
+.dview p { margin: 0; }
+.dview .faint { color: var(--faint); }
+.dnote { margin: 0; font-size: 12px; color: var(--faint); line-height: 1.45; }
+.dnote a { color: var(--ink); }
+.dlabel { font-size: 12.5px; color: var(--muted); }
+
+/* Save: black when not saved; white (one step from the page) when saved */
+.dsave.on { background: var(--card); }
+@media (hover: hover) and (pointer: fine) { .dsave.on:hover { background: var(--hover) !important; } }
+
+/* Copy buttons say "Copied" with a tick */
+.btn.copied, .iconbtn.copied { color: var(--ink); }
+
+/* Head card */
+.dhead { gap: 10px; }
+.dhead .meta { display: flex; align-items: center; gap: 8px; color: var(--faint); font-size: 12px; min-width: 0; }
+.dhead .meta .grow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dhead .lic { font-size: 12px; gap: 6px; flex: none; }
+.dhead .nm { margin: 0; font: 500 30px/1.1 var(--ui); letter-spacing: -0.015em; overflow-wrap: anywhere; color: var(--ink); }
+.dhead .by { color: var(--faint); font-size: 12.5px; margin-top: -4px; overflow-wrap: anywhere; }
+.dhead .row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.dhead .row3 .btn { padding: 0 8px; font-size: 12.5px; gap: 6px; min-width: 0; }
+.dhead .row3 .btn svg { color: var(--muted); flex: none; }
+.dhead .row3 .btn.copied svg { color: var(--ink); }
+.dhead .dfull { width: 100%; }
+/* Unknown licence: a grey ring, not a dot */
+.dview .lic.unknown i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--faint); }
+
+/* The tester as its own card */
+.dview > .tester { border-radius: var(--r-card); padding: 4px 14px 6px 18px; }
+
+/* Specimen card: weights, then the text in the font */
+.dspec { gap: 10px; }
+.dspec .weights { display: flex; align-items: center; gap: 2px; margin: -4px -6px 0; flex-wrap: wrap; }
+.dspec .weights button { border: 0; background: transparent; height: 28px; padding: 0 8px; border-radius: 9px; color: var(--faint); font-size: 12.5px; transition: background-color 150ms ease, color 150ms ease; }
+.dspec .weights button[aria-pressed='true'] { background: var(--field); color: var(--ink); }
+@media (hover: hover) and (pointer: fine) { .dspec .weights button:not([aria-pressed='true']):hover { color: var(--ink); } }
+.dspec .wsep { width: 1px; height: 14px; background: var(--line); margin: 0 6px; }
+.dspec .specimen { margin: 0; padding: 0; line-height: 1.12; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.dspec.invert { background: var(--ink); }
+.dspec.invert .specimen { background: transparent; color: var(--card); }
+.dspec.invert .weights button { color: var(--faint); }
+.dspec.invert .weights button[aria-pressed='true'] { background: rgba(127, 127, 127, 0.28); color: var(--card); }
+.dspec.invert .dnote { color: var(--faint); }
+
+/* Key and value lists, as in the prototype: no row lines */
+.dkv { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 8px 12px; margin: 0; }
+.dkv dt { color: var(--faint); font-size: 12.5px; margin: 0; }
+.dkv dd { margin: 0; overflow-wrap: anywhere; min-width: 0; }
+.dkv dd.mono { font-size: 12px; }
+.dkv dd a { color: var(--ink); }
+
+/* Rows of buttons under a section */
+.dfoot { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
+.dmore { align-self: flex-start; }
+.dmore svg { transition: transform 200ms var(--ease-out); }
+.dmore svg.flip { transform: rotate(180deg); }
+.dmore svg.up { transform: rotate(-90deg); }
+
+/* Folds for secondary detail */
+.dfold { font-size: 12.5px; }
+.dfold summary { list-style: none; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--muted); font-weight: 500; }
+.dfold summary::-webkit-details-marker { display: none; }
+.dfold summary::after { content: ''; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform 200ms var(--ease-out); }
+.dfold[open] summary::after { transform: translateY(1px) rotate(-135deg); }
+@media (hover: hover) and (pointer: fine) { .dfold summary:hover { color: var(--ink); } }
+.dfold[open] > :not(summary) { animation: dfoldin 200ms var(--ease-out); }
+.dfold > :not(summary) { margin-top: 10px; }
+.dfold .rules { color: var(--muted); }
+.dfold p { overflow-wrap: anywhere; }
+@keyframes dfoldin { from { opacity: 0; transform: translateY(-4px); } }
+
+/* Licence */
+.dverdict { background: var(--dinner); border-radius: 12px; padding: 10px 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+.dverdict b { color: var(--ink); font-weight: 500; }
+.dverdict a { color: var(--ink); }
+.duses { display: flex; flex-direction: column; }
+.duse { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); }
+.duse:first-child { border-top: 0; padding-top: 0; }
+.duse .dnote { grid-column: 1 / -1; }
+.dview .st { font-size: 12.5px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.dview .st i { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.dview .st.ok { color: var(--green-text); } .dview .st.ok i { background: var(--green); }
+.dview .st.paid { color: var(--amber-text); } .dview .st.paid i { background: var(--amber); }
+.dview .st.no { color: var(--red-text); } .dview .st.no i { background: var(--red-text); }
+.dview .st.chk { color: var(--muted); } .dview .st.chk i { box-shadow: inset 0 0 0 1.5px var(--faint); }
+
+/* Inner cards: similar fonts and pairs */
+.dinners { display: flex; flex-direction: column; gap: 10px; }
+.dview .dinner { background: var(--dinner); border-radius: var(--r-inner); padding: 16px; display: flex; flex-direction: column; gap: 0; box-shadow: none; }
+.dview .dinner .btn:not(.primary) { background: var(--card); }
+@media (hover: hover) and (pointer: fine) { .dview .dinner .btn:not(.primary):not(:disabled):hover { background: var(--hover); } }
+.dview .dinner .row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.dview .dinner .row b { font-weight: 500; overflow-wrap: anywhere; }
+.dview .dinner .lic { font-size: 12px; gap: 6px; }
+.dview .dinner .pct { font-size: 12.5px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dview .dinner .mprev { font-size: 22px; line-height: 1.15; letter-spacing: -0.01em; margin-top: 10px; overflow-wrap: anywhere; }
+.dview .dinner .why { font-size: 12px; color: var(--faint); margin-top: 6px; }
+.dview .dinner .btns { display: flex; gap: 12px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+.dview .dinner .btns .iconbtn.sm { margin: -2px -6px -2px 0; }
+.dopt { display: flex; align-items: center; gap: 12px; font-size: 12.5px; color: var(--muted); }
+
+/* Pairs: only the partner is named; the other text is this font */
+.dpairhead { display: flex; flex-direction: column; gap: 4px; }
+.dpairhead .sub { margin: 0; }
+.dpair .nm { display: flex; align-items: baseline; gap: 6px; font-size: 13px; flex-wrap: wrap; }
+.dpair .nm b { font-weight: 500; }
+.dpair .hd { font-size: 24px; line-height: 1.15; letter-spacing: -0.005em; margin-top: 10px; overflow-wrap: anywhere; }
+.dpair .bd { font-size: 14px; line-height: 1.5; color: var(--muted); margin-top: 8px; overflow-wrap: anywhere; }
+
+/* Letters and languages */
+.dglyphs { display: flex; flex-direction: column; gap: 12px; }
+.dview .glyphs { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.dview .glyphs button { height: auto; aspect-ratio: 1; border-radius: 10px; background: var(--field); font-size: 20px; transition: background-color 150ms ease; }
+.dview .glyphs button:hover { outline: none; }
+@media (hover: hover) and (pointer: fine) { .dview .glyphs button:not(.on):hover { background: var(--field-2); } }
+.dview .glyphs button.on { background: var(--ink); color: var(--card); }
+.dview .glyphsel { background: var(--inset); border-radius: var(--r-inner); }
+.dview .glyphsel .chip { background: var(--card); }
+.dsearch { display: flex; gap: 6px; min-width: 0; }
+.dfind { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border-radius: var(--r-ctl); background: var(--field); color: var(--faint); min-width: 0; }
+.dfind:focus-within { box-shadow: 0 0 0 2px var(--ink); }
+.dfind input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--ink); font-size: 13px; }
+.dgroup { width: 140px; flex: none; }
+.dview .selectwrap select, .dshare .selectwrap select { border: 0; background: var(--field); height: 38px; border-radius: var(--r-ctl); font-size: 12.5px; }
+.dlangs { display: flex; flex-direction: column; gap: 10px; }
+.dsubhead { display: flex; align-items: baseline; gap: 8px; }
+.dsubhead h3 { flex: 1; }
+.dsubhead .count { color: var(--faint); font-size: 12px; }
+.dview .langs { display: flex; flex-direction: column; gap: 0; }
+.dview .lang { border-bottom: 0; }
+.dview .langhead { display: flex; align-items: baseline; gap: 8px; padding: 5px 0; font-size: 13px; color: var(--ink); cursor: pointer; border-radius: 6px; }
+.dview .langhead .faint { font-size: 12px; }
+.dview .dnone { color: var(--muted); text-align: left; }
+.dview .lst { font-size: 12.5px; white-space: nowrap; color: var(--ink); }
+.dview .lst.partial { color: var(--muted); }
+.dview .lst.none { color: var(--faint); }
+.dview .langbody { padding: 4px 0 10px; }
+
+/* Files */
+.dfiles { display: flex; flex-direction: column; gap: 10px; }
+.dfiles > .sub { margin-top: -8px; }
+.dfilelist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.dfilelist li { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dfilerow { display: flex; align-items: flex-start; gap: 6px; }
+.dfilerow code { flex: 1; min-width: 0; font: 12px/1.45 var(--mono); overflow-wrap: anywhere; padding-top: 2px; }
+.dfilerow .iconbtn.sm { margin: -4px -6px 0 0; }
+.dmetrics { display: flex; flex-direction: column; gap: 8px; }
+.dmetric { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 10px; background: var(--inset); }
+
+/* On this computer */
+.dinst { display: inline-flex; align-items: center; gap: 6px; }
+.dinst i { width: 6px; height: 6px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--faint); }
+.dinst.on { color: var(--ink); }
+.dinst.on i { background: var(--ink); box-shadow: none; }
+
+/* Variable */
+.dplay { font-size: 28px; line-height: 1.15; overflow-wrap: anywhere; }
+.dview .axis { grid-template-columns: 116px minmax(0, 1fr) 44px; gap: 10px; }
+
+/* Library */
+.dshots { display: flex; flex-direction: column; gap: 8px; }
+.dshots .shotimg { border-radius: 10px; }
+.iconbtn.sm.danger { color: var(--red-text); }
+@media (hover: hover) and (pointer: fine) { .iconbtn.sm.danger:hover { background: var(--red-soft); color: var(--red-text); } }
+.dview .linkbtn.danger svg { color: var(--red-text); }
+
+/* Room at the end so the last section can scroll up to the bar's reading line */
+.dend { height: 30vh; }
+
+/* The floating section bar: always shown, fixed at the bottom */
+.floatnav { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 30; display: flex; padding: 5px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.06); max-width: calc(100vw - 24px); overflow-x: auto; scrollbar-width: none; animation: dnavin 250ms var(--ease-out); }
+.floatnav::-webkit-scrollbar { display: none; }
+.floatnav .hl { position: absolute; top: 5px; left: 0; height: 34px; border-radius: 10px; background: var(--ink); transition: transform 250ms var(--ease-out), width 250ms var(--ease-out); }
+.floatnav button { position: relative; flex: none; border: 0; background: transparent; height: 34px; padding: 0 12px; border-radius: 10px; color: var(--muted); font-size: 13px; font-weight: 500; white-space: nowrap; transition: color 150ms ease, transform 160ms var(--ease-out); }
+.floatnav button[aria-current='true'] { color: var(--card); }
+.floatnav button:active { transform: scale(0.97); }
+.floatnav button:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: 10px; }
+@media (hover: hover) and (pointer: fine) { .floatnav button:not([aria-current='true']):hover { color: var(--ink); } }
+@media (max-width: 380px) { .floatnav button { padding: 0 9px; font-size: 12.5px; } }
+@keyframes dnavin { from { opacity: 0; transform: translate(-50%, 8px); } }
+:root[data-theme='dark'] .floatnav { box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .floatnav { box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5); } }
+/* The bar takes the bottom of the panel, so "back to top" steps aside, and toasts sit above the bar */
+body:has(.floatnav) .totop { display: none; }
+body:has(.floatnav) .toast { bottom: 72px; }
+
+/* Share card */
+.dshare .seg { background: var(--field); }
+.dshare .seg button[aria-pressed='true'] { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
+.dfield { display: flex; flex-direction: column; gap: 6px; }
+.dfield textarea.field { background: var(--field); border-radius: var(--r-field); padding: 10px 14px; }
+.dshareacts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dshareacts .btn { height: 44px; border-radius: var(--r-field); }
+.dshareacts .btn:not(.primary) { background: var(--card); }
+@media (hover: hover) and (pointer: fine) { .dshareacts .btn:not(.primary):hover { background: var(--hover); } }
+.dshare .cardcanvas { box-shadow: none; border-radius: 12px; }
+.dview .dmorelang { margin: 4px 0 6px; }
+.dview > .tester .toggles { flex-wrap: wrap; row-gap: 0; }
+@media (max-width: 360px) { .dhead .row3 .btn svg { display: none; } }
+/* Tooltips on buttons at the right edge open leftwards, so they never widen the page */
+.dview :is(.dinner .btns, .dfilerow) .tip::after { left: auto; right: 0; transform: translate(0, 2px); }
+.dview :is(.dinner .btns, .dfilerow) .tip:is(:hover, :focus-visible)::after { transform: translate(0, 0); }

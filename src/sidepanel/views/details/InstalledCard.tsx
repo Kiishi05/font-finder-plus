@@ -32,27 +32,24 @@ export function InstalledCard({ family, onFaces }: { family: string; onFaces: (f
   const installed = faces ? faces.length > 0 : quick;
   return (
     <section className="section">
-      <h2>[On this computer]</h2>
-      <div className="row">
-        <span className={`lic ${installed ? 'free' : 'neutral'}`}><i />{installed ? 'Installed' : 'Not installed'}</span>
-        <span className="muted grow" style={{ fontSize: 12 }}>
-          {installed ? `${family} is installed, so you can use it in design apps on this computer.` : `${family} is not installed on this computer.`}
-        </span>
-      </div>
+      <div className="sechead"><h2>On this computer</h2><span className={`count dinst${installed ? ' on' : ''}`}><i />{installed ? 'Installed' : 'Not installed'}</span></div>
+      <p className="sub">
+        {installed ? `${family} is installed, so you can use it in design apps on this computer.` : `${family} is not installed on this computer.`}
+      </p>
       {faces && faces.length > 0 && (
         <div className="chips">
           {faces.map((f) => <span key={f.postscriptName} className="chip">{f.style}</span>)}
         </div>
       )}
       {localFontAccessAvailable() ? (
-        <div className="row">
+        <div className="dfoot">
           <button className="btn sm" onClick={check} disabled={busy}>{busy ? 'Checking…' : faces ? 'Check again' : 'Show installed styles'}</button>
-          <span className="muted" style={{ fontSize: 11.5 }}>Chrome asks once for access to your installed fonts. Nothing leaves this computer.</span>
+          <span className="dnote">Chrome asks once for access to your installed fonts. Nothing leaves this computer.</span>
         </div>
       ) : (
-        <span className="muted" style={{ fontSize: 11.5 }}>This version of Chrome cannot list installed styles, so only a quick yes or no is shown.</span>
+        <p className="dnote">This version of Chrome cannot list installed styles, so only a quick yes or no is shown.</p>
       )}
-      {error && <span className="err" style={{ fontSize: 12 }}>{error}</span>}
+      {error && <p className="err" style={{ margin: 0, fontSize: 12.5 }}>{error}</p>}
     </section>
   );
 }
