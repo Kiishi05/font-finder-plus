@@ -222,7 +222,7 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, onShare, pa
     <div className="dview">
       <div className="subtop">
         <button className="backbtn tip" data-tip={`Back to ${from}`} aria-label="Back" onClick={onBack}><Icon icon={ArrowLeft01Icon} size={18} /></button>
-        <span className="crumb"><span>{from} ·</span><b>{name}</b></span>
+        <span className="crumb"><span>{from} /</span><b>{name}</b></span>
         <button className={`btn sm dsave${saved ? ' on' : ' primary'}`} aria-pressed={!!saved} aria-label={saved ? 'Saved, click to remove from your library' : 'Save to your library'} onClick={doSave}>
           <Icon icon={Bookmark02Icon} size={15} filled={!!saved} />
           {saved ? 'Saved' : 'Save'}
@@ -231,16 +231,16 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, onShare, pa
 
       <section className="section dhead">
         <div className="meta">
-          <span className="grow">{meta}</span>
           <span className={`lic ${badge.tone}${badge.tone === 'neutral' ? ' unknown' : ''}`}><i />{badge.text}</span>
+          <span className="grow">{meta}</span>
         </div>
-        <h1 className="nm">{name}</h1>
+        <h1 className="nm" style={{ fontFamily: preview.css, fontWeight: Number(usage?.sample.fontWeight) || undefined }}>{name}</h1>
         {designerText && <p className="by">by {designerText}</p>}
         <div className="row3">
-          <CopyButton icon={Copy01Icon} label="Copy name" text={name} onFail={() => toast('Could not copy')} />
-          <CopyButton icon={SourceCodeIcon} label="Copy CSS" text={cssText} onFail={() => toast('Could not copy')} />
+          <CopyButton className="btn sm" icon={Copy01Icon} label="Name" ariaLabel="Copy name" text={name} onFail={() => toast('Could not copy')} />
+          <CopyButton className="btn sm" icon={SourceCodeIcon} label="CSS" ariaLabel="Copy CSS" text={cssText} onFail={() => toast('Could not copy')} />
           <button
-            className="btn"
+            className="btn sm"
             onClick={async () => {
               // A share card needs the font's record; make sure it exists.
               if (!record && base) await upsertFont(base);
@@ -251,11 +251,11 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, onShare, pa
           </button>
         </div>
         {gf ? (
-          <a className="btn primary dfull" href={googleFontsUrl(gf.family)} target="_blank" rel="noreferrer">
+          <a className="btn wide primary dfull" href={googleFontsUrl(gf.family)} target="_blank" rel="noreferrer">
             Open on Google Fonts <Icon icon={ArrowUpRight01Icon} size={15} />
           </a>
         ) : known ? (
-          <a className="btn primary dfull" href={known.url} target="_blank" rel="noreferrer">
+          <a className={`btn wide dfull${known.licence === 'commercial' ? '' : ' primary'}`} href={known.url} target="_blank" rel="noreferrer">
             {known.licence === 'commercial' ? `Buy from ${known.by}` : `Get it from ${known.by}`} <Icon icon={ArrowUpRight01Icon} size={15} />
           </a>
         ) : (
@@ -264,13 +264,15 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, onShare, pa
           </p>
         )}
         {data.source === 'adobe' && !gf && (
-          <a className="btn dfull" href={adobeFontsUrl(name)} target="_blank" rel="noreferrer">
+          <a className="btn wide dfull" href={adobeFontsUrl(name)} target="_blank" rel="noreferrer">
             Find it on Adobe Fonts <Icon icon={ArrowUpRight01Icon} size={15} />
           </a>
         )}
         {data.source === 'adobe' && !gf && <p className="dnote">This site loads it from Adobe Fonts. To use it, add it to a web project with your own Adobe plan (most Creative Cloud plans include Adobe Fonts), or license it from the foundry.</p>}
         {data.source === 'image' && !gf && <p className="dnote">This font was named in an image. Font Finder Plus does not have its file, so previews below use a stand-in and its letters and languages cannot be checked.</p>}
       </section>
+
+      <SectionNav items={SECTIONS} />
 
       {data.fileError && !parsed && (
         <div className="notice amber"><Icon icon={Alert02Icon} size={15} />{data.fileError}</div>
@@ -320,16 +322,16 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, onShare, pa
       <section className="section" id="sec-page">
         <div className="sechead"><h2>On this page</h2>{usage && <span className="count">{usage.elementCount} {usage.elementCount === 1 ? 'element' : 'elements'}</span>}</div>
         {!usage && <p className="sub">Open this font from the Page tab on a site to see where and how it is used.</p>}
+        {usage && (
+          <dl className="specs">
+            <div><dt>{usage.weights.length === 1 ? 'Weight' : 'Weights'}</dt><dd>{usage.weights.join(', ')}</dd></div>
+            <div><dt>{usage.sizes.length === 1 ? 'Size' : 'Sizes'}</dt><dd>{usage.sizes.slice(0, 12).map((v) => `${round(v, 1)}px`).join(', ')}{usage.sizes.length > 12 ? ` and ${usage.sizes.length - 12} more` : ''}</dd></div>
+            <div><dt>Line height</dt><dd>{usage.sample.lineHeight}</dd></div>
+            <div><dt>Letter spacing</dt><dd>{usage.sample.letterSpacing === 'normal' ? '0' : usage.sample.letterSpacing}</dd></div>
+          </dl>
+        )}
         <dl className="dkv">
-          {usage && (
-            <>
-              <dt>Used for</dt><dd>{roleSummary(usage, 7) || 'Not sure'}</dd>
-              <dt>Sizes</dt><dd>{usage.sizes.slice(0, 12).map((v) => `${round(v, 1)}px`).join(', ')}{usage.sizes.length > 12 ? ` and ${usage.sizes.length - 12} more` : ''}</dd>
-              <dt>{usage.weights.length === 1 ? 'Weight' : 'Weights'}</dt><dd>{usage.weights.join(', ')}</dd>
-              <dt>Line height</dt><dd>{usage.sample.lineHeight}</dd>
-              <dt>Letter spacing</dt><dd>{usage.sample.letterSpacing === 'normal' ? '0' : usage.sample.letterSpacing}</dd>
-            </>
-          )}
+          {usage && (<><dt>Used for</dt><dd>{roleSummary(usage, 7) || 'Not sure'}</dd></>)}
           <dt>Rendered as</dt>
           <dd>{kind === 'web' ? `${name}, web font` : kind === 'local' ? `${name}, installed on this computer` : `${name}`}</dd>
           {name !== family && (<><dt>CSS name</dt><dd className="mono">{family}</dd></>)}
@@ -408,7 +410,6 @@ export function FontDetail({ fontId, usage, tabId, pageHost, onBack, onShare, pa
       )}
 
       <div className="dend" aria-hidden="true" />
-      <SectionNav items={SECTIONS} />
     </div>
   );
 }

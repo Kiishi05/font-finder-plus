@@ -131,9 +131,14 @@ interface Props {
   onOpen: (usage: PageFontUsage, fontId: string) => void;
   onShare: () => void;
   toast: (m: string) => void;
+  /** A font the on-page dock asked to open: its details open once the page's fonts are read. */
+  openFamily?: { family: string; at: number } | null;
+  onOpenFamilyDone?: () => void;
 }
 
-export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Props) {
+const normName = (s: string) => s.replace(/^['"]|['"]$/g, '').trim().toLowerCase();
+
+export function PageView({ tab, tester, onTester, onOpen, onShare, toast, openFamily, onOpenFamilyDone }: Props) {
   const ready = !!tab.ping;
   const { scan, loading, error, rescan } = usePageScan(tab.tabId, ready, tab.ping?.url, tab.fontsVersion);
   const [canInject, setCanInject] = useState(false);
@@ -159,6 +164,21 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
     const bases = scan.fonts.filter((f) => f.kind === 'web').map((f) => recordFromUsage(f, bestFileUrl(f, f.sample.fontWeight))).filter((b) => b.fileUrl);
     analyzeAll(bases, tab.tabId);
   }, [scan, tab.tabId]);
+
+  // The dock asked for a font's details: open them when the font is on this page, or stay on the list.
+  useEffect(() => {
+    if (!openFamily) return;
+    if (Date.now() - openFamily.at > 20000) return onOpenFamilyDone?.();
+    if (!scan) {
+      if (!loading && error) onOpenFamilyDone?.();
+      return;
+    }
+    const want = normName(openFamily.family);
+    const f = want ? scan.fonts.find((x) => normName(x.family) === want || normName(x.displayName ?? '') === want) : undefined;
+    onOpenFamilyDone?.();
+    if (f) onOpen(f, fontId(f.family, f.source));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openFamily, scan, loading, error]);
 
   // With access to all sites, read the page as soon as you are on it.
   const autoTried = useRef<string | null>(null);
@@ -190,7 +210,7 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
             >
               <p>This page is a file on your computer. Chrome only lets extensions read files when you turn that on.</p>
             </Empty>
-            <Guide />
+            <Guide tabId={tab.tabId} />
           </>
         );
       }
@@ -201,7 +221,7 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
             <p>{tab.injectError}</p>
             <p className="faint">You can still identify fonts from a screenshot: open the Image tab and paste or upload it.</p>
           </Empty>
-          <Guide />
+          <Guide tabId={tab.tabId} />
         </>
       );
     }
@@ -231,7 +251,7 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
           <p>Open a website, then click the Font Finder Plus icon in the toolbar. This panel fills in with every font on the page.</p>
           <p className="faint">To read every page by itself, without clicking each time, allow access to all sites. You can turn this off in Settings.</p>
         </Empty>
-        <Guide />
+        <Guide tabId={tab.tabId} />
       </>
     );
   }
@@ -322,16 +342,16 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
         <div className="st1">
           <span className={`pdot${tab.inspecting ? ' live' : ''}`} aria-hidden="true" />
           <span className="who">
-            <span>{tab.inspecting ? 'Inspecting · hover any text' : 'Paused · turn on to hover'}</span>
+            <span>{tab.inspecting ? 'Inspecting · point at any text' : 'Paused · turn on to point at text'}</span>
             <b title={host}>{host}</b>
           </span>
-          {scan && <span className="count">{plural(scan.fonts.length, 'font')}</span>}
+          {scan && <span className="count cpill">{plural(scan.fonts.length, 'font')}</span>}
           <button className="switch" role="switch" aria-checked={tab.inspecting} aria-label="Hover to inspect" onClick={toggle} />
         </div>
         {scan && !noFonts && (
           <div className="st2">
-            <SendToFigma scan={scan} tabId={tab.tabId} toast={toast} label="Copy for Figma" className="btn sm figmabtn" primary />
-            <span className="grow" />
+            <SendToFigma scan={scan} tabId={tab.tabId} toast={toast} label="Copy for Figma" className="btn figmabtn" primary />
+            <span className="igrp">
             <button className="iconbtn sm tip" data-tip={cssCopied ? 'Copied' : 'Copy all CSS'} aria-label={cssCopied ? 'Copied' : 'Copy all CSS'} onClick={copyAll}>
               <Icon icon={cssCopied ? Tick02Icon : SourceCodeIcon} size={17} />
             </button>
@@ -341,13 +361,14 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
             <button className={`iconbtn sm tip${loading ? ' spinning' : ''}`} data-tip={loading ? 'Reading…' : 'Scan again'} aria-label={loading ? 'Reading the page' : 'Scan again'} onClick={rescan} disabled={loading}>
               <Icon icon={ArrowReloadHorizontalIcon} size={17} />
             </button>
+            </span>
           </div>
         )}
       </section>
 
       {offline}
 
-      <Guide />
+      <Guide tabId={tab.tabId} />
 
       {error && <div className="pnote warn"><Icon icon={Alert02Icon} size={16} /><span>{error}</span></div>}
 
@@ -371,6 +392,13 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast }: Prop
       {scan && <MakeItFree fonts={scan.fonts} tabId={tab.tabId} swaps={swaps} toast={toast} />}
 
       {!!scan?.notLoaded.length && <NotLoaded items={scan.notLoaded} />}
+
+      {!!scan?.fonts.length && (
+        <div className="seclabel plabel">
+          <h2>Fonts on this page</h2>
+          <span className="cpill">{scan.fonts.length}</span>
+        </div>
+      )}
 
       {!!scan?.fonts.length && (
         <div className="pcards">
@@ -528,7 +556,7 @@ function FontCard({ f, index, tester, tabId, host, swappedTo, onOpen, toast }: {
   ].filter(Boolean);
 
   return (
-    <article className={`fcard pcard${tester.invert ? ' invert' : ''}`}>
+    <article className={`fcard pcard fc${tester.invert ? ' invert' : ''}`}>
       <div className="fcard-head">
         <span className="idx">{String(index + 1).padStart(2, '0')}</span>
         <span className="fname">{name}</span>
@@ -572,7 +600,7 @@ function FontCard({ f, index, tester, tabId, host, swappedTo, onOpen, toast }: {
           <span title={`Used for ${roleSummary(f, 7) || 'text'} · ${where}`}>{[CLASS_LABEL[classification], roleNames(f) || 'Text', plural(f.elementCount, 'element')].join(' · ')}</span>
           {extra.length > 0 && <span className="fextra">{extra.join(' · ')}</span>}
         </span>
-        <button className="go" aria-label={`Details for ${name}`} onClick={() => onOpen(f, id)}>
+        <button className="go btn-details" aria-label={`Details for ${name}`} onClick={() => onOpen(f, id)}>
           Details<Icon icon={ArrowRight01Icon} size={14} />
         </button>
       </div>
@@ -586,14 +614,54 @@ function FontCard({ f, index, tester, tabId, host, swappedTo, onOpen, toast }: {
   );
 }
 
-/** A short "how it works" card. Hidden once dismissed; Settings can bring it back. */
-function Guide({ force = false }: { force?: boolean }) {
+const IS_MAC = /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent);
+
+/** A key on the keyboard list. */
+const Kbd = ({ k }: { k: string }) => <kbd className="kbd">{k}</kbd>;
+
+/** What each key does, in plain words. */
+const KEYS: [string, React.ReactNode][] = [
+  ['See a font', <span className="plain">Point at text</span>],
+  ['Pin the card', <span className="kbds"><Kbd k="Click" /><span className="plain">or</span><Kbd k="Space" /></span>],
+  ['Copy one value', <span className="plain">Click it on the card</span>],
+  ['Copy all as CSS', <span className="kbds"><Kbd k="C" /></span>],
+  ['Unpin, then turn off', <span className="kbds"><Kbd k="Esc" /></span>],
+  ['Turn on or off', <span className="kbds" aria-label={IS_MAC ? 'Option Shift F' : 'Alt Shift F'}>{(IS_MAC ? ['⌥', '⇧', 'F'] : ['Alt', 'Shift', 'F']).map((k) => <Kbd key={k} k={k} />)}</span>],
+];
+
+/** A short "how it works" card: the keys, the tips on the page, and reading every page. Hidden once dismissed; Settings can bring it back. */
+function Guide({ force = false, tabId = null }: { force?: boolean; tabId?: number | null }) {
   const [settings, update] = useSettings();
   const [allSites, setAllSites] = useState(false);
   useEffect(() => {
     hasAllSitesAccess().then(setAllSites);
+    const on = () => hasAllSitesAccess().then(setAllSites);
+    chrome.permissions.onAdded.addListener(on);
+    chrome.permissions.onRemoved.addListener(on);
+    return () => {
+      (chrome.permissions.onAdded as unknown as chrome.events.Event<() => void>).removeListener(on);
+      (chrome.permissions.onRemoved as unknown as chrome.events.Event<() => void>).removeListener(on);
+    };
   }, []);
   if (settings.guideDismissed && !force) return null;
+
+  // Start the three tips on the page again, then turn inspecting on so they show.
+  const replayTips = async () => {
+    await chrome.storage.local.set({ 'ffp:coachStep': 0 });
+    if (tabId == null) return;
+    const r = await sendToTab(tabId, { type: 'ffp:inspect', on: true });
+    if (r == null) await sendToExtension({ type: 'ffp:inject', tabId, startInspecting: true });
+  };
+
+  const toggleAllSites = async () => {
+    if (allSites) {
+      await chrome.permissions.remove({ origins: ['<all_urls>'] });
+      setAllSites(false);
+    } else {
+      setAllSites(await requestAllSitesAccess());
+    }
+  };
+
   return (
     <section className="section guide" aria-label="How it works">
       <div className="sechead">
@@ -604,23 +672,25 @@ function Guide({ force = false }: { force?: boolean }) {
           </button>
         )}
       </div>
-      <ol className="steps">
-        <li><span className="n">1</span><span><b>Hover</b> any text on the web page. A card shows the font, size, weight and spacing.</span></li>
-        <li><span className="n">2</span><span><b>Click</b> to pin the card in place, click again to unpin. While it is pinned, click any value in it to copy it.</span></li>
-        <li><span className="n">3</span><span>To stop, click <b>Stop</b> on the black bar at the bottom of the web page, or close this panel. The switch at the top of this panel turns hovering on and off too.</span></li>
-        <li><span className="n">4</span><span>This panel lists every font on the page. <b>Details</b> shows the file facts and a link to Google Fonts when it is there.</span></li>
-        <li><span className="n">5</span><span><b>Read every page by itself.</b> Chrome normally lets the extension read a page only after you click its icon there. Allow access to all sites and the panel reads each page you open, without clicking. You can turn it off in Settings.</span></li>
-      </ol>
-      <div className="guidefoot">
-        <p className="sub">
-          Another way to start: right-click anywhere on the web page itself (not in this panel) and choose <b>Inspect fonts on this page</b>.
-        </p>
-        {allSites ? (
-          <span className="guideok"><Icon icon={Tick02Icon} size={15} />Access to all sites is on</span>
-        ) : (
-          <button className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={async () => setAllSites(await requestAllSitesAccess())}>Allow access to all sites</button>
-        )}
+      <dl className="keys">
+        {KEYS.map(([what, how]) => (
+          <div key={what}>
+            <dt>{what}</dt>
+            <dd>{how}</dd>
+          </div>
+        ))}
+      </dl>
+      <button className="btn sm replay" onClick={replayTips}>Show the tips on the page again</button>
+      <div className="allsites">
+        <div>
+          <b id="allsites-label">Read every page by itself</b>
+          <span>Lets the panel read each page you open, without clicking.</span>
+        </div>
+        <button className="switch" role="switch" aria-checked={allSites} aria-labelledby="allsites-label" onClick={toggleAllSites} />
       </div>
+      <p className="sub guidenote">
+        Another way to start: right-click the page and choose <b>Inspect fonts on this page</b>.
+      </p>
     </section>
   );
 }

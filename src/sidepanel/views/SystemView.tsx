@@ -177,12 +177,10 @@ function HealthCard({ styles, scan, system, toast, onAgain, loading }: { styles:
       </div>
       <div className="sysscore">
         <div className={`num ${PART_TONE(health.score)}`} aria-label={`Score ${health.score} out of 100`}>
-          <b>{health.score}</b><small>/100</small>
+          <b>{health.score}</b><small>/100 · {health.grade}</small>
         </div>
-        <div className="txt">
-          <b>{health.grade}</b>
-          <span className="sub">Fonts, sizes, weights, loading and readability, from what this page uses.</span>
-        </div>
+        <span className="sysbar" aria-hidden="true"><i style={{ width: `${health.score}%` }} /></span>
+        <span className="sub">Fonts, sizes, weights, loading and readability, from what this page uses.</span>
       </div>
       <div className="sysparts">
         {health.parts.map((p) => (

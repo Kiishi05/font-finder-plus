@@ -2,16 +2,16 @@
 
 /* ---------- start ---------- */
 .istart { gap: 16px; }
-.idrop { all: unset; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 28px 16px; border: 1.5px dashed var(--field-2); border-radius: var(--r-inner); background: var(--field); text-align: center; cursor: pointer; color: var(--ink); font-size: 13px; transition: border-color 150ms ease, background-color 150ms ease, transform 160ms var(--ease-out); }
-@media (hover: hover) and (pointer: fine) { .idrop:not(:disabled):hover { border-color: var(--faint); } }
-.idrop.over { border-color: var(--ink); background: var(--field-2); }
+.idrop { all: unset; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px 16px 22px; border: 0; border-radius: var(--r-inner); background: var(--inset); text-align: center; cursor: pointer; color: var(--ink); font-size: 13px; transition: border-color 150ms ease, background-color 150ms ease, transform 160ms var(--ease-out); }
+@media (hover: hover) and (pointer: fine) { .idrop:not(:disabled):hover { background: var(--field); } }
+.idrop.over { background: var(--field-2); box-shadow: inset 0 0 0 2px var(--ink); }
 .idrop:active:not(:disabled) { transform: scale(0.99); }
 .idrop:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .idrop:disabled { opacity: 0.6; cursor: default; }
-.idrop .dicon { display: inline-flex; color: var(--muted); margin-bottom: 6px; }
-.idrop b { font-weight: 500; }
+.idrop .dicon { width: 44px; height: 44px; border-radius: 13px; background: var(--card); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06); display: inline-flex; align-items: center; justify-content: center; color: var(--ink); margin-bottom: 6px; }
+.idrop b { font-size: 15px; font-weight: 600; }
 .idrop .dsub { color: var(--faint); font-size: 12.5px; }
-.idrop kbd, .istart kbd { font: 500 11px var(--ui); background: var(--card); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 7px; padding: 1px 5px; color: var(--muted); }
+.idrop kbd, .istart kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 6px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line), 0 1px 0 var(--line); font: 500 11.5px/1 var(--mono); color: var(--muted); }
 .istartbtns { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
 .istartbtns .btn { min-width: 0; }
 .ihint { display: flex; gap: 8px; align-items: flex-start; margin: 0; font-size: 12px; color: var(--faint); line-height: 1.45; }
@@ -140,17 +140,18 @@
 /* ---------- recent ---------- */
 .irecent { gap: 12px; }
 .irecent .sechead { align-items: center; }
-.rlist { display: flex; flex-direction: column; gap: 6px; }
-.irecent .histrow { display: flex; align-items: center; gap: 6px; }
-.irecent .histmain { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 8px; border: none; border-radius: 16px; background: var(--field); color: var(--ink); text-align: left; cursor: pointer; transition: background-color 150ms ease, transform 160ms var(--ease-out); }
-@media (hover: hover) and (pointer: fine) { .irecent .histmain:hover { background: var(--field-2); } }
+.rlist { display: flex; flex-direction: column; }
+.irecent .histrow { display: flex; align-items: center; gap: 6px; min-height: 56px; border-top: 1px solid var(--line); }
+.irecent .histrow:first-child { border-top: 0; }
+.irecent .histmain { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 8px 6px; margin-left: -6px; border: none; border-radius: 12px; background: transparent; color: var(--ink); text-align: left; cursor: pointer; transition: background-color 150ms ease, transform 160ms var(--ease-out); }
+@media (hover: hover) and (pointer: fine) { .irecent .histmain:hover { background: var(--inset); } }
 .irecent .histmain:active { transform: scale(0.99); }
 .irecent .histmain:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-.rthumb { width: 64px; height: 40px; flex: none; border-radius: 10px; background: #fff; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.rthumb { width: 40px; height: 40px; flex: none; border-radius: 10px; background: #fff; box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .irecent .rthumb img { width: 100%; height: 100%; object-fit: contain; border-radius: 0; background: transparent; }
 .rt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.rt b { font-weight: 500; font-size: 12.5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.rt > span { font-size: 11.5px; color: var(--faint); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.rt b { font-weight: 500; font-size: 13px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.rt > span { font-size: 12px; color: var(--faint); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .iconbtn.sm.rdel { color: var(--red-text); }
 @media (hover: hover) and (pointer: fine) { .iconbtn.sm.rdel:hover { background: var(--red-soft); color: var(--red-text); } }
 .irecent .tip::after { left: auto; right: 0; transform: translate(0, 2px); }

@@ -1,22 +1,20 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 /**
- * The floating section bar at the bottom of a font's details. Always shown.
- * The black highlight slides to the section in view; a click scrolls there
- * and holds the highlight on that section while the page scrolls.
+ * The section pills under the font's head card. They stick below the top bar
+ * while the details scroll. The white pill follows the section in view; a click
+ * scrolls there and holds the pill on that section while the page scrolls.
  */
 export function SectionNav({ items }: { items: [id: string, label: string][] }) {
   const [cur, setCur] = useState(items[0]?.[0] ?? '');
   const nav = useRef<HTMLElement>(null);
-  const hl = useRef<HTMLSpanElement>(null);
   const lock = useRef<{ id: string; until: number } | null>(null);
-  const placed = useRef(false);
   const key = items.map((i) => i[0]).join('|');
 
   useEffect(() => {
     const sync = () => {
-      // The section whose top has passed a line a third of the way down the window.
-      const line = window.innerHeight * 0.33;
+      // The section whose top has passed a line just under the sticky bars.
+      const line = Math.min(window.innerHeight * 0.33, 160);
       let next = items[0]?.[0] ?? '';
       for (const [id] of items) {
         const el = document.getElementById(id);
@@ -43,27 +41,15 @@ export function SectionNav({ items }: { items: [id: string, label: string][] }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  // Move the highlight under the current button (no slide on the first placement).
+  // On a narrow panel the bar scrolls sideways: keep the current pill in view.
   useLayoutEffect(() => {
     const n = nav.current;
-    const h = hl.current;
     const b = n?.querySelector<HTMLButtonElement>(`[data-jump="${cur}"]`);
-    if (!n || !h || !b) return;
-    if (!placed.current) h.style.transition = 'none';
-    h.style.width = `${b.offsetWidth}px`;
-    h.style.transform = `translateX(${b.offsetLeft}px)`;
-    if (!placed.current) {
-      void h.offsetWidth;
-      h.style.transition = '';
-      placed.current = true;
-    }
-    // On a narrow panel the bar scrolls sideways: keep the current button in view.
-    if (n.scrollWidth > n.clientWidth) {
-      const left = b.offsetLeft - 8;
-      const right = b.offsetLeft + b.offsetWidth + 8 - n.clientWidth;
-      if (n.scrollLeft > left) n.scrollLeft = left;
-      else if (n.scrollLeft < right) n.scrollLeft = right;
-    }
+    if (!n || !b || n.scrollWidth <= n.clientWidth) return;
+    const left = b.offsetLeft - 12;
+    const right = b.offsetLeft + b.offsetWidth + 12 - n.clientWidth;
+    if (n.scrollLeft > left) n.scrollLeft = left;
+    else if (n.scrollLeft < right) n.scrollLeft = right;
   }, [cur, key]);
 
   const jump = (id: string) => {
@@ -74,8 +60,7 @@ export function SectionNav({ items }: { items: [id: string, label: string][] }) 
   };
 
   return (
-    <nav ref={nav} className="floatnav" aria-label="Sections">
-      <span ref={hl} className="hl" aria-hidden="true" />
+    <nav ref={nav} className="secnav" aria-label="Sections">
       {items.map(([id, label]) => (
         <button key={id} data-jump={id} aria-current={cur === id ? 'true' : undefined} onClick={() => jump(id)}>{label}</button>
       ))}

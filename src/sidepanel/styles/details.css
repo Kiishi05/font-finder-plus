@@ -2,11 +2,14 @@
 
 /* Grey boxes inside the white cards (similar fonts, pairs, the licence verdict).
    Buttons inside them sit one step away: white. */
-.dview { --dinner: var(--field); display: flex; flex-direction: column; gap: 8px; }
-.dview .subtop { margin-bottom: 0; padding-bottom: 4px; }
-.dview .crumb, .subtop .crumb { font-size: 12.5px; color: var(--faint); }
+.dview { --dinner: var(--inset); --subtop-h: 62px; display: flex; flex-direction: column; gap: 10px; }
+/* Children of a flex column never shrink, or the sticky bars collapse. */
+.dview > * { flex-shrink: 0; }
+/* Sticky sub top bar: back in a white square, where you are, Save */
+.dview .subtop { position: sticky; top: 0; z-index: 20; margin: -12px -12px 0; padding: 12px 12px 8px; background: var(--bg); gap: 10px; }
+.dview .crumb, .subtop .crumb { font-size: 13px; color: var(--faint); }
 .subtop .crumb b { color: var(--ink); }
-.dview .section h3, .dshots h3, .dsubhead h3 { margin: 0; font: 500 13px/1.3 var(--ui); color: var(--ink); }
+.dview .section h3, .dshots h3, .dsubhead h3 { margin: 0; font: 600 13.5px/1.3 var(--ui); color: var(--ink); }
 .dview p { margin: 0; }
 .dview .faint { color: var(--faint); }
 .dnote { margin: 0; font-size: 12px; color: var(--faint); line-height: 1.45; }
@@ -21,14 +24,14 @@
 .btn.copied, .iconbtn.copied { color: var(--ink); }
 
 /* Head card */
-.dhead { gap: 10px; }
-.dhead .meta { display: flex; align-items: center; gap: 8px; color: var(--faint); font-size: 12px; min-width: 0; }
+.dhead { gap: 12px; }
+.dhead .meta { display: flex; align-items: center; gap: 8px; color: var(--faint); font-size: 12.5px; min-width: 0; }
 .dhead .meta .grow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dhead .lic { font-size: 12px; gap: 6px; flex: none; }
-.dhead .nm { margin: 0; font: 500 30px/1.1 var(--ui); letter-spacing: -0.015em; overflow-wrap: anywhere; color: var(--ink); }
-.dhead .by { color: var(--faint); font-size: 12.5px; margin-top: -4px; overflow-wrap: anywhere; }
-.dhead .row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-.dhead .row3 .btn { padding: 0 8px; font-size: 12.5px; gap: 6px; min-width: 0; }
+.dhead .nm { margin: 0; font-size: 34px; font-weight: 500; line-height: 1.05; letter-spacing: -0.015em; overflow-wrap: anywhere; color: var(--ink); }
+.dhead .by { color: var(--faint); font-size: 12.5px; margin-top: -6px; overflow-wrap: anywhere; }
+.dhead .row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.dhead .row3 .btn { padding: 0 8px; gap: 6px; min-width: 0; }
 .dhead .row3 .btn svg { color: var(--muted); flex: none; }
 .dhead .row3 .btn.copied svg { color: var(--ink); }
 .dhead .dfull { width: 100%; }
@@ -36,7 +39,7 @@
 .dview .lic.unknown i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--faint); }
 
 /* The tester as its own card */
-.dview > .tester { border-radius: var(--r-card); padding: 4px 14px 6px 18px; }
+.dview > .tester { border-radius: var(--r-card); }
 
 /* Specimen card: weights, then the text in the font */
 .dspec { gap: 10px; }
@@ -51,6 +54,12 @@
 .dspec.invert .weights button { color: var(--faint); }
 .dspec.invert .weights button[aria-pressed='true'] { background: rgba(127, 127, 127, 0.28); color: var(--card); }
 .dspec.invert .dnote { color: var(--faint); }
+
+/* On this page: four small boxes */
+.specs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 0; }
+.specs > div { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--inset); min-width: 0; }
+.specs dt { margin: 0; font-size: 11.5px; color: var(--faint); }
+.specs dd { margin: 0; font: 500 13px/1.3 var(--mono); overflow-wrap: anywhere; }
 
 /* Key and value lists, as in the prototype: no row lines */
 .dkv { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 8px 12px; margin: 0; }
@@ -84,28 +93,28 @@
 .dverdict b { color: var(--ink); font-weight: 500; }
 .dverdict a { color: var(--ink); }
 .duses { display: flex; flex-direction: column; }
-.duse { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); }
+.duse { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; min-height: 38px; padding: 8px 0; border-top: 1px solid var(--line); color: var(--muted); }
 .duse:first-child { border-top: 0; padding-top: 0; }
 .duse .dnote { grid-column: 1 / -1; }
 .dview .st { font-size: 12.5px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
 .dview .st i { width: 6px; height: 6px; border-radius: 50%; flex: none; }
-.dview .st.ok { color: var(--green-text); } .dview .st.ok i { background: var(--green); }
+.dview .st.ok { color: var(--ink); } .dview .st.ok i { background: var(--green); }
 .dview .st.paid { color: var(--amber-text); } .dview .st.paid i { background: var(--amber); }
 .dview .st.no { color: var(--red-text); } .dview .st.no i { background: var(--red-text); }
 .dview .st.chk { color: var(--muted); } .dview .st.chk i { box-shadow: inset 0 0 0 1.5px var(--faint); }
 
 /* Inner cards: similar fonts and pairs */
 .dinners { display: flex; flex-direction: column; gap: 10px; }
-.dview .dinner { background: var(--dinner); border-radius: var(--r-inner); padding: 16px; display: flex; flex-direction: column; gap: 0; box-shadow: none; }
+.dview .dinner { background: var(--dinner); border-radius: var(--r-inner); padding: 14px; display: flex; flex-direction: column; gap: 0; box-shadow: none; }
 .dview .dinner .btn:not(.primary) { background: var(--card); }
 @media (hover: hover) and (pointer: fine) { .dview .dinner .btn:not(.primary):not(:disabled):hover { background: var(--hover); } }
 .dview .dinner .row { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.dview .dinner .row b { font-weight: 500; overflow-wrap: anywhere; }
+.dview .dinner .row b { font-weight: 600; overflow-wrap: anywhere; }
 .dview .dinner .lic { font-size: 12px; gap: 6px; }
-.dview .dinner .pct { font-size: 12.5px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.dview .dinner .mprev { font-size: 22px; line-height: 1.15; letter-spacing: -0.01em; margin-top: 10px; overflow-wrap: anywhere; }
+.dview .dinner .pct { font: 500 11.5px/1 var(--mono); color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dview .dinner .mprev { font-size: 24px; line-height: 1.15; letter-spacing: -0.01em; margin-top: 8px; overflow-wrap: anywhere; }
 .dview .dinner .why { font-size: 12px; color: var(--faint); margin-top: 6px; }
-.dview .dinner .btns { display: flex; gap: 12px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+.dview .dinner .btns { display: flex; gap: 6px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
 .dview .dinner .btns .iconbtn.sm { margin: -2px -6px -2px 0; }
 .dopt { display: flex; align-items: center; gap: 12px; font-size: 12.5px; color: var(--muted); }
 
@@ -120,9 +129,9 @@
 /* Letters and languages */
 .dglyphs { display: flex; flex-direction: column; gap: 12px; }
 .dview .glyphs { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
-.dview .glyphs button { height: auto; aspect-ratio: 1; border-radius: 10px; background: var(--field); font-size: 20px; transition: background-color 150ms ease; }
+.dview .glyphs button { height: auto; aspect-ratio: 1; border-radius: 10px; background: var(--inset); font-size: 20px; transition: background-color 150ms ease; }
 .dview .glyphs button:hover { outline: none; }
-@media (hover: hover) and (pointer: fine) { .dview .glyphs button:not(.on):hover { background: var(--field-2); } }
+@media (hover: hover) and (pointer: fine) { .dview .glyphs button:not(.on):hover { background: var(--field); } }
 .dview .glyphs button.on { background: var(--ink); color: var(--card); }
 .dview .glyphsel { background: var(--inset); border-radius: var(--r-inner); }
 .dview .glyphsel .chip { background: var(--card); }
@@ -155,7 +164,7 @@
 .dfilerow code { flex: 1; min-width: 0; font: 12px/1.45 var(--mono); overflow-wrap: anywhere; padding-top: 2px; }
 .dfilerow .iconbtn.sm { margin: -4px -6px 0 0; }
 .dmetrics { display: flex; flex-direction: column; gap: 8px; }
-.dmetric { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 10px; background: var(--inset); }
+.dmetric { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--inset); }
 
 /* On this computer */
 .dinst { display: inline-flex; align-items: center; gap: 6px; }
@@ -177,22 +186,15 @@
 /* Room at the end so the last section can scroll up to the bar's reading line */
 .dend { height: 30vh; }
 
-/* The floating section bar: always shown, fixed at the bottom */
-.floatnav { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 30; display: flex; padding: 5px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.06); max-width: calc(100vw - 24px); overflow-x: auto; scrollbar-width: none; animation: dnavin 250ms var(--ease-out); }
-.floatnav::-webkit-scrollbar { display: none; }
-.floatnav .hl { position: absolute; top: 5px; left: 0; height: 34px; border-radius: 10px; background: var(--ink); transition: transform 250ms var(--ease-out), width 250ms var(--ease-out); }
-.floatnav button { position: relative; flex: none; border: 0; background: transparent; height: 34px; padding: 0 12px; border-radius: 10px; color: var(--muted); font-size: 13px; font-weight: 500; white-space: nowrap; transition: color 150ms ease, transform 160ms var(--ease-out); }
-.floatnav button[aria-current='true'] { color: var(--card); }
-.floatnav button:active { transform: scale(0.97); }
-.floatnav button:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: 10px; }
-@media (hover: hover) and (pointer: fine) { .floatnav button:not([aria-current='true']):hover { color: var(--ink); } }
-@media (max-width: 380px) { .floatnav button { padding: 0 9px; font-size: 12.5px; } }
-@keyframes dnavin { from { opacity: 0; transform: translate(-50%, 8px); } }
-:root[data-theme='dark'] .floatnav { box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .floatnav { box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5); } }
-/* The bar takes the bottom of the panel, so "back to top" steps aside, and toasts sit above the bar */
-body:has(.floatnav) .totop { display: none; }
-body:has(.floatnav) .toast { bottom: 72px; }
+/* Section pills under the head card: they stick below the sub top bar */
+.secnav { position: sticky; top: calc(var(--subtop-h) - 12px); z-index: 19; display: flex; gap: 4px; margin: -2px -12px 0; padding: 4px 12px 8px; background: var(--bg); overflow-x: auto; scrollbar-width: none; }
+.secnav::-webkit-scrollbar { display: none; }
+.secnav button { flex: none; border: 0; background: transparent; height: 32px; padding: 0 12px; border-radius: 10px; color: var(--faint); font-size: 13px; font-weight: 500; white-space: nowrap; transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 160ms var(--ease-out); }
+.secnav button[aria-current='true'] { background: var(--pill-on); color: var(--ink); box-shadow: var(--pill-shadow); }
+.secnav button:active { transform: scale(0.97); }
+.secnav button:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: 10px; }
+@media (hover: hover) and (pointer: fine) { .secnav button:not([aria-current='true']):hover { color: var(--ink); } }
+.dview [id^='sec-'] { scroll-margin-top: calc(var(--subtop-h) + 50px); }
 
 /* Share card */
 .dshare .seg { background: var(--field); }

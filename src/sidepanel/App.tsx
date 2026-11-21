@@ -28,6 +28,14 @@ export type View =
   | { name: 'settings' }
   | { name: 'detail'; fontId: string; usage?: PageFontUsage; from: 'page' | 'library' | 'image'; /** The page it was opened from: leaving it closes the details. */ pageUrl?: string; tabId?: number | null };
 
+/** Written by the dock on the web page, then the panel opens: which view to show. */
+interface PanelRequest {
+  view: 'page' | 'system' | 'image' | 'detail';
+  select?: boolean;
+  family?: string;
+  at: number;
+}
+
 export function App() {
   const [view, setView] = useState<View>({ name: 'page' });
   const imageScroll = useRef(0);
@@ -58,6 +66,43 @@ export function App() {
     };
     chrome.storage.onChanged.addListener(on);
     return () => chrome.storage.onChanged.removeListener(on);
+  }, []);
+
+  // The dock on the page asks for a view (Every font, Type system, Read an area, a font's details).
+  const [openFamily, setOpenFamily] = useState<{ family: string; at: number } | null>(null);
+  const [selectNow, setSelectNow] = useState(0);
+  useEffect(() => {
+    const take = (v: unknown) => {
+      const r = v as PanelRequest | undefined;
+      if (!r || typeof r.at !== 'number' || Date.now() - r.at > 10000) return;
+      chrome.storage.session.remove('panel:request');
+      // Keep the view when the tab changes right after (the dock opened the panel on that tab).
+      pendingAt.current = Date.now();
+      if (r.view === 'detail') {
+        setView({ name: 'page' });
+        setOpenFamily(r.family ? { family: r.family, at: Date.now() } : null);
+      } else if (r.view === 'image') {
+        setView({ name: 'image' });
+        if (r.select) setSelectNow(Date.now());
+      } else if (r.view === 'system' || r.view === 'page') {
+        setView(r.view === 'system' ? { name: 'system' } : { name: 'page' });
+      }
+    };
+    chrome.storage.session.get('panel:request').then((st) => take(st['panel:request']));
+    const on = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+      if (area === 'session' && changes['panel:request']?.newValue) take(changes['panel:request'].newValue);
+    };
+    chrome.storage.onChanged.addListener(on);
+    return () => chrome.storage.onChanged.removeListener(on);
+  }, []);
+
+  // The dock's "Close the panel".
+  useEffect(() => {
+    const on = (msg: unknown) => {
+      if ((msg as { type?: string } | null)?.type === 'ffp:close-panel') window.close();
+    };
+    chrome.runtime.onMessage.addListener(on);
+    return () => chrome.runtime.onMessage.removeListener(on);
   }, []);
 
   useEffect(() => {
@@ -105,7 +150,7 @@ export function App() {
       )}
 
       {view.name === 'page' && (
-        <PageView tab={tab} tester={tester} onTester={setTester} onOpen={(usage, fontId) => setView({ name: 'detail', fontId, usage, from: 'page', pageUrl: tab.ping?.url, tabId: tab.tabId })} onShare={() => setView({ name: 'siteshare' })} toast={showToast} />
+        <PageView tab={tab} tester={tester} onTester={setTester} onOpen={(usage, fontId) => setView({ name: 'detail', fontId, usage, from: 'page', pageUrl: tab.ping?.url, tabId: tab.tabId })} onShare={() => setView({ name: 'siteshare' })} toast={showToast} openFamily={openFamily} onOpenFamilyDone={() => setOpenFamily(null)} />
       )}
       {view.name === 'library' && (
         <LibraryView tester={libTester} onTester={setLibTester} onOpen={(fontId) => setView({ name: 'detail', fontId, from: 'library' })} onBoards={() => setView({ name: 'boards' })} onSeen={() => setView({ name: 'seen' })} toast={showToast} />
@@ -121,6 +166,7 @@ export function App() {
             onOpenFont={(usage, fontId) => { imageScroll.current = window.scrollY; setView({ name: 'detail', fontId, usage, from: 'image' }); }}
             onOpenFontId={(fontId) => { imageScroll.current = window.scrollY; setView({ name: 'detail', fontId, from: 'image' }); }}
             toast={showToast}
+            selectNow={selectNow}
           />
         </div>
       )}

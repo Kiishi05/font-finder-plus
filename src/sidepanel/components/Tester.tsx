@@ -53,17 +53,20 @@ export function Tester({ value, onChange, min = 12, max = 96, extra }: { value: 
         />
       </label>
       <SampleDropdown selected={last.current} onPick={pick} />
-      <input
-        className="tbar-size"
-        type="range"
-        aria-label="Preview size"
-        aria-valuetext={`${value.size} pixels`}
-        title={`Size: ${value.size}px`}
-        min={min}
-        max={max}
-        value={value.size}
-        onChange={(e) => set({ size: Number(e.target.value) })}
-      />
+      <span className="tbar-sizebox">
+        <input
+          className="tbar-size"
+          type="range"
+          aria-label="Preview size"
+          aria-valuetext={`${value.size} pixels`}
+          title={`Size: ${value.size}px`}
+          min={min}
+          max={max}
+          value={value.size}
+          onChange={(e) => set({ size: Number(e.target.value) })}
+        />
+        <output aria-hidden="true">{value.size}</output>
+      </span>
       {extra}
       <MoreMenu value={value} set={set} onReset={() => { last.current = DEFAULT_TESTER.lang; onChange({ ...DEFAULT_TESTER }); }} />
     </div>

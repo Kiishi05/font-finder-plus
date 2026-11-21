@@ -42,6 +42,8 @@ interface Props {
   /** Open the details of a font found in an image (Google family or a named font). */
   onOpenFontId: (fontId: string) => void;
   toast: (m: string) => void;
+  /** Changes when the on-page dock asks to select an area: starts Select an area once the tab is ready. */
+  selectNow?: number;
 }
 
 interface Exact {
@@ -109,7 +111,7 @@ function when(t: number): string {
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...(d.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}) });
 }
 
-export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFontId, toast }: Props) {
+export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFontId, toast, selectNow }: Props) {
   const { scan } = usePageScan(tab.tabId, !!tab.ping, tab.ping?.url, tab.fontsVersion);
   const [exact, setExact] = useState<Exact | null>(null);
   // Match the area as a picture (off when a selected area is only real text, read exactly).
@@ -233,6 +235,15 @@ export function IdentifyView({ tab, pending, onPendingUsed, onOpenFont, onOpenFo
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending]);
+
+  // The dock's "Read a picture or an area": start selecting as soon as the tab is known.
+  const selectDone = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (!selectNow || selectDone.current === selectNow || tab.tabId == null) return;
+    selectDone.current = selectNow;
+    selectArea();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectNow, tab.tabId]);
 
   const selectArea = async () => {
     if (tab.tabId == null) return;
