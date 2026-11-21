@@ -97,7 +97,7 @@
 .nlhead { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; border: none; background: transparent; border-radius: var(--r-card); text-align: left; color: var(--muted); cursor: pointer; transition: transform 160ms var(--ease-out); }
 .nlhead:active { transform: scale(0.99); }
 .nlhead:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-.nlhead > svg { flex: none; color: var(--amber); }
+.nlhead > svg { flex: none; color: var(--amber); align-self: flex-start; margin-top: 1px; }
 @media (hover: hover) and (pointer: fine) { .nlhead:hover { background: var(--inset); } }
 .nlhead b { display: block; color: var(--ink); font-weight: 500; }
 .nlhead .sub { display: block; font-size: 12px; color: var(--faint); }
