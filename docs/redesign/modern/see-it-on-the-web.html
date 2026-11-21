@@ -1,0 +1,656 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>See It on the Web</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Layout: a browser window beside the 400px panel. Simple: one switch, one list, one size control. Same tokens as the redesigned extension. */
+:root {
+  --desk: #e5e5e5; --bg: #f2f2f2; --sheet: #ffffff; --ink: #171717; --ink-2: #525252; --ink-3: #6b6b6b;
+  --line: rgba(0,0,0,0.08); --field: #f2f2f2; --field-2: #e5e5e5; --inset: #f8f8f8; --free: #0b7a37; --free-dot: #19a35a;
+  --ui: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; --ease: cubic-bezier(0.23, 1, 0.32, 1);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --desk: #050505; --bg: #0d0d0d; --sheet: #171717; --ink: #f2f2f2; --ink-2: #a3a3a3; --ink-3: #969696;
+  --line: rgba(255,255,255,0.08); --field: #262626; --field-2: #333333; --inset: #212121; --free: #6be29c; --free-dot: #3ad47a; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --desk: #050505; --bg: #0d0d0d; --sheet: #171717; --ink: #f2f2f2; --ink-2: #a3a3a3; --ink-3: #969696;
+  --line: rgba(255,255,255,0.08); --field: #262626; --field-2: #333333; --inset: #212121; --free: #6be29c; --free-dot: #3ad47a; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--desk); color: var(--ink); font: 13px/1.45 var(--ui); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-block: 20px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 14px; }
+.steps { display: flex; gap: 2px; padding: 4px; background: var(--sheet); border-radius: 14px; align-self: flex-start; }
+.steps button { height: 34px; padding: 0 14px; border: 0; border-radius: 10px; background: transparent; color: var(--ink-2); font-weight: 500; cursor: pointer; }
+.steps button[aria-current] { background: var(--field); color: var(--ink); }
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 14px; align-items: start; }
+@media (max-width: 960px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+.browser { background: var(--sheet); border-radius: 16px; overflow: hidden; box-shadow: 0 0 0 1px var(--line); min-width: 0; }
+.chrome { display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 14px; background: var(--bg); }
+.dots { display: flex; gap: 6px; } .dots i { width: 11px; height: 11px; border-radius: 50%; background: var(--field-2); }
+.url { flex: 1; height: 28px; border-radius: 8px; background: var(--sheet); display: flex; align-items: center; padding: 0 12px; color: var(--ink-2); font-size: 12.5px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.viewport { height: 640px; overflow: hidden; }
+/* The mock website. Its type is driven by role variables. */
+.site { --h1-f: 'Inter'; --h1-s: 56px; --h1-w: 700; --h1-lh: 1.05; --h1-t: -0.03em;
+  --h2-f: 'Inter'; --h2-s: 26px; --h2-w: 600; --h2-lh: 1.2; --h2-t: -0.01em;
+  --b-f: 'Inter'; --b-s: 16px; --b-w: 400; --b-lh: 1.55;
+  --l-f: 'Inter'; --l-s: 14px; --l-w: 500; --l-t: 0;
+  height: 100%; background: #fbfaf7; color: #1d1b16; overflow: hidden; }
+.site * { transition: font-size 300ms var(--ease), letter-spacing 300ms var(--ease); }
+.s-nav { display: flex; align-items: center; gap: 22px; padding: 18px 36px; border-bottom: 1px solid rgba(0,0,0,0.07); }
+.s-logo { font: 700 18px 'Inter'; letter-spacing: -0.02em; margin-right: auto; }
+.s-nav a, .s-label { font-family: var(--l-f); font-size: var(--l-s); font-weight: var(--l-w); letter-spacing: var(--l-t); color: #1d1b16; text-decoration: none; }
+.s-btn { font-family: var(--l-f); font-size: var(--l-s); font-weight: var(--l-w); letter-spacing: var(--l-t); background: #1d1b16; color: #fbfaf7; border: 0; border-radius: 999px; padding: 10px 18px; }
+.s-btn.ghost { background: transparent; color: #1d1b16; box-shadow: inset 0 0 0 1.5px #1d1b16; }
+.s-hero { padding: 54px 36px 30px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 36px; align-items: end; }
+.s-eyebrow { font-family: var(--l-f); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #8a5a00; margin-bottom: 14px; display: block; }
+.s-h1 { font-family: var(--h1-f); font-size: var(--h1-s); font-weight: var(--h1-w); line-height: var(--h1-lh); letter-spacing: var(--h1-t); margin: 0; }
+.s-lede, .s-body { font-family: var(--b-f); font-size: var(--b-s); font-weight: var(--b-w); line-height: var(--b-lh); margin: 0; color: #3d3a33; }
+.s-lede { font-size: calc(var(--b-s) + 2px); }
+.s-acts { display: flex; gap: 10px; margin-top: 22px; }
+.s-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 10px 36px 40px; }
+.s-card { background: #f1eee6; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+.s-h2 { font-family: var(--h2-f); font-size: var(--h2-s); font-weight: var(--h2-w); line-height: var(--h2-lh); letter-spacing: var(--h2-t); margin: 0; }
+.s-quote { margin: 0 36px; padding: 28px 0; border-top: 1px solid rgba(0,0,0,0.08); display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; }
+@media (max-width: 760px) { .s-hero, .s-cards { grid-template-columns: 1fr; } .site { --h1-s: 40px !important; } }
+/* Outlines when hovering a role in the panel */
+.site[data-hl~="h1"] .s-h1, .site[data-hl~="h2"] .s-h2, .site[data-hl~="body"] :is(.s-body, .s-lede), .site[data-hl~="label"] :is(.s-btn, .s-nav a, .s-label) { outline: 2px solid #3b5bdb; outline-offset: 3px; border-radius: 4px; }
+
+
+/* Panel */
+.panel { display: flex; flex-direction: column; gap: 8px; }
+.box { background: var(--sheet); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+.box h2 { margin: 0; font: 500 14px/1.3 var(--ui); }
+.sub { margin: -8px 0 0; color: var(--ink-3); font-size: 12.5px; }
+.top { display: flex; align-items: center; gap: 12px; }
+.top .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.top .t span { font-size: 12.5px; color: var(--ink-3); }
+.switch { width: 40px; height: 24px; border-radius: 99px; border: 0; background: var(--field-2); position: relative; cursor: pointer; flex: none; transition: background-color 150ms ease; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--sheet); box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 180ms var(--ease); }
+.switch[aria-checked="true"] { background: var(--ink); }
+.switch[aria-checked="true"]::after { transform: translateX(16px); }
+.rows { display: flex; flex-direction: column; }
+.row { display: flex; align-items: baseline; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); cursor: default; }
+.row:first-child { border-top: 0; padding-top: 0; }
+.row .k { width: 108px; flex: none; color: var(--ink-3); font-size: 12.5px; }
+.row .v { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 20px; line-height: 1.2; }
+.row .n { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.lic { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--free); }
+.lic i { width: 6px; height: 6px; border-radius: 50%; background: var(--free-dot); }
+.size { display: flex; align-items: center; gap: 8px; }
+.size .k { flex: 1; }
+.step { width: 38px; height: 38px; border: 0; border-radius: 11px; background: var(--field); cursor: pointer; font-size: 18px; line-height: 1; transition: transform 160ms var(--ease); }
+.step:active, .btn:active { transform: scale(0.97); }
+.size b { width: 52px; text-align: center; font-weight: 500; font-variant-numeric: tabular-nums; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; width: 100%; border-radius: 13px; border: 0; background: var(--field); color: var(--ink); font-weight: 500; cursor: pointer; transition: background-color 150ms ease, transform 160ms var(--ease); }
+.btn.primary { background: var(--ink); color: var(--sheet); }
+@media (hover: hover) and (pointer: fine) { .btn:not(.primary):hover, .step:hover { background: var(--field-2); } }
+:is(.btn, .step, .switch, .steps button):focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.acts { display: flex; flex-direction: column; gap: 8px; }
+/* Wear card: same pattern as the Page tab's site card */
+.wcard { gap: 14px; }
+.wtop { display: flex; align-items: center; gap: 10px; }
+.pdot { width: 8px; height: 8px; border-radius: 50%; background: var(--field-2); flex: none; }
+.pdot.on { background: var(--ink); }
+.wtop .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.wtop .t span { font-size: 12px; color: var(--ink-3); }
+.wtop .t b { font-weight: 500; font-size: 15px; }
+.wtop .host { font-size: 12px; color: var(--ink-3); }
+.ba { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 4px; background: var(--field); border-radius: 14px; }
+.ba button { height: 40px; border: 0; border-radius: 10px; background: transparent; color: var(--ink-2); font-weight: 500; font-size: 14px; cursor: pointer; transition: background-color 150ms ease; }
+.ba button[aria-checked="true"] { background: var(--sheet); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.wfoot { display: flex; align-items: center; gap: 6px; padding-top: 14px; border-top: 1px solid var(--line); }
+.wfoot .grow { flex: 1; }
+.btn.sm { height: 38px; width: auto; padding: 0 16px; border-radius: 11px; }
+.btn.wide2 { height: 40px; }
+.ibtn { width: 34px; height: 34px; border: 0; border-radius: 11px; background: var(--field); cursor: pointer; font-size: 17px; line-height: 1; position: relative; }
+.ibtn:active { transform: scale(0.97); }
+.pct { width: 46px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 500; }
+.tip::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--sheet); font: 500 11.5px/1 var(--ui); padding: 6px 8px; border-radius: 8px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 120ms ease; }
+.tip:hover::after { opacity: 1; transition-delay: 250ms; }
+/* Font cards: same pattern as the Page tab's font cards */
+.fcard { gap: 10px; cursor: default; transition: box-shadow 150ms ease; }
+.fcard:hover { box-shadow: inset 0 0 0 2px #3b5bdb; }
+.fh { display: flex; align-items: center; gap: 8px; }
+.fh .num { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.fh b { font-weight: 500; }
+.fh .grow { flex: 1; }
+.fh .where { font-size: 12px; color: var(--ink-3); }
+.spec { line-height: 1.12; color: var(--ink); overflow-wrap: anywhere; }
+.fm { font-size: 12px; color: var(--ink-3); }
+/* Figma step */
+.canvas { background: #e9e9e9; border-radius: 16px; min-height: 480px; padding: 28px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .canvas { background: #1e1e1e; } }
+:root[data-theme="dark"] .canvas { background: #1e1e1e; }
+.frame { background: #fff; color: #171717; border-radius: 6px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 18px; }
+.frame .lbl { font: 11px var(--ui); color: #777; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--sheet); padding: 9px 14px; border-radius: 12px; font-size: 12.5px; z-index: 50; animation: tin 200ms var(--ease); white-space: nowrap; }
+@keyframes tin { from { opacity: 0; transform: translate(-50%, 8px); } }
+.site[data-hl="h1"] .s-h1, .site[data-hl="h2"] .s-h2, .site[data-hl="body"] :is(.s-body, .s-lede), .site[data-hl="label"] :is(.s-btn, .s-nav a, .s-label) { outline: 2px solid #3b5bdb; outline-offset: 3px; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) { *, .site * { transition: none !important; animation: none !important; } }
+
+.readycard { gap: 14px; }
+.fig { width: 32px; height: 32px; border-radius: 10px; background: var(--inset); display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.mini { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 24px; line-height: 1.15; padding: 14px 16px; border-radius: 14px; background: var(--inset); }
+.mini i { font: 400 14px var(--ui); color: var(--ink-3); font-style: normal; }
+.ba.big button { height: 52px; font-size: 16px; }
+.sizerow { display: flex; align-items: center; gap: 6px; padding-top: 14px; border-top: 1px solid var(--line); }
+.sizerow .grow { flex: 1; }
+.row.tall { padding: 14px 0; }
+.row.tall .v { font-size: 24px; }
+.viewport { position: relative; }
+.floatbar { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 14px; background: #171717; color: #f2f2f2; border-radius: 16px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); z-index: 5; white-space: nowrap; font: 13px/1 var(--ui); }
+.fb-name { font-weight: 500; margin-right: 6px; }
+.fb-ba { display: flex; gap: 2px; padding: 3px; background: rgba(255,255,255,0.1); border-radius: 11px; }
+.fb-ba button { height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: rgba(255,255,255,0.7); cursor: pointer; font-weight: 500; }
+.fb-ba button[aria-pressed="true"] { background: #f2f2f2; color: #171717; }
+.fb-sep { width: 1px; height: 20px; background: rgba(255,255,255,0.15); margin: 0 4px; }
+.floatbar .ibtn { background: rgba(255,255,255,0.1); color: #f2f2f2; width: 30px; height: 30px; }
+.floatbar .pct { color: #f2f2f2; width: 42px; }
+.fb-btn { width: 34px; height: 34px; border: 0; border-radius: 10px; background: transparent; color: #f2f2f2; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; position: relative; }
+.fb-btn:hover { background: rgba(255,255,255,0.1); }
+.wrap { padding-block-end: 90px; }
+/* The picker (harness chrome, verbatim spec) */
+.proto-picker { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 2147483647; display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; background: rgba(10, 10, 10, 0.82); -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset, 0 8px 24px rgba(0, 0, 0, 0.24), 0 2px 6px rgba(0, 0, 0, 0.12); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px; line-height: 1; -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; }
+.proto-picker-highlight { position: absolute; top: 4px; left: 0; height: 28px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); }
+.proto-picker[data-ready] .proto-picker-highlight { transition: transform 250ms cubic-bezier(0.23, 1, 0.32, 1), width 250ms cubic-bezier(0.23, 1, 0.32, 1); }
+@media (prefers-reduced-motion: reduce) { .proto-picker[data-ready] .proto-picker-highlight { transition: none; } }
+.proto-picker-item { position: relative; display: flex; align-items: center; height: 28px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: rgba(255, 255, 255, 0.55); font: inherit; cursor: pointer; transition: color 150ms ease-out, transform 160ms cubic-bezier(0.23, 1, 0.32, 1); }
+@media (hover: hover) and (pointer: fine) { .proto-picker-item:hover { color: rgba(255, 255, 255, 0.85); } }
+.proto-picker-item:active { transform: scale(0.97); }
+.proto-picker-item:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.4); outline-offset: 2px; }
+.proto-picker-item[data-active] { color: #fff; }
+.proto-picker-divider { width: 1px; height: 16px; margin: 0 4px; background: rgba(255, 255, 255, 0.12); }
+.proto-picker-replay { padding: 0 10px; font-size: 14px; }
+.proto-picker[data-position="top"] { bottom: auto; top: 24px; }
+
+/* Figma plugin window, as in the plugin prototype */
+.pwin { background: var(--bg); border-radius: 14px; overflow: hidden; box-shadow: 0 0 0 1px var(--line), 0 20px 50px rgba(0,0,0,0.16); display: flex; flex-direction: column; min-height: 600px; }
+.ptitle { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; background: var(--sheet); border-bottom: 1px solid var(--line); }
+.ptitle .logo { width: 22px; height: 22px; border-radius: 7px; background: var(--ink); color: var(--sheet); font: 600 10px/22px var(--ui); text-align: center; }
+.ptitle b { font-weight: 500; }
+.pbody { flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.pfoot { padding: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 6px; background: var(--bg); }
+.pfoot .btn { width: 100%; }
+.linkb { border: 0; background: none; color: var(--ink-2); font-weight: 500; cursor: pointer; padding: 6px; }
+.linkb:hover { color: var(--ink); }
+.opt-main { gap: 14px; }
+.bigic { width: 44px; height: 44px; border-radius: 14px; background: var(--inset); display: inline-flex; align-items: center; justify-content: center; }
+.opt-main h2 { font-size: 16px; margin-bottom: 6px; }
+.sub2 { margin: 0; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+.opt-quiet { flex-direction: row; align-items: center; gap: 12px; padding: 14px 16px; }
+.smic { width: 32px; height: 32px; border-radius: 10px; background: var(--inset); display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.opt-quiet .ot { flex: 1; display: flex; flex-direction: column; gap: 2px; } .opt-quiet .ot b { font-weight: 500; } .opt-quiet .ot span { font-size: 12px; color: var(--ink-3); }
+.opt-quiet .chev { color: var(--ink-3); display: inline-flex; }
+.phead { display: flex; align-items: center; gap: 8px; padding: 2px 2px 4px; }
+.pback { width: 36px; height: 36px; border: 0; border-radius: 12px; background: var(--sheet); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.phead b { font-weight: 500; }
+.sechead { display: flex; align-items: baseline; gap: 8px; } .sechead h2 { flex: 1; } .count { color: var(--ink-3); font-size: 12px; }
+.slist { display: flex; flex-direction: column; }
+.srow2 { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.srow2:first-child { border-top: 0; padding-top: 0; }
+.srow2.off .si { opacity: 0.5; }
+.ck { width: 20px; height: 20px; border-radius: 6px; border: 0; box-shadow: inset 0 0 0 1.5px var(--field-2); background: transparent; color: transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex: none; padding: 0; }
+.ck[aria-checked="true"] { background: var(--ink); box-shadow: none; color: var(--sheet); }
+.si { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.si b { font-weight: 500; } .si span { font-size: 13px; color: var(--ink-2); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.rolewrap { position: relative; flex: none; }
+.rolebtn { height: 32px; padding: 0 8px 0 10px; border: 0; border-radius: 10px; background: var(--field); display: inline-flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12.5px; color: var(--ink); }
+.rolebtn:disabled { color: var(--ink-3); cursor: default; }
+.rolebtn .chev { display: inline-flex; color: var(--ink-3); transition: transform 200ms var(--ease); }
+.rolebtn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.rmenu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 10; min-width: 180px; margin: 0; padding: 4px; list-style: none; background: var(--sheet); border-radius: 12px; box-shadow: 0 0 0 1px var(--line), 0 10px 28px rgba(0,0,0,0.14); }
+.rmenu li { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+.rmenu li:hover { background: var(--field); }
+.paidnote { margin: -4px 0 8px 32px; font-size: 12px; color: #8a5a00; background: #fbefd9; padding: 8px 10px; border-radius: 10px; }
+.sent { gap: 16px; }
+.okic { width: 44px; height: 44px; border-radius: 14px; background: color-mix(in srgb, var(--free-dot) 14%, transparent); color: var(--free); display: inline-flex; align-items: center; justify-content: center; }
+.sent h2 { font-size: 16px; margin-bottom: 6px; }
+.steps2 { list-style: none; margin: 0; padding: 14px 16px; border-radius: 14px; background: var(--inset); display: flex; flex-direction: column; gap: 10px; }
+.steps2 li { display: flex; gap: 10px; align-items: center; color: var(--ink-2); }
+.steps2 .n { width: 20px; height: 20px; border-radius: 50%; background: var(--sheet); color: var(--ink); font-size: 11.5px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+
+.ck { margin-top: 2px; } .rolewrap { margin-top: -2px; }
+.si .paid { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; font-size: 12px; line-height: 1.4; color: #8a5a00; font-family: var(--ui) !important; font-weight: 400 !important; white-space: normal; }
+.si .paid i { width: 6px; height: 6px; border-radius: 50%; background: #e39b12; flex: none; margin-top: 5px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .si .paid { color: #f2be6b; } }
+/* Type tiles: one per style, the font shown big */
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tile { background: var(--inset); border-radius: 14px; padding: 12px 14px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; transition: box-shadow 150ms ease; }
+.tile:hover { box-shadow: inset 0 0 0 2px #3b5bdb; }
+.tile .tr { font-size: 12px; color: var(--ink-3); }
+.tile .aa { font-size: 38px; line-height: 1.1; margin: 4px 0 6px; color: var(--ink); }
+.tile .tf { font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tile .ts { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.readycard, .showcard { gap: 14px; }
+.readycard .wtop .t, .showcard .wtop .t { gap: 2px; }
+.readycard .wtop .t b, .showcard .wtop .t b { font-size: 15px; font-weight: 500; order: -1; }
+.state { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; border-radius: 99px; background: var(--field); font-size: 12px; font-weight: 500; color: var(--ink-2); }
+.state i { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+.state.on { background: var(--ink); color: var(--sheet); }
+.state.on i { background: var(--sheet); }
+.sechead .lic { margin-left: auto; }
+
+.pstat { display: flex; align-items: center; gap: 10px; }
+.pstat .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.pstat .t span { font-size: 12px; color: var(--ink-3); }
+.pstat .t b { font-weight: 500; font-size: 15px; }
+.pstat .host { font-size: 12px; color: var(--ink-3); }
+.allstyles { display: flex; flex-direction: column; margin-top: -4px; }
+.as { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.as:first-child { border-top: 0; }
+.as b { font-weight: 500; } .as span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.linkb[data-all] { align-self: flex-start; padding: 0; }
+
+.sitefield { width: 100%; display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+.sitefield label { font-size: 12px; color: var(--ink-3); }
+.field { height: 44px; border: 0; border-radius: 13px; background: var(--sheet); padding: 0 14px; font: inherit; font-size: 13.5px; color: var(--ink); outline: none; }
+.field:focus { box-shadow: 0 0 0 2px var(--ink); }
+.recent { display: flex; gap: 6px; flex-wrap: wrap; }
+.rchip { height: 28px; padding: 0 10px; border: 0; border-radius: 9px; background: var(--field-2); color: var(--ink-2); font-size: 12px; cursor: pointer; }
+.rchip[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
+.pfoot { align-items: stretch; }
+.hp-view { display: flex; align-items: center; justify-content: center; background: var(--bg); padding: 24px; }
+.hp-card { max-width: 460px; width: 100%; background: var(--sheet); border-radius: 22px; padding: 32px; display: flex; flex-direction: column; gap: 14px; text-align: left; }
+.hp-card h1 { margin: 0; font: 500 22px/1.25 var(--ui); letter-spacing: -0.01em; text-wrap: balance; }
+.hp-card p { margin: 0; color: var(--ink-2); line-height: 1.55; }
+.hp-logo { width: 44px; height: 44px; border-radius: 14px; background: var(--ink); color: var(--sheet); font: 600 14px/44px var(--ui); text-align: center; }
+.hp-spin { width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--field-2); border-top-color: var(--ink); animation: spin 800ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.hp-fonts { display: flex; gap: 8px; flex-wrap: wrap; }
+.hp-fonts span { padding: 10px 14px; border-radius: 12px; background: var(--inset); font-size: 18px; }
+.hp-acts { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.hp-acts .btn { width: 100%; }
+.ba3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 4px; background: var(--field); border-radius: 14px; }
+.ba3 button { height: 40px; border: 0; border-radius: 10px; background: transparent; color: var(--ink-2); font-weight: 500; font-size: 12.5px; cursor: pointer; }
+.ba3 button[aria-checked="true"] { background: var(--sheet); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+
+.flist { display: flex; flex-direction: column; }
+.frow { display: flex; flex-direction: column; gap: 4px; padding: 14px 0; border-top: 1px solid var(--line); cursor: default; }
+.frow:first-child { border-top: 0; padding-top: 0; }
+.frow .fn { font-size: 24px; line-height: 1.15; color: var(--ink); }
+.frow .fu { font-size: 12.5px; color: var(--ink-3); }
+@media (hover: hover) and (pointer: fine) { .frow:hover .fn { color: #3b5bdb; } }
+.field2 { height: 44px; border: 0; border-radius: 13px; background: var(--inset); padding: 0 14px; font: inherit; font-size: 13.5px; color: var(--ink); outline: none; width: 100%; }
+.field2:focus { box-shadow: 0 0 0 2px var(--ink); }
+.recent { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: -4px; }
+.recent > span { font-size: 12px; color: var(--ink-3); margin-right: 2px; }
+.rchip { background: var(--field); }
+
+.fgrp { display: flex; flex-direction: column; gap: 6px; padding: 14px 0; border-top: 1px solid var(--line); }
+.fgrp:first-child { border-top: 0; padding-top: 0; }
+.fgrp .fn { font-size: 24px; line-height: 1.15; }
+.uses { display: flex; flex-direction: column; gap: 2px; }
+.use { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 6px 0 10px; margin: 0 -6px 0 -10px; border-radius: 10px; transition: background-color 150ms ease; }
+@media (hover: hover) and (pointer: fine) { .use:hover { background: var(--inset); } }
+.use .uw { flex: 1; color: var(--ink-2); }
+.use .us { font-size: 12.5px; color: var(--ink-3); }
+.pwrap { position: relative; }
+.pbtn { height: 32px; padding: 0 8px 0 10px; border: 0; border-radius: 10px; background: var(--field); display: inline-flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12.5px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.pbtn .chev { display: inline-flex; color: var(--ink-3); transition: transform 200ms var(--ease); }
+.pbtn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.rmenu li span em { font-style: normal; color: var(--ink-3); font-size: 12px; margin-left: 4px; }
+.rmenu li b { font-weight: 500; }
+.rmenu { min-width: 240px; }
+.rchip { display: inline-flex; align-items: center; height: 30px; padding: 0 4px 0 0; border-radius: 9px; background: var(--field); }
+.rchip.on { background: var(--ink); }
+.rpick { height: 30px; padding: 0 6px 0 10px; border: 0; background: none; color: var(--ink-2); font-size: 12px; cursor: pointer; }
+.rchip.on .rpick, .rchip.on .rx { color: var(--sheet); }
+.rx { width: 22px; height: 22px; border: 0; border-radius: 7px; background: none; color: var(--ink-3); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.rx:hover { background: rgba(127,127,127,0.18); }
+
+.wrap { padding-top: 64px; }
+/* List A: samples */
+.la { display: flex; flex-direction: column; }
+.la-row { display: flex; flex-direction: column; gap: 6px; padding: 14px 0; border-top: 1px solid var(--line); }
+.la-row:first-child { border-top: 0; padding-top: 0; }
+.la-top { display: flex; align-items: center; gap: 8px; } .la-top .where { flex: 1; font-size: 12.5px; color: var(--ink-3); }
+.la-smp { line-height: 1.15; color: var(--ink); overflow-wrap: anywhere; }
+.la-f { font-size: 12px; color: var(--ink-3); }
+/* List B: style cards */
+.lb { display: flex; flex-direction: column; gap: 8px; }
+.lb-card { background: var(--inset); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.lb-h { display: flex; align-items: baseline; gap: 8px; } .lb-h b { font-weight: 500; flex: 1; } .lb-h span { font-size: 12px; color: var(--ink-3); }
+.lb-aa { font-size: 26px; line-height: 1.1; }
+.lb-on { display: flex; gap: 6px; flex-wrap: wrap; }
+.lb-chip { height: 26px; padding: 0 10px; border-radius: 8px; background: var(--sheet); font-size: 12px; display: inline-flex; align-items: center; color: var(--ink-2); }
+.lb-change { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.lb-change > span { font-size: 12px; color: var(--ink-3); margin-bottom: 4px; }
+.lb-row { display: flex; align-items: center; gap: 8px; min-height: 36px; } .lb-row > span:first-child { flex: 1; color: var(--ink-2); }
+/* List C: before -> after */
+.lc { display: flex; flex-direction: column; }
+.lc-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 14px 0; border-top: 1px solid var(--line); }
+.lc-row:first-child { border-top: 0; padding-top: 0; }
+.lc-row .where { font-size: 12.5px; color: var(--ink-3); }
+.lc-ba { display: flex; align-items: center; gap: 8px; }
+.lc-was { font-size: 12.5px; color: var(--ink-3); text-decoration: line-through; text-decoration-color: rgba(127,127,127,0.5); }
+.lc-arrow { color: var(--ink-3); }
+.lc-now { font-size: 22px; line-height: 1.15; }
+/* Hand-over page */
+.hp-card { max-width: 480px; gap: 18px; padding: 32px; }
+.hp-trail { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.hp-trail span { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 9px; background: var(--field); font-size: 12px; color: var(--ink-3); }
+.hp-trail span svg { width: 13px; height: 13px; }
+.hp-trail span.done { color: var(--ink); background: var(--field); }
+.hp-trail span.now { background: var(--ink); color: var(--sheet); }
+.hp-trail span.need { background: var(--sheet); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.hp-trail i { width: 14px; height: 1.5px; background: var(--field-2); }
+.hp-steps { list-style: none; margin: 0; padding: 14px 16px; border-radius: 14px; background: var(--inset); display: flex; flex-direction: column; gap: 10px; }
+.hp-steps li { display: flex; align-items: center; gap: 10px; color: var(--ink-3); }
+.hp-steps li.done, .hp-steps li.now { color: var(--ink); }
+.hp-steps li svg { width: 16px; height: 16px; }
+.hp-steps .hp-spin { width: 16px; height: 16px; border-width: 2px; }
+.hp-steps li:last-child::before { content: ""; width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--field-2); }
+.hp-note { font-size: 12.5px; color: var(--ink-3) !important; }
+.hp-two { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.hp-two li { display: flex; gap: 12px; padding: 14px; border-radius: 14px; background: var(--inset); }
+.hp-two .n { width: 24px; height: 24px; border-radius: 50%; background: var(--sheet); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; flex: none; }
+.hp-two li > div { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.hp-two b { font-weight: 500; }
+.hp-two .btn { width: 100%; }
+.hp-type { display: flex; flex-direction: column; gap: 6px; padding-top: 16px; border-top: 1px solid var(--line); }
+.hp-k { font-size: 12px; color: var(--ink-3); } .hp-type b { font-weight: 500; }
+.hp-fl { display: flex; gap: 6px; flex-wrap: wrap; }
+.hp-fl span { padding: 8px 12px; border-radius: 10px; background: var(--inset); font-size: 17px; }
+.hp-link { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 14px; border-radius: 13px; background: var(--inset); }
+.hp-link span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--ink-2); font-size: 13px; }
+.hp-link .btn { width: auto; }
+</style>
+
+<nav class="proto-picker" data-position="top" aria-label="Prototype variants">
+  <span class="proto-picker-highlight" aria-hidden="true"></span>
+  <button class="proto-picker-item" data-active aria-current="true">Samples</button>
+  <button class="proto-picker-item">Style cards</button>
+  <button class="proto-picker-item">Before → after</button>
+  <span class="proto-picker-divider" aria-hidden="true"></span>
+  <button class="proto-picker-item proto-picker-replay" aria-label="Replay animation (R)">↻</button>
+</nav>
+<div class="wrap">
+  <nav class="steps" aria-label="Steps"><button data-step="figma" aria-current="true">1. In Figma</button><button data-step="hand">2. Handing over</button><button data-step="web">3. On the website</button></nav>
+  <div id="stage"></div>
+</div>
+<script>
+// Every text style in the Figma file.
+const LIB = {
+  "Display": { f: "Fraunces", s: 64, w: 600, lh: 1.02, t: "-0.02em" },
+  "Heading 2": { f: "Fraunces", s: 28, w: 400, lh: 1.15, t: "-0.01em" },
+  "Heading 3": { f: "Fraunces", s: 22, w: 500, lh: 1.2, t: "0" },
+  "Heading 4": { f: "Fraunces", s: 18, w: 600, lh: 1.25, t: "0" },
+  "Body": { f: "Source Serif 4", s: 17, w: 400, lh: 1.6, t: "0" },
+  "Body small": { f: "Source Serif 4", s: 15, w: 400, lh: 1.55, t: "0" },
+  "Label": { f: "Inter", s: 13, w: 600, lh: 1, t: "0.02em" },
+  "Caption": { f: "Inter", s: 12, w: 400, lh: 1.4, t: "0" },
+};
+const asRole = (name, r) => { const x = LIB[name]; return r === "label" ? [x.f, x.s, x.w, x.t] : r === "body" ? [x.f, x.s, x.w, x.lh] : [x.f, x.s, x.w, x.lh, x.t]; };
+// Which of your styles each part of the website uses. Change any of them in the panel.
+const MAP0 = { h1: "Display", h2: "Heading 2", body: "Body", label: "Label" };
+const MINE = { name: "Northwind type", get h1() { return asRole(st.map.h1, "h1"); }, get h2() { return asRole(st.map.h2, "h2"); }, get body() { return asRole(st.map.body, "body"); }, get label() { return asRole(st.map.label, "label"); } };
+const THEIRS = { h1: ["Inter", 56, 700, 1.05, "-0.03em"], h2: ["Inter", 26, 600, 1.2, "-0.01em"], body: ["Inter", 16, 400, 1.55], label: ["Inter", 14, 500, "0"] };
+const ROLES = [["h1", "Big headings"], ["h2", "Small headings"], ["body", "Paragraphs"], ["label", "Buttons, menu"]];
+const st = { map: { ...MAP0 }, pmenu: null, recent: ["ledgerly.example", "northwind.example", "client-site.example"], site: "ledgerly.example", hand: "ok", all: false, step: "figma", fstep: "home", on: false, scale: 100, ready: false, menu: null, roles: { s1: "h1", s2: "h2", s3: "body", s4: "label", s5: "none", s6: "none" }, use: { s1: true, s2: true, s3: true, s4: true, s5: false, s6: false } };
+const siteHTML = () => `
+  <div class="s-nav"><span class="s-logo">Ledgerly</span><a href="#">Product</a><a href="#">Pricing</a><a href="#">Customers</a><button class="s-btn">Start free</button></div>
+  <section class="s-hero">
+    <div><span class="s-eyebrow">For finance teams</span><h1 class="s-h1">Close the books in hours, not weeks</h1></div>
+    <div><p class="s-lede">Ledgerly reconciles every payment, invoice and payout as it happens, so month end is a formality.</p>
+      <div class="s-acts"><button class="s-btn">Book a demo</button><button class="s-btn ghost">See how it works</button></div></div>
+  </section>
+  <div class="s-cards">
+    <div class="s-card"><span class="s-label">Reconcile</span><h2 class="s-h2">Every transaction, matched</h2><p class="s-body">Bank feeds, cards and payouts line up with your ledger automatically.</p></div>
+    <div class="s-card"><span class="s-label">Report</span><h2 class="s-h2">Numbers you can trust</h2><p class="s-body">Live balance sheets and cash flow, ready for the board meeting.</p></div>
+    <div class="s-card"><span class="s-label">Comply</span><h2 class="s-h2">Audits without the scramble</h2><p class="s-body">A full trail behind every figure, exported in one click.</p></div>
+  </div>
+  <div class="s-quote"><p class="s-lede">“We went from a ten-day close to two. Our auditors asked what changed.”</p><span class="s-label">Maya Okafor · Controller</span></div>`;
+function vars(t, k) {
+  return `--h1-f:'${t.h1[0]}';--h1-s:${Math.round(t.h1[1] * k)}px;--h1-w:${t.h1[2]};--h1-lh:${t.h1[3]};--h1-t:${t.h1[4]};` +
+    `--h2-f:'${t.h2[0]}';--h2-s:${Math.round(t.h2[1] * k)}px;--h2-w:${t.h2[2]};--h2-lh:${t.h2[3]};--h2-t:${t.h2[4]};` +
+    `--b-f:'${t.body[0]}';--b-s:${Math.round(t.body[1] * k)}px;--b-w:${t.body[2]};--b-lh:${t.body[3]};` +
+    `--l-f:'${t.label[0]}';--l-s:${Math.round(t.label[1] * k)}px;--l-w:${t.label[2]};--l-t:${t.label[3]};`;
+}
+const FIG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="15" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M9 21C10.66 21 12 19.66 12 18V15H9C7.34 15 6 16.34 6 18C6 19.66 7.34 21 9 21Z M12 9V15H9C7.34 15 6 13.66 6 12C6 10.34 7.34 9 9 9H12Z M12 3V9H9C7.34 9 6 7.66 6 6C6 4.34 7.34 3 9 3H12Z M12 3V9H15C16.66 9 18 7.66 18 6C18 4.34 16.66 3 15 3H12Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+const CAM = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 16L7.5 11.5C8.2 10.8 9.3 10.8 10 11.5L14 15.5M15.5 17L14 15.5M21 16L18.5 13.5C17.8 12.8 16.7 12.8 16 13.5L14 15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect x="2.5" y="2.5" width="19" height="19" rx="5" stroke="currentColor" stroke-width="1.5"/></svg>';
+const XI = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+const GLOBE = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><path d="M8 12C8 18 12 22 12 22C12 22 16 18 16 12C16 6 12 2 12 2C12 2 8 6 8 12Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M2.5 9H21.5M2.5 15H21.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+const PASTEI = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 4H7C5.9 4 5 4.9 5 6V20C5 21.1 5.9 22 7 22H17C18.1 22 19 21.1 19 20V6C19 4.9 18.1 4 17 4H15M9 4C9 2.9 9.9 2 11 2H13C14.1 2 15 2.9 15 4M9 4C9 5.1 9.9 6 11 6H13C14.1 6 15 5.1 15 4" stroke="currentColor" stroke-width="1.5"/></svg>';
+const CHEVR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6C9 6 15 10.42 15 12C15 13.58 9 18 9 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+const CHEVD = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 9C18 9 13.58 15 12 15C10.42 15 6 9 6 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+const BACKI = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6C15 6 9 10.42 9 12C9 13.58 15 18 15 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+const XS = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+const GLOBE_S = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M8 12C8 18 12 22 12 22C12 22 16 18 16 12C16 6 12 2 12 2C12 2 8 6 8 12Z M2.5 12H21.5" stroke="currentColor" stroke-width="1.6"/></svg>';
+const TICK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 14L8.5 17.5L19 6.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const TICKBIG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 14L8.5 17.5L19 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const SAMPLE = { h1: "Close the books in hours", h2: "Every transaction, matched", body: "Ledgerly reconciles every payment as it happens.", label: "Book a demo" };
+const sz = (v) => Math.round(v[1] * st.scale / 100);
+const meta = (r, v) => `${sz(v)}px · ${r === "label" ? "letter spacing " + v[3] : "line height " + v[3]}`;
+const browser = (extra = "") => `<div class="browser"><div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="url">${st.site}</span></div>
+  <div class="viewport"><div class="site" style="${st.on ? vars(MINE, st.scale / 100) : vars(THEIRS, 1)}">${siteHTML()}</div>${extra}</div></div>`;
+// Shown first on every site: Font Finder noticed the type you sent from Figma.
+// One row per font (never per role), with what it's used for and its sizes.
+const PARTS = [["h1", "Main heading"], ["h2", "Section headings"], ["body", "Paragraphs"], ["label", "Buttons and menu"]];
+const SAMPLE_TXT = { h1: "Close the books in hours", h2: "Every transaction, matched", body: "Ledgerly reconciles every payment as it happens.", label: "Book a demo" };
+const THEIRS_TXT = { h1: "Inter Bold · 56px", h2: "Inter Semibold · 26px", body: "Inter · 16px", label: "Inter Medium · 14px" };
+const px = (n) => Math.round(LIB[n].s * st.scale / 100);
+const stylePick = (r, label) => `<span class="pwrap"><button class="pbtn" data-pmenu="${r}" aria-haspopup="listbox" aria-expanded="${st.pmenu === r}" aria-label="Style for ${label}">${st.map[r]} · ${px(st.map[r])}px<span class="chev">${CHEVD}</span></button>
+  ${st.pmenu === r ? `<ul class="rmenu" role="listbox">${Object.entries(LIB).map(([n, x]) => `<li role="option" aria-selected="${st.map[r] === n}" data-pset="${r}:${n}"><span><b>${n}</b> <em>${x.f} · ${x.s}px</em></span>${st.map[r] === n ? TICK : ""}</li>`).join("")}</ul>` : ""}</span>`;
+// A. Samples: each part of the page shown in your style.
+const listA = () => `<div class="la">${PARTS.map(([r, where]) => { const x = LIB[st.map[r]]; return `<div class="la-row" data-roles="${r}">
+  <div class="la-top"><span class="where">${where}</span>${stylePick(r, where)}</div>
+  <div class="la-smp" style="font-family:'${x.f}';font-weight:${x.w};font-size:${Math.min(px(st.map[r]), 30)}px;letter-spacing:${x.t}">${SAMPLE_TXT[r]}</div>
+  <span class="la-f">${x.f}</span></div>`; }).join("")}</div>`;
+// B. Style cards: your Figma styles, with where each one is used.
+const listB = () => { const used = [...new Set(PARTS.map(([r]) => st.map[r]))]; return `<div class="lb">${used.map((n) => { const x = LIB[n], parts = PARTS.filter(([r]) => st.map[r] === n); return `<div class="lb-card" data-roles="${parts.map((p) => p[0]).join(" ")}">
+  <div class="lb-h"><b>${n}</b><span>${x.f} · ${px(n)}px</span></div>
+  <div class="lb-aa" style="font-family:'${x.f}';font-weight:${x.w}">Aa Bb Cc 123</div>
+  <div class="lb-on">${parts.map(([r, where]) => `<span class="lb-chip">${where}</span>`).join("")}</div></div>`; }).join("")}
+  <div class="lb-change"><span>Change a part</span>${PARTS.map(([r, where]) => `<div class="lb-row" data-roles="${r}"><span>${where}</span>${stylePick(r, where)}</div>`).join("")}</div></div>`; };
+// C. Before → after: what each part was, and what it is now.
+const listC = () => `<div class="lc">${PARTS.map(([r, where]) => { const x = LIB[st.map[r]]; return `<div class="lc-row" data-roles="${r}">
+  <span class="where">${where}</span>
+  <div class="lc-ba"><span class="lc-was">${THEIRS_TXT[r]}</span><span class="lc-arrow">→</span>${stylePick(r, where)}</div>
+  <div class="lc-now" style="font-family:'${x.f}';font-weight:${x.w}">${x.f}</div></div>`; }).join("")}</div>`;
+const LISTS = [listA, listB, listC];
+const tiles = (edit = false) => edit ? LISTS[current]() : `<div class="hp-fonts">${[...new Set(Object.values(st.map).map((n) => LIB[n].f))].map((f) => `<span style="font-family:'${f}'">${f}</span>`).join("")}</div>`;
+// Shown first on every site: the type you sent from Figma is waiting.
+const ready = () => `<section class="box readycard">
+  <div class="wtop"><span class="fig">${FIG}</span><span class="t"><b>${MINE.name}</b><span>From Figma · 8 text styles</span></span></div>
+  ${tiles()}
+  <button class="btn primary" data-wear>See it on ${st.site}</button>
+  <p class="sub" style="margin:0;text-align:center">Only you will see it. The website isn't changed.</p></section>`;
+const sizeCtl = () => `<button class="ibtn tip" data-tip="Smaller" aria-label="Smaller" data-size="-5">−</button><span class="pct">${st.scale}%</span><button class="ibtn tip" data-tip="Bigger" aria-label="Bigger" data-size="5">+</button>`;
+const ba = (big) => `<div class="ba ${big ? "big" : ""}" role="radiogroup" aria-label="Show">${[[false, "Before"], [true, "After"]].map(([v, l]) => `<button role="radio" aria-checked="${st.on === v}" data-ba="${v}">${l}</button>`).join("")}</div>`;
+const useFigma = () => st.scale !== 100 ? `<button class="btn wide2" data-toast="Copied. Paste in the Figma plugin to update your text styles">Use ${st.scale}% in Figma</button>` : "";
+
+// 1. Switch: one big Before / After, then a quiet list.
+const v1 = () => `<div class="stage">${browser()}
+  <aside class="panel" aria-label="Font Finder Plus side panel">${!st.ready ? ready() : `
+    <section class="box">
+      <div class="wtop"><span class="t"><span>Wearing · from Figma</span><b>${MINE.name}</b></span><span class="host">${st.site}</span></div>
+      ${ba(true)}
+    </section>
+    <section class="box">
+      <h2>Your fonts on this page</h2>
+      <div class="rows">${ROLES.map(([r, k]) => { const v = MINE[r]; return `<div class="row" data-role="${r}"><span class="k">${k}</span><span class="v" style="font-family:'${v[0]}';font-weight:${v[2]}">${v[0]}</span><span class="n">${sz(v)}px</span></div>`; }).join("")}</div>
+      <div class="sizerow"><span>Text size</span><span class="grow"></span>${sizeCtl()}</div>
+      ${useFigma()}
+    </section>
+    <div class="acts"><button class="btn" style="background:var(--sheet)" data-toast="Saved a before and after picture">Save before and after</button><button class="btn" style="background:var(--sheet)" data-stop>Stop</button></div>`}
+  </aside></div>`;
+
+// 2. Cards: the Page tab's patterns (site card, numbered font cards).
+const v2 = () => `<div class="stage">${browser()}
+  <aside class="panel" aria-label="Font Finder Plus side panel">${!st.ready ? ready() : `
+    <section class="box wcard">
+      <div class="wtop"><span class="pdot ${st.on ? "on" : ""}"></span><span class="t"><span>Wearing · from Figma</span><b>${MINE.name}</b></span><span class="host">${st.site}</span></div>
+      ${ba(false)}
+      <div class="wfoot"><button class="btn primary sm" data-toast="Saved a before and after picture">Save before and after</button><span class="grow"></span>${sizeCtl()}</div>
+      ${useFigma()}
+    </section>
+    ${ROLES.map(([r, k], n) => { const v = MINE[r]; return `<section class="box fcard" data-role="${r}">
+      <div class="fh"><span class="num">0${n + 1}</span><b>${v[0]}</b><span class="lic"><i></i>Free</span><span class="grow"></span><span class="where">${k}</span></div>
+      <div class="spec" style="font-family:'${v[0]}';font-weight:${v[2]};font-size:${Math.min(sz(v), 34)}px">${SAMPLE[r]}</div>
+      <div class="fm">${meta(r, v)}</div></section>`; }).join("")}
+    <button class="btn" style="background:var(--sheet)" data-stop>Stop wearing</button>`}
+  </aside></div>`;
+
+// 3. On the page: the website is the star; a floating bar on the page does the work, the panel only lists the fonts.
+const bar = () => st.ready ? `<div class="floatbar" role="toolbar" aria-label="See it on the web">
+  <span class="fb-name">${MINE.name}</span>
+  <div class="fb-ba">${[[false, "Before"], [true, "After"]].map(([v, l]) => `<button aria-pressed="${st.on === v}" data-ba="${v}">${l}</button>`).join("")}</div>
+  <span class="fb-sep"></span>${sizeCtl()}<span class="fb-sep"></span>
+  <button class="fb-btn tip" data-tip="Save before and after" aria-label="Save before and after" data-toast="Saved a before and after picture">${CAM}</button>
+  <button class="fb-btn tip" data-tip="Stop" aria-label="Stop" data-stop>${XI}</button></div>` : "";
+const v3 = () => `<div class="stage">${browser(bar())}
+  <aside class="panel" aria-label="Font Finder Plus side panel">${!st.ready ? ready() : `
+    <section class="box showcard">
+      <div class="pstat"><span class="pdot ${st.on ? "on" : ""}"></span><span class="t"><span>${st.on ? "Showing · from Figma" : "Paused · the website's own fonts"}</span><b>${MINE.name}</b></span><span class="host">${st.site}</span>
+        <button class="switch" role="switch" aria-checked="${st.on}" aria-label="Show my fonts on this website" data-toggle></button></div>
+      <p class="sub" style="margin:0">The bar on the website switches Before and After and changes the size. Point at a font to find it on the page.</p>
+    </section>
+    <section class="box">
+      <div class="sechead"><h2>Your fonts on this page</h2><span class="lic"><i></i>All free</span></div>
+      <p class="sub">Point at one to find it on the page. Change which of your styles any part uses.</p>
+      ${tiles(true)}
+      ${Object.keys(MAP0).some((k) => MAP0[k] !== st.map[k]) ? `<button class="linkb" data-reset-map style="align-self:flex-start;padding:0">Back to your file's choices</button>` : ""}
+      ${useFigma()}
+    </section>`}
+  </aside></div>`;
+const web = () => v3();
+const STYLES = [
+  ["s1", "Display", "Fraunces", 600, 64, "free"], ["s2", "Heading 2", "Fraunces", 400, 28, "free"], ["s3", "Body", "Source Serif 4", 400, 17, "free"],
+  ["s4", "Label", "Inter", 600, 13, "free"], ["s5", "Caption", "Inter", 400, 12, "free"], ["s6", "Quote", "Söhne", 400, 22, "paid"]];
+const ROLE_NAME = { h1: "Main heading", h2: "Other headings", body: "Paragraphs", label: "Buttons and menu", none: "Not used" };
+const used = () => STYLES.filter(([id]) => st.use[id]).length;
+const pwin = (body, foot = "") => `<div class="pwin"><div class="ptitle"><span class="logo">F+</span><b>Font Finder Plus</b></div><div class="pbody">${body}</div>${foot ? `<div class="pfoot">${foot}</div>` : ""}</div>`;
+const fHome = () => pwin(`
+  <section class="box opt-main">
+    <span class="bigic">${GLOBE}</span>
+    <div><h2>See your type on the web</h2><p class="sub2">Show this file's text styles on any website: your own, a client's, a competitor's. Nothing on the site changes for anyone else.</p></div>
+    <button class="btn primary" data-fstep="pick">Choose text styles</button>
+  </section>
+  <section class="box opt-quiet">
+    <span class="smic">${PASTEI}</span><div class="ot"><b>Paste from Font Finder Plus</b><span>Make text styles from a website's type</span></div><span class="chev">${CHEVR}</span>
+  </section>`);
+const fPick = () => pwin(`
+  <div class="phead"><button class="pback" data-fstep="home" aria-label="Back">${BACKI}</button><b>See your type on the web</b></div>
+  <section class="box">
+    <div class="sechead"><h2>Text styles in this file</h2><span class="count">${used()} chosen</span></div>
+    <p class="sub">We guessed where each one goes on a website. Change any of them.</p>
+    <div class="slist">${STYLES.map(([id, name, font, w, size, lic]) => `
+      <div class="srow2 ${st.use[id] ? "" : "off"}">
+        <button class="ck" role="checkbox" aria-checked="${st.use[id]}" aria-label="Use ${name}" data-use="${id}">${TICK}</button>
+        <div class="si"><b>${name}</b><span style="font-family:'${lic === "paid" ? "Inter" : font}';font-weight:${w}">${font} · ${size}px</span>${lic === "paid" && st.use[id] ? `<span class="paid"><i></i>Paid. Shows as Inter on the web unless you have Söhne installed</span>` : ""}</div>
+        <div class="rolewrap"><button class="rolebtn" data-menu="${id}" aria-haspopup="listbox" aria-expanded="${st.menu === id}" ${st.use[id] ? "" : "disabled"}>${ROLE_NAME[st.use[id] ? st.roles[id] : "none"]}<span class="chev">${CHEVD}</span></button>
+          ${st.menu === id ? `<ul class="rmenu" role="listbox">${Object.entries(ROLE_NAME).filter(([k]) => k !== "none").map(([k, l]) => `<li role="option" aria-selected="${st.roles[id] === k}" data-role-pick="${id}:${k}">${l}${st.roles[id] === k ? TICK : ""}</li>`).join("")}</ul>` : ""}</div>
+      </div>
+`).join("")}</div>
+  </section>
+  <section class="box">
+    <h2>Try it on</h2>
+    <input id="site" class="field2" value="${st.site}" placeholder="Any website, like yoursite.com" data-site aria-label="Website to try it on" autocomplete="off" spellcheck="false">
+    ${st.recent.length ? `<div class="recent">${st.recent.map((h) => `<span class="rchip ${st.site === h ? "on" : ""}"><button class="rpick" data-pick-site="${h}" aria-pressed="${st.site === h}">${h}</button><button class="rx" data-rm-site="${h}" aria-label="Remove ${h}">${XS}</button></span>`).join("")}</div>` : ""}
+  </section>`,
+  `<button class="btn primary" data-send>Open ${st.site || "a website"} in Chrome</button><button class="linkb" data-copyonly>Copy instead</button>`);
+const fSent = () => pwin(`
+  <section class="box sent">
+    <span class="okic">${TICKBIG}</span>
+    <div><h2>Ready in Chrome</h2><p class="sub2">Go to any website and click Font Finder Plus. ${MINE.name} will be waiting, with a button to see it on that page.</p></div>
+    <ol class="steps2"><li><span class="n">1</span>Open any website, for example your own</li><li><span class="n">2</span>Click the Font Finder Plus icon</li><li><span class="n">3</span>Press “See it here”</li></ol>
+    <button class="btn" data-step="web">Show me</button>
+  </section>`);
+const handPage = () => {
+  const fonts = [...new Set(Object.values(st.map).map((n) => LIB[n].f))];
+  const site = st.site || "your website";
+  const trail = (a, b, c) => `<div class="hp-trail"><span class="${a}">${FIG} Figma</span><i></i><span class="${b}">F+ Font Finder Plus</span><i></i><span class="${c}">${GLOBE_S} ${site}</span></div>`;
+  const type = `<div class="hp-type"><span class="hp-k">Your type</span><b>${MINE.name}</b><div class="hp-fl">${fonts.map((f) => `<span style="font-family:'${f}'">${f}</span>`).join("")}</div></div>`;
+  let body;
+  if (st.hand === "ok") body = `${trail("done", "now", "")}
+    <h1>Taking you to ${site}</h1>
+    <ul class="hp-steps"><li class="done">${TICK} Got ${Object.keys(st.map).length} text styles from Figma</li><li class="now"><span class="hp-spin"></span> Loading ${fonts.join(", ")}</li><li>Opening ${site}</li></ul>
+    <p class="hp-note">This tab closes by itself. Nothing here was sent to a server.</p>`;
+  else if (st.hand === "none") body = `${trail("done", "need", "")}
+    <h1>Add Font Finder Plus to Chrome first</h1>
+    <p>It's free. It's what puts your Figma type onto ${site}. Your type is saved in this tab, so nothing is lost.</p>
+    <ol class="hp-two"><li><span class="n">1</span><div><b>Add it to Chrome</b><button class="btn primary" data-toast="Opens Font Finder Plus in the Chrome Web Store">Add to Chrome, free</button></div></li>
+      <li><span class="n">2</span><div><b>Come back to this tab</b><button class="btn" data-hand="ok">Continue to ${site}</button></div></li></ol>
+    ${type}`;
+  else body = `${trail("done", "", "")}
+    <h1>Open this in Chrome on a computer</h1>
+    <p>Font Finder Plus works in Chrome. Copy this link and paste it into Chrome; your type comes with it.</p>
+    <div class="hp-link"><span>fontfinder.example/see#northwind-type</span><button class="btn primary sm" data-toast="Link copied">Copy link</button></div>
+    ${type}`;
+  return `<div class="stage hp"><div class="browser"><div class="chrome"><span class="dots"><i></i><i></i><i></i></span><span class="url">fontfinder.example/see</span></div>
+    <div class="viewport hp-view"><div class="hp-card">${body}</div></div></div>
+    <aside class="panel"><section class="box"><h2>What this page does</h2><p class="sub">It only passes your type from Figma to Chrome, then gets out of the way. Pick a situation to see it.</p>
+      <div class="ba3" role="radiogroup" aria-label="Situation">${[["ok", "Extension added"], ["none", "Not added yet"], ["other", "Not Chrome"]].map(([k, l]) => `<button role="radio" aria-checked="${st.hand === k}" data-hand="${k}">${l}</button>`).join("")}</div>
+      ${st.hand === "ok" ? `<button class="btn primary" data-step="web">Go to ${site}</button>` : ""}</section></aside></div>`;
+};
+const tiles2 = () => `<div class="hp-fonts">${[...new Map(ROLES.map(([r]) => [MINE[r][0], MINE[r]])).values()].map((v) => `<span style="font-family:'${v[0]}';font-weight:${v[2]}">${v[0]}</span>`).join("")}</div>`;
+const figma = () => `<div class="stage">
+  <div class="canvas"><div class="frame"><span class="lbl">Text styles · ${MINE.name}</span>
+    ${ROLES.map(([r, k]) => { const v = MINE[r]; return `<div style="font-family:'${v[0]}';font-size:${Math.min(v[1], 48)}px;font-weight:${v[2]};line-height:1.1">${r === "body" ? "Every payment, matched as it happens." : r === "label" ? "Book a demo" : r === "h2" ? "Every transaction, matched" : "Close the books in hours"}</div>`; }).join("")}</div></div>
+  <aside aria-label="Font Finder Plus Figma plugin">${st.fstep === "home" ? fHome() : st.fstep === "pick" ? fPick() : fSent()}</aside></div>`;
+function render() { stage.innerHTML = st.step === "web" ? web() : st.step === "hand" ? handPage() : figma(); document.querySelectorAll("[data-step]").forEach((b) => b.toggleAttribute("aria-current", b.dataset.step === st.step)); }
+let tt; function toast(m) { document.querySelector(".toast")?.remove(); const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = m; document.body.appendChild(t); clearTimeout(tt); tt = setTimeout(() => t.remove(), 2400); }
+document.addEventListener("click", (e) => {
+  const q = (s) => e.target.closest(s); let el;
+  if ((el = q("[data-step]"))) { st.step = el.dataset.step; if (st.step === "web") { st.ready = false; st.on = false; } render(); return; }
+  if ((el = q("[data-ba]"))) { st.on = el.dataset.ba === "true"; render(); return; }
+  if ((el = q("[data-size]"))) { st.scale = Math.max(80, Math.min(120, st.scale + +el.dataset.size)); render(); return; }
+  if (q("[data-stop]")) { st.on = false; st.ready = false; render(); toast("Stopped. The website shows its own fonts"); return; }
+  if (q("[data-wear]")) { st.ready = true; st.on = true; render(); return; }
+  if ((el = q("[data-pmenu]"))) { e.stopPropagation(); st.pmenu = st.pmenu === el.dataset.pmenu ? null : el.dataset.pmenu; render(); return; }
+  if ((el = q("[data-pset]"))) { const [r, n] = el.dataset.pset.split(":"); st.map[r] = n; st.pmenu = null; render(); toast(`${PARTS.find((p) => p[0] === r)[1]} now uses ${n}`); return; }
+  if (q("[data-reset-map]")) { st.map = { ...MAP0 }; render(); return; }
+  if ((el = q("[data-rm-site]"))) { const h = el.dataset.rmSite; st.recent = st.recent.filter((x) => x !== h); if (st.site === h) st.site = ""; render(); return; }
+  if (st.pmenu && !q(".rmenu")) { st.pmenu = null; render(); }
+  if (q("[data-all]")) { st.all = !st.all; render(); return; }
+  if (q("[data-toggle]")) { st.on = !st.on; render(); return; }
+  if ((el = q("[data-fstep]"))) { st.fstep = el.dataset.fstep; st.menu = null; render(); return; }
+  if ((el = q("[data-use]"))) { const id = el.dataset.use; st.use[id] = !st.use[id]; if (st.use[id] && st.roles[id] === "none") st.roles[id] = "body"; render(); return; }
+  if ((el = q("[data-menu]"))) { st.menu = st.menu === el.dataset.menu ? null : el.dataset.menu; render(); return; }
+  if ((el = q("[data-role-pick]"))) { const [id, r] = el.dataset.rolePick.split(":"); st.roles[id] = r; st.menu = null; render(); return; }
+  if (q("[data-send]")) { st.step = "hand"; st.hand = "ok"; render(); setTimeout(() => { if (st.step === "hand" && st.hand === "ok") { st.step = "web"; st.ready = true; st.on = true; render(); toast(`Showing Northwind type on ${st.site}`); } }, 2200); return; }
+  if ((el = q("[data-hand]"))) { st.hand = el.dataset.hand; render(); return; }
+  if ((el = q("[data-pick-site]"))) { st.site = el.dataset.pickSite; render(); return; }
+  if (q("[data-copyonly]")) { toast("Copied. Paste it in the Font Finder Plus panel on any website"); return; }
+  if (q("[data-copy]")) { toast("Copied. Now open any website"); setTimeout(() => { st.step = "web"; st.ready = false; st.on = false; render(); }, 800); return; }
+  if ((el = q("[data-toast]"))) toast(el.dataset.toast);
+});
+document.addEventListener("input", (e) => { if (e.target.matches("[data-site]")) { st.site = e.target.value.trim(); const b = document.querySelector("[data-send]"); if (b) b.textContent = `Open ${st.site || "a website"} in Chrome`; document.querySelectorAll(".rchip").forEach((c) => c.classList.toggle("on", c.querySelector(".rpick").dataset.pickSite === st.site)); } });
+document.addEventListener("pointerover", (e) => { const r = e.target.closest("[data-role], [data-roles]"); document.querySelectorAll(".site").forEach((s) => s.setAttribute("data-hl", r ? (r.dataset.roles || r.dataset.role) : "")); });
+const variants = LISTS;
+// Picker wiring (verbatim behaviour)
+const stage = document.getElementById('stage');
+const picker = document.querySelector('.proto-picker');
+const highlight = picker.querySelector('.proto-picker-highlight');
+const items = [...picker.querySelectorAll('.proto-picker-item:not(.proto-picker-replay)')];
+const replay = picker.querySelector('.proto-picker-replay');
+let current = 0;
+function moveHighlight() { const el = items[current]; highlight.style.width = el.offsetWidth + 'px'; highlight.style.transform = `translateX(${el.offsetLeft}px)`; }
+function mount(i) { render(); }
+function setActive(i) {
+  if (i < 0 || i >= variants.length) return;
+  current = i;
+  items.forEach((el, j) => { el.toggleAttribute('data-active', j === i); if (j === i) el.setAttribute('aria-current', 'true'); else el.removeAttribute('aria-current'); });
+  moveHighlight();
+  try { const url = new URL(location); url.searchParams.set('v', i + 1); history.replaceState(null, '', url); } catch (err) {}
+  mount(i);
+}
+items.forEach((el, i) => el.addEventListener('click', () => setActive(i)));
+replay?.addEventListener('click', () => mount(current));
+window.addEventListener('resize', moveHighlight);
+document.addEventListener('keydown', (e) => {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const num = parseInt(e.key, 10);
+  if (num >= 1 && num <= variants.length) setActive(num - 1);
+  else if (e.key === 'ArrowRight') setActive((current + 1) % variants.length);
+  else if (e.key === 'ArrowLeft') setActive((current - 1 + variants.length) % variants.length);
+  else if (e.key === 'r' || e.key === 'R') mount(current);
+});
+let requested = 1;
+try { requested = parseInt(new URLSearchParams(location.search).get('v'), 10); } catch (err) {}
+setActive(requested >= 1 && requested <= variants.length ? requested - 1 : 0);
+requestAnimationFrame(() => requestAnimationFrame(() => picker.setAttribute('data-ready', '')));
+</script>
+
+</body></html>

@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modern Panel v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --desk: #e9e8e6;
+  --pbg: #f4f4f3; --card: #ffffff; --inset: #f8f8f7; --field: #f0f0ee; --field-2: #e6e6e4; --track: #e9e9e7;
+  --ink: #161616; --ink-2: #4f4f4f; --ink-3: #7a7a7a; --faint: #a3a3a0; --line: rgba(0,0,0,0.07);
+  --free: #0b7a37; --free-dot: #19a35a; --paid: #8a5a00; --paid-dot: #e39b12; --red: #d4332a;
+  --ui: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --r-card: 18px; --r-inner: 14px; --r-ctl: 11px;
+}
+.theme-dark {
+  --pbg: #0e0e0e; --card: #1a1a1a; --inset: #212121; --field: #262626; --field-2: #303030; --track: #222222;
+  --ink: #f1f1f1; --ink-2: #bdbdbd; --ink-3: #8f8f8f; --faint: #6b6b6b; --line: rgba(255,255,255,0.08);
+  --free: #4cc884; --paid: #f0b44c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--desk); color: #161616; font: 13.5px/1.45 var(--ui); -webkit-font-smoothing: antialiased; font-feature-settings: "cv11", "ss01"; }
+button, input { font: inherit; color: inherit; border: 0; background: none; padding: 0; }
+button { cursor: pointer; }
+svg { display: block; flex: none; }
+.kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 6px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line), 0 1px 0 var(--line); font: 500 11.5px/1 var(--mono); color: var(--ink-2); }
+.kbds { display: inline-flex; gap: 4px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; }
+.lic { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; }
+.lic.free { color: var(--free); } .lic.free .dot { background: var(--free-dot); }
+.lic.paid { color: var(--paid); } .lic.paid .dot { background: var(--paid-dot); }
+
+.topctl { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); z-index: 50; display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: rgba(255,255,255,0.75); backdrop-filter: blur(10px); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06); }
+.topctl button { height: 28px; padding: 0 14px; border-radius: 999px; font-size: 12.5px; color: #7a7a7a; white-space: nowrap; }
+.topctl button[aria-pressed="true"] { background: #fff; color: #161616; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+#stage { padding: 66px 24px 28px; }
+
+.desk { display: flex; max-width: 1360px; margin: 0 auto; height: calc(100vh - 94px); min-height: 640px; border-radius: 14px; overflow: hidden; box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 24px 60px -20px rgba(0,0,0,0.25); background: #fff; }
+.win { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.chrome { height: 44px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: #f1f1f0; border-bottom: 1px solid rgba(0,0,0,0.07); }
+.chrome .lights { display: flex; gap: 7px; } .chrome .lights i { width: 11px; height: 11px; border-radius: 50%; background: #d6d6d4; }
+.chrome .url { flex: 1; max-width: 520px; height: 28px; border-radius: 999px; background: #fff; display: flex; align-items: center; padding: 0 14px; font-size: 12.5px; color: #4d4d4d; }
+.chrome .ext { margin-left: auto; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: #e3e3e1; }
+.logo { display: inline-grid; place-items: center; background: #161616; color: #fff; font: 600 11px/1 "Fraunces", serif; width: 18px; height: 18px; border-radius: 5px; position: relative; flex: none; }
+.logo::after { content: ""; position: absolute; right: 18%; top: 18%; width: 18%; height: 18%; border-radius: 1px; background: #ff5a36; }
+.vp { flex: 1; position: relative; overflow: hidden; background: #fbfaf7; }
+
+/* sample website */
+.site { height: 100%; overflow: auto; padding-bottom: 120px; color: #1b1a17; }
+.s-nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 48px; border-bottom: 1px solid rgba(0,0,0,0.06); }
+.s-nav b { font: 600 16px/1 "Inter"; letter-spacing: -0.01em; }
+.s-nav nav { display: flex; gap: 22px; font: 400 13.5px/1 "Inter"; color: #3b3a36; }
+.s-art { max-width: 720px; margin: 0 auto; padding: 44px 48px 0; }
+.s-kick { font: 500 11.5px/1 "Inter"; letter-spacing: 0.12em; color: #8a6d3b; margin: 0 0 18px; }
+.s-art h1 { font: 600 50px/1.04 "Fraunces", serif; letter-spacing: -0.02em; margin: 0 0 20px; }
+.s-lede { font: 400 20px/1.5 "Source Serif 4", serif; color: #2f2d29; margin: 0 0 22px; }
+.s-art p.b { font: 400 17px/1.65 "Source Serif 4", serif; color: #3a3833; margin: 0 0 18px; }
+.s-art h2 { font: 600 26px/1.15 "Fraunces", serif; margin: 30px 0 12px; }
+.s-fig { height: 200px; border-radius: 6px; background: linear-gradient(135deg, #c9d6cf, #e8dcc5 60%, #d9c3a5); margin: 8px 0; }
+.s-cap { font: 400 12.5px/1.4 "Inter"; color: #7a776f; margin: 0 0 24px; }
+.on [data-f] { cursor: crosshair; }
+.on [data-f]:hover, [data-f].sel { outline: 1.5px solid #2f6bff; outline-offset: 3px; border-radius: 2px; }
+[data-f].flash { outline: 2px solid #2f6bff; outline-offset: 4px; border-radius: 2px; background: rgba(47,107,255,0.06); }
+
+/* dock */
+.dock { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 2px; padding: 6px; border-radius: 20px; background: #1a1a1a; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 12px 32px rgba(0,0,0,0.28); color: rgba(255,255,255,0.7); animation: dockIn 320ms var(--ease); }
+@keyframes dockIn { from { opacity: 0; transform: translate(-50%, 12px); } }
+.dock .db { position: relative; width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; transition: background 150ms, color 150ms, transform 140ms var(--ease); }
+.dock .db svg { width: 20px; height: 20px; }
+.dock .db:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.dock .db:active { transform: scale(0.94); }
+.dock .db[aria-pressed="true"] { background: rgba(255,255,255,0.15); color: #fff; }
+.dock .sep { width: 1px; height: 22px; margin: 0 4px; background: rgba(255,255,255,0.14); }
+.dock .db .tip { position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%) translateY(2px); white-space: nowrap; display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 10px; border-radius: 9px; background: #1a1a1a; color: #fff; font: 500 12px/1 var(--ui); box-shadow: 0 6px 16px rgba(0,0,0,0.25); pointer-events: none; opacity: 0; transition: opacity 120ms, transform 160ms var(--ease); }
+.dock .db:hover .tip { opacity: 1; transform: translateX(-50%); transition-delay: 250ms; }
+.dock .tip .k { font: 500 11px/1 var(--mono); color: rgba(255,255,255,0.55); padding: 3px 5px; border-radius: 5px; background: rgba(255,255,255,0.1); }
+
+/* hover card on the page */
+.hc { position: absolute; z-index: 25; width: 292px; padding: 14px; border-radius: 18px; background: #fff; color: #161616; box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 16px 36px rgba(0,0,0,0.14); display: flex; flex-direction: column; gap: 12px; pointer-events: none; opacity: 0; transform: translateY(4px); transition: opacity 120ms var(--ease), transform 160ms var(--ease); font: 13px/1.4 var(--ui); }
+.hc.show { opacity: 1; transform: none; } .hc.pinned { pointer-events: auto; }
+.hc-h { display: flex; align-items: flex-start; gap: 8px; }
+.hc-h > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.hc-h b { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.hc-h small { color: #7a7a7a; font-size: 12px; }
+.hc-h button { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: #4f4f4f; background: #f0f0ee; }
+.hc-h button svg { width: 15px; height: 15px; }
+.hc-h button[aria-pressed="true"] { background: #161616; color: #fff; }
+.hc-m { height: 92px; border-radius: 12px; background: #f8f8f7; position: relative; overflow: hidden; }
+.hc-m .g { position: absolute; left: 14px; bottom: 14px; font-size: 64px; line-height: 1; color: #161616; }
+.hc-m i { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed rgba(0,0,0,0.18); }
+.hc-m i span { position: absolute; right: 10px; top: -15px; font: 500 10px/1 var(--mono); color: #7a7a7a; }
+.hc-g { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.hc-g button { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 8px 10px; border-radius: 10px; text-align: left; transition: background 120ms; }
+.hc-g button:hover { background: #f4f4f3; }
+.hc-g span { font-size: 11.5px; color: #7a7a7a; } .hc-g b { font: 500 12.5px/1.2 var(--mono); display: flex; align-items: center; gap: 6px; }
+.hc-a { display: flex; gap: 8px; }
+.hc-a button { flex: 1; height: 38px; border-radius: 11px; background: #f0f0ee; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.hc-a button.pri { background: #161616; color: #fff; }
+.hc-a svg { width: 16px; height: 16px; }
+
+.hc-h button.pinchip { width: auto; height: 26px; padding: 0 8px; gap: 5px; display: inline-flex; align-items: center; background: #161616; color: #fff; }
+.hc-h button.pinchip:hover { background: #333; }
+.hc-h button.pinchip svg:last-child { opacity: 0.6; }
+.hc-h .pinchip { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border-radius: 8px; background: #161616; color: #fff; font-size: 11.5px; font-weight: 500; margin-top: 3px; }
+.hc-h .pinchip svg { width: 12px; height: 12px; }
+.hc.is-pinned .hc-h button[aria-pressed="true"] { background: #f0f0ee; color: #4f4f4f; }
+.hc.is-pinned { box-shadow: 0 0 0 1.5px #161616, 0 16px 36px rgba(0,0,0,0.16); }
+.hc-g button { position: relative; }
+.hc-g .cp { position: absolute; right: 8px; top: 8px; color: #7a7a7a; opacity: 0; transition: opacity 120ms; }
+.hc.is-pinned .hc-g button:hover .cp { opacity: 1; }
+.hc-g button.copied b { color: #0b7a37; }
+.hc-a .sq { flex: none; width: 38px; padding: 0; }
+.hc-hint { margin: -2px 0 0; font-size: 12px; color: #7a7a7a; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.hc-hint .kbd { height: 20px; min-width: 20px; font-size: 10.5px; background: #fff; }
+.hc-hint.pinme { padding: 10px 12px; border-radius: 11px; background: #f4f4f3; color: #4f4f4f; margin: 0; }
+.coach { position: absolute; left: 50%; bottom: 82px; transform: translateX(-50%); z-index: 29; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 10px; border-radius: 14px; background: #fff; color: #161616; box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 10px 28px rgba(0,0,0,0.14); font-size: 13px; white-space: nowrap; animation: dockIn 300ms var(--ease); }
+.coach .step { font: 500 11px/1 var(--mono); color: #7a7a7a; padding: 4px 6px; border-radius: 6px; background: #f0f0ee; }
+.coach > span:nth-child(2) { display: inline-flex; align-items: center; gap: 5px; }
+.coach .kbd { height: 20px; min-width: 20px; font-size: 10.5px; background: #fff; }
+.coach button { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: #7a7a7a; }
+.coach button:hover { background: #f0f0ee; }
+.keys .kbds { flex: none; } .keys .plain { font-size: 12.5px; color: var(--ink-3); flex: none; }
+/* ================= the side panel ================= */
+.sp { width: 380px; flex: none; display: flex; flex-direction: column; border-left: 1px solid rgba(0,0,0,0.08); background: var(--pbg); color: var(--ink); }
+.sp-chrome { height: 44px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 13px; font-weight: 500; border-bottom: 1px solid rgba(0,0,0,0.07); background: #f1f1f0; color: #161616; }
+.sp-chrome .x { margin-left: auto; display: flex; gap: 2px; color: #7a7a7a; }
+.sp-chrome .x button { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; }
+.sp-chrome .x svg { width: 15px; height: 15px; }
+.app { flex: 1; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
+
+.topbar { display: flex; gap: 8px; position: sticky; top: -12px; z-index: 5; margin: -12px -12px 0; padding: 12px; background: var(--pbg); }
+.tabs { flex: 1; display: flex; padding: 4px; gap: 2px; border-radius: 14px; background: var(--track); }
+.tabs button { flex: 1; height: 34px; border-radius: 10px; font-weight: 500; color: var(--ink-3); transition: color 150ms, background 150ms, box-shadow 150ms; }
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.02); }
+.sqbtn { width: 42px; height: 42px; border-radius: 14px; background: var(--track); display: grid; place-items: center; color: var(--ink-2); flex: none; transition: background 150ms; }
+.sqbtn:hover { background: var(--field-2); }
+.sqbtn.white { background: var(--card); box-shadow: 0 0 0 1px var(--line); }
+
+.card { background: var(--card); border-radius: var(--r-card); padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.card h3 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.ht { display: flex; flex-direction: column; gap: 8px; } .ht p { margin: 0; color: var(--ink-2); }
+.sub { color: var(--ink-3); font-size: 12.5px; margin: 0; }
+.label { display: flex; align-items: center; justify-content: space-between; padding: 10px 6px 0; font-size: 12.5px; color: var(--ink-3); }
+.label b { color: var(--ink); font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
+.count { height: 22px; padding: 0 8px; border-radius: 999px; background: var(--track); display: inline-flex; align-items: center; font: 500 11.5px/1 var(--mono); color: var(--ink-2); }
+.btn { height: 38px; padding: 0 14px; border-radius: var(--r-ctl); background: var(--field); font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 7px; white-space: nowrap; transition: background 150ms, transform 140ms var(--ease); }
+.btn:hover { background: var(--field-2); }
+.btn:active { transform: scale(0.97); }
+.btn.pri { background: var(--ink); color: var(--card); }
+.btn.sm { height: 34px; padding: 0 12px; font-size: 13px; }
+.btn.wide { height: 44px; width: 100%; }
+.btn svg { width: 16px; height: 16px; }
+.ib { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; color: var(--ink-2); transition: background 120ms, color 120ms; flex: none; }
+.ib:hover { background: var(--field); color: var(--ink); }
+.ib svg { width: 17px; height: 17px; }
+.igrp { display: flex; gap: 2px; padding: 3px; border-radius: 13px; background: var(--field); }
+.igrp .ib:hover { background: var(--card); }
+.switch { width: 40px; height: 24px; border-radius: 999px; background: var(--field-2); position: relative; flex: none; transition: background 180ms var(--ease); }
+.switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: transform 220ms var(--ease); }
+.switch[aria-checked="true"] { background: var(--ink); }
+.switch[aria-checked="true"]::after { transform: translateX(16px); }
+.theme-dark .tabs button[aria-selected="true"], .theme-dark .seg button[aria-pressed="true"], .theme-dark .secnav button[aria-current="true"] { background: #333; box-shadow: none; }
+.theme-dark .switch[aria-checked="true"]::after { background: #161616; }
+
+/* page tab */
+.site-st { display: flex; align-items: center; gap: 12px; }
+.live { width: 8px; height: 8px; border-radius: 50%; background: var(--ink); position: relative; flex: none; }
+.live.on::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid var(--ink); opacity: 0; animation: ping 2s var(--ease) infinite; }
+@keyframes ping { 0% { transform: scale(0.6); opacity: 0.5; } 80%, 100% { transform: scale(1.6); opacity: 0; } }
+.live.off { background: var(--faint); }
+.site-st .w { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.site-st .w small { font-size: 12px; color: var(--ink-3); }
+.site-st .w b { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.site-acts { display: flex; align-items: center; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.site-acts .btn { flex: 1; }
+.keys { display: flex; flex-direction: column; }
+.keys div { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 38px; border-top: 1px solid var(--line); color: var(--ink-2); }
+.keys div:first-child { border-top: 0; }
+.allsites { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-inner); background: var(--inset); }
+.allsites > div { flex: 1; display: flex; flex-direction: column; gap: 2px; } .allsites b { font-weight: 500; } .allsites span { font-size: 12px; color: var(--ink-3); }
+.tester { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 14px; border-radius: var(--r-card); background: var(--card); }
+.tester svg { color: var(--ink-3); width: 16px; height: 16px; }
+.tester input { flex: 1; min-width: 0; height: 36px; outline: none; }
+.tester input::placeholder { color: var(--ink-3); }
+.size { display: flex; align-items: center; gap: 8px; padding: 0 10px; height: 34px; border-radius: 10px; background: var(--field); font: 500 12px/1 var(--mono); color: var(--ink-2); }
+.size input { width: 70px; accent-color: var(--ink); }
+.swaps { display: flex; flex-direction: column; border-radius: var(--r-inner); background: var(--inset); padding: 4px 14px; }
+.swaps div { display: flex; align-items: center; gap: 10px; min-height: 40px; border-top: 1px solid var(--line); }
+.swaps div:first-child { border-top: 0; }
+.swaps span { flex: 1; color: var(--ink-2); } .swaps b { font-weight: 500; } .swaps em { font: normal 500 11.5px/1 var(--mono); color: var(--ink-3); width: 36px; text-align: right; }
+.swaps svg { width: 14px; height: 14px; color: var(--faint); }
+.rowlink { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--r-card); background: var(--card); text-align: left; transition: background 150ms; }
+.rowlink:hover { background: var(--inset); }
+.rowlink > div { flex: 1; display: flex; flex-direction: column; gap: 2px; } .rowlink b { font-weight: 500; } .rowlink span { font-size: 12px; color: var(--ink-3); }
+.rowlink .warn { color: var(--paid-dot); }
+.rowlink > svg:last-child { color: var(--faint); width: 16px; height: 16px; }
+.fc { background: var(--card); border-radius: var(--r-card); padding: 14px 14px 12px 16px; display: flex; flex-direction: column; gap: 10px; transition: box-shadow 150ms; }
+.fc:hover { box-shadow: 0 0 0 1px var(--line); }
+.fc-t { display: flex; align-items: center; gap: 8px; }
+.fc-t .n { font: 500 11px/1 var(--mono); color: var(--faint); }
+.fc-t b { font-weight: 600; letter-spacing: -0.005em; }
+.fc-t .acts { margin-left: auto; display: flex; gap: 0; }
+.fc .smp { font-size: 30px; line-height: 1.1; letter-spacing: -0.01em; overflow-wrap: anywhere; outline: none; }
+.fc-b { display: flex; align-items: center; gap: 8px; }
+.fc-b span { flex: 1; font-size: 12px; color: var(--ink-3); }
+.fc-b button { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 6px 0 10px; border-radius: 8px; font-size: 12.5px; font-weight: 500; color: var(--ink-2); }
+.fc-b button:hover { background: var(--field); color: var(--ink); }
+.fc-b svg { width: 14px; height: 14px; }
+
+/* details */
+.subtop { display: flex; align-items: center; gap: 10px; position: sticky; top: -12px; z-index: 5; margin: -12px -12px 0; padding: 12px; background: var(--pbg); }
+.subtop .crumb { flex: 1; min-width: 0; font-size: 13px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subtop .crumb b { color: var(--ink); font-weight: 600; }
+.hero .nm { font-size: 34px; line-height: 1.05; letter-spacing: -0.015em; }
+.hero .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-3); }
+.hero .row { display: flex; gap: 8px; } .hero .row .btn { flex: 1; }
+.secnav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; position: sticky; top: 50px; z-index: 4; margin: 0 -12px; padding: 4px 12px 8px; background: var(--pbg); }
+.secnav button { height: 32px; padding: 0 12px; border-radius: 10px; font-size: 13px; font-weight: 500; color: var(--ink-3); white-space: nowrap; }
+.secnav button[aria-current="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+.yes { display: flex; flex-direction: column; }
+.yes div { display: flex; align-items: center; justify-content: space-between; min-height: 38px; border-top: 1px solid var(--line); color: var(--ink-2); }
+.yes div:first-child { border-top: 0; }
+.yes em { font-style: normal; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; color: var(--ink); }
+.yes em svg { width: 14px; height: 14px; color: var(--free-dot); }
+.sim { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: var(--r-inner); background: var(--inset); }
+.sim .t { display: flex; align-items: center; gap: 8px; } .sim .t b { font-weight: 600; } .sim .t em { margin-left: auto; font: normal 500 11.5px/1 var(--mono); color: var(--ink-3); }
+.sim .s { font-size: 24px; line-height: 1.15; }
+.sim .r { font-size: 12px; color: var(--ink-3); }
+.sim .a { display: flex; gap: 6px; } .sim .a .btn { background: var(--card); }
+.specs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.specs div { padding: 10px 12px; border-radius: 12px; background: var(--inset); display: flex; flex-direction: column; gap: 4px; }
+.specs span { font-size: 11.5px; color: var(--ink-3); } .specs b { font: 500 13px/1.2 var(--mono); }
+.glyphs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.glyphs span { aspect-ratio: 1; border-radius: 10px; background: var(--inset); display: grid; place-items: center; font-size: 20px; }
+
+/* image */
+.drop { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 28px 16px 18px; border-radius: var(--r-inner); background: var(--inset); }
+.drop .ic { width: 44px; height: 44px; border-radius: 13px; background: var(--card); display: grid; place-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.06); margin-bottom: 4px; }
+.drop b { font-size: 15px; font-weight: 600; } .drop p { margin: 0; color: var(--ink-3); font-size: 12.5px; max-width: 250px; }
+.drop .acts { display: flex; gap: 8px; margin-top: 6px; }
+.recent { display: flex; flex-direction: column; }
+.recent button { display: flex; align-items: center; gap: 12px; min-height: 56px; border-top: 1px solid var(--line); text-align: left; }
+.recent button:first-child { border-top: 0; }
+.recent .th { width: 40px; height: 40px; border-radius: 10px; flex: none; }
+.recent div { flex: 1; display: flex; flex-direction: column; gap: 2px; } .recent b { font-weight: 500; } .recent span { font-size: 12px; color: var(--ink-3); }
+
+/* system */
+.score { display: flex; align-items: flex-end; gap: 10px; }
+.score b { font: 600 44px/0.9 var(--ui); letter-spacing: -0.03em; } .score span { color: var(--ink-3); padding-bottom: 4px; }
+.bar { height: 6px; border-radius: 999px; background: var(--field); overflow: hidden; } .bar i { display: block; height: 100%; width: 86%; background: var(--ink); border-radius: inherit; }
+.checks { display: flex; flex-direction: column; }
+.checks div { display: flex; align-items: center; gap: 10px; min-height: 38px; border-top: 1px solid var(--line); }
+.checks div:first-child { border-top: 0; }
+.checks .ok { color: var(--free-dot); } .checks .no { color: var(--paid-dot); }
+.checks svg { width: 15px; height: 15px; }
+.checks span:last-child { flex: 1; color: var(--ink-2); }
+.checks span.ok, .checks span.no { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; background: var(--inset); }
+.styles { display: flex; flex-direction: column; }
+.styles div { display: flex; align-items: baseline; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.styles div:first-child { border-top: 0; padding-top: 0; }
+.styles .nm { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.styles em { font: normal 500 11.5px/1 var(--mono); color: var(--ink-3); }
+.seg { display: flex; padding: 3px; gap: 2px; border-radius: 12px; background: var(--field); }
+.seg button { flex: 1; height: 30px; border-radius: 9px; font-size: 12.5px; font-weight: 500; color: var(--ink-3); }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+pre.code { margin: 0; padding: 14px; border-radius: var(--r-inner); background: var(--inset); font: 400 12px/1.6 var(--mono); color: var(--ink-2); overflow: auto; }
+
+/* library */
+.search { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; border-radius: 13px; background: var(--card); }
+.search svg { color: var(--ink-3); width: 17px; height: 17px; } .search input { flex: 1; outline: none; } .search input::placeholder { color: var(--ink-3); }
+.shelf { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px; }
+.shelf button { flex: none; width: 128px; padding: 12px; border-radius: 16px; background: var(--card); text-align: left; display: flex; flex-direction: column; gap: 8px; }
+.shelf .sw { display: flex; gap: 3px; } .shelf .sw i { width: 14px; height: 14px; border-radius: 4px; }
+.shelf b { font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; } .shelf span { font-size: 12px; color: var(--ink-3); }
+.shelf .new { background: transparent; box-shadow: inset 0 0 0 1.5px var(--field-2); color: var(--ink-2); justify-content: center; align-items: center; }
+
+.toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); padding: 10px 14px; border-radius: 12px; background: #161616; color: #fff; font-size: 13px; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+.view { display: contents; }
+.view > * { flex-shrink: 0; }
+.view > * { animation: vIn 240ms var(--ease) both; }
+@keyframes vIn { from { opacity: 0; transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) { .view > *, .dock { animation: none; } .live.on::after { animation: none; } }
+@media (max-width: 900px) { .s-art { padding: 28px 24px 0; } .s-art h1 { font-size: 38px; } .s-nav nav { display: none; } .sp { width: 340px; } }
+@media (max-width: 720px) { #stage { padding: 66px 10px 20px; } .desk { flex-direction: column; height: auto; } .vp { height: 520px; flex: none; } .sp { width: 100%; height: 760px; border-left: 0; } }
+</style>
+</head>
+<body>
+<div class="topctl" role="group" aria-label="Panel theme"><button data-theme="light" aria-pressed="true">Light</button><button data-theme="dark" aria-pressed="false">Dark</button></div>
+<main id="stage"></main>
+<script>
+const IC = {"CursorPointer01":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M12.0033 19.4056L9.88486 13.3197L9.88485 13.3197C9.08816 11.031 8.68981 9.88664 9.28857 9.28834C9.88733 8.69005 11.0326 9.08809 13.3231 9.88417L19.401 11.9966C20.6716 12.4382 21.3069 12.659 21.4441 13.0867C21.4819 13.2045 21.4949 13.329 21.4824 13.4521C21.4369 13.8989 20.8612 14.2464 19.7097 14.9415C18.9714 15.3872 18.6023 15.61 18.5039 15.9462C18.476 16.0414 18.4641 16.1405 18.4686 16.2396C18.4845 16.5896 18.7902 16.8935 19.4018 17.5012L21.4116 19.4988L21.4117 19.4988C21.7125 19.7979 21.863 19.9474 21.932 20.1147C22.0223 20.3335 22.0227 20.5792 21.9329 20.7983C21.8644 20.9657 21.7143 21.1157 21.4142 21.4155L21.4142 21.4156C21.1148 21.7147 20.9652 21.8642 20.7979 21.9328C20.5791 22.0224 20.3337 22.0224 20.1149 21.9328C19.9476 21.8642 19.7979 21.7147 19.4986 21.4156L19.4986 21.4155L17.4812 19.3998L17.4812 19.3998C16.8797 18.7987 16.5789 18.4982 16.2338 18.4802C16.1293 18.4747 16.0247 18.4875 15.9246 18.5179C15.594 18.6185 15.3745 18.9825 14.9355 19.7106L14.9355 19.7106C14.2491 20.8492 13.9059 21.4185 13.4653 21.4686C13.3353 21.4833 13.2037 21.4696 13.0796 21.4284C12.6588 21.2887 12.4403 20.661 12.0033 19.4056Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M10.8576 7.08329C11.0714 7.43808 11.5323 7.55239 11.8871 7.33861C12.2419 7.12483 12.3562 6.66392 12.1424 6.30913L10.8576 7.08329ZM6.30914 12.1424C6.66392 12.3562 7.12483 12.2419 7.33861 11.8871C7.55239 11.5323 7.43808 11.0714 7.08329 10.8576L6.30914 12.1424ZM5.75 8.5C5.75 6.98122 6.98123 5.75 8.5 5.75V4.25C6.15281 4.25 4.25 6.15279 4.25 8.5H5.75ZM8.5 5.75C9.49944 5.75 10.3752 6.28272 10.8576 7.08329L12.1424 6.30913C11.3999 5.07687 10.0469 4.25 8.5 4.25V5.75ZM7.08329 10.8576C6.28272 10.3752 5.75 9.49945 5.75 8.5H4.25C4.25 10.0469 5.07688 11.3999 6.30914 12.1424L7.08329 10.8576Z\" fill=\"currentColor\"/><path d=\"M14.2515 8.13498C14.2778 8.54836 14.6342 8.86216 15.0476 8.83587C15.461 8.80958 15.7748 8.45316 15.7485 8.03979L14.2515 8.13498ZM8.04118 15.7485C8.45457 15.7747 8.81093 15.4608 8.83714 15.0475C8.86335 14.6341 8.54948 14.2777 8.1361 14.2515L8.04118 15.7485ZM2.75 8.50661C2.75 5.32733 5.32736 2.75 8.50664 2.75V1.25C4.49895 1.25 1.25 4.49889 1.25 8.50661H2.75ZM8.50664 2.75C11.561 2.75 14.0604 5.12926 14.2515 8.13498L15.7485 8.03979C15.5074 4.24925 12.3576 1.25 8.50664 1.25V2.75ZM8.1361 14.2515C5.12986 14.0609 2.75 11.5614 2.75 8.50661H1.25C1.25 12.358 4.25002 15.5081 8.04118 15.7485L8.1361 14.2515Z\" fill=\"currentColor\"/></svg>","ScanImage":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M6.5 21.5C6.03563 21.5 5.80344 21.5 5.60812 21.478C3.98545 21.2952 2.70484 20.0145 2.52201 18.3919C2.5 18.1966 2.5 17.9644 2.5 17.5M17.5 21.5C17.9644 21.5 18.1966 21.5 18.3919 21.478C20.0145 21.2952 21.2952 20.0145 21.478 18.3919C21.5 18.1966 21.5 17.9644 21.5 17.5M6.5 2.5C6.03563 2.5 5.80344 2.5 5.60812 2.52201C3.98545 2.70484 2.70484 3.98545 2.52201 5.60812C2.5 5.80344 2.5 6.03563 2.5 6.5M17.5 2.5C17.9644 2.5 18.1966 2.5 18.3919 2.52201C20.0145 2.70484 21.2952 3.98545 21.478 5.60812C21.5 5.80344 21.5 6.03563 21.5 6.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M6.87868 6.87868C7.75736 6 9.17157 6 12 6C14.8284 6 16.2426 6 17.1213 6.87868C18 7.75736 18 9.17157 18 12C18 14.8284 18 16.2426 17.1213 17.1213C16.2426 18 14.8284 18 12 18C9.17157 18 7.75736 18 6.87868 17.1213C6 16.2426 6 14.8284 6 12C6 9.17157 6 7.75736 6.87868 6.87868Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M6.5 15.5L8.0333 13.8522C8.56719 13.2785 9.43281 13.2785 9.9667 13.8522C10.5259 14.4532 11.4415 14.4204 11.9623 13.7808L13.3711 12.0505C13.9688 11.3165 15.0312 11.3165 15.6289 12.0505L17.7603 14.6678\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M10.375 9.75H10.25M10.5 9.75C10.5 9.88807 10.3881 10 10.25 10C10.1119 10 10 9.88807 10 9.75C10 9.61193 10.1119 9.5 10.25 9.5C10.3881 9.5 10.5 9.61193 10.5 9.75Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","Ruler":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17.5 10.5L19.5 12.5M14 14L16 16M10.5 17.5L12.5 19.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M10.5355 4.67767C11.9002 3.31296 12.5826 2.6306 13.3438 2.3153C14.3587 1.8949 15.4991 1.8949 16.5141 2.3153C17.2753 2.6306 17.9576 3.31296 19.3223 4.67767C20.687 6.04238 21.3694 6.72474 21.6847 7.48594C22.1051 8.50088 22.1051 9.64126 21.6847 10.6562C21.3694 11.4174 20.687 12.0998 19.3223 13.4645L13.4645 19.3223C12.0998 20.687 11.4174 21.3694 10.6562 21.6847C9.64126 22.1051 8.50088 22.1051 7.48594 21.6847C6.72474 21.3694 6.04238 20.687 4.67767 19.3223C3.31296 17.9576 2.6306 17.2753 2.3153 16.5141C1.8949 15.4991 1.8949 14.3587 2.3153 13.3438C2.6306 12.5826 3.31296 11.9002 4.67767 10.5355L10.5355 4.67767Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","BookmarkAdd02":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M11 2C7.22876 2 5.34315 2 4.17157 3.12874C3 4.25748 3 6.07416 3 9.70753V17.9808C3 20.2867 3 21.4396 3.77285 21.8523C5.26947 22.6514 8.0768 19.9852 9.41 19.1824C10.1832 18.7168 10.5698 18.484 11 18.484C11.4302 18.484 11.8168 18.7168 12.59 19.1824C13.9232 19.9852 16.7305 22.6514 18.2272 21.8523C19 21.4396 19 20.2867 19 17.9808V13\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M17 10L17 2M13 6H21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>","Bookmark02":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 17.9808V9.70753C4 6.07416 4 4.25748 5.17157 3.12874C6.34315 2 8.22876 2 12 2C15.7712 2 17.6569 2 18.8284 3.12874C20 4.25748 20 6.07416 20 9.70753V17.9808C20 20.2867 20 21.4396 19.2272 21.8523C17.7305 22.6514 14.9232 19.9852 13.59 19.1824C12.8168 18.7168 12.4302 18.484 12 18.484C11.5698 18.484 11.1832 18.7168 10.41 19.1824C9.0768 19.9852 6.26947 22.6514 4.77285 21.8523C4 21.4396 4 20.2867 4 17.9808Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","SidebarRight":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2 12C2 8.3109 2 6.46633 2.81382 5.1588C3.1149 4.67505 3.48891 4.2543 3.91891 3.91557C5.08116 3.00003 6.72077 3.00003 10 3.00003H14C17.2792 3.00003 18.9188 3.00003 20.0811 3.91557C20.5111 4.2543 20.8851 4.67505 21.1862 5.1588C22 6.46633 22 8.3109 22 12C22 15.6892 22 17.5337 21.1862 18.8413C20.8851 19.325 20.5111 19.7458 20.0811 20.0845C18.9188 21 17.2792 21 14 21H10C6.72077 21 5.08116 21 3.91891 20.0845C3.48891 19.7458 3.1149 19.325 2.81382 18.8413C2 17.5337 2 15.6892 2 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M14.5 3.00003L14.5 21\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M18 7.00006H19M18 10.0001H19\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","Cancel01":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 6L6.00081 17.9992M17.9992 18L6 6.00085\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","Copy01":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M7.5 14.5C7.5 11.2002 7.5 9.55025 8.52513 8.52513C9.55025 7.5 11.2002 7.5 14.5 7.5C17.7998 7.5 19.4497 7.5 20.4749 8.52513C21.5 9.55025 21.5 11.2002 21.5 14.5C21.5 17.7998 21.5 19.4497 20.4749 20.4749C19.4497 21.5 17.7998 21.5 14.5 21.5C11.2002 21.5 9.55025 21.5 8.52513 20.4749C7.5 19.4497 7.5 17.7998 7.5 14.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M7.5 16.5C6.10355 16.5 5.40533 16.5 4.84402 16.3036C3.83866 15.9518 3.0482 15.1613 2.69641 14.156C2.5 13.5947 2.5 12.8964 2.5 11.5V9.5C2.5 6.20017 2.5 4.55025 3.52513 3.52513C4.55025 2.5 6.20017 2.5 9.5 2.5H11.5C12.8964 2.5 13.5947 2.5 14.156 2.69641C15.1613 3.0482 15.9518 3.83866 16.3036 4.84402C16.5 5.40533 16.5 6.10355 16.5 7.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","Settings02":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15.5 12C15.5 13.933 13.933 15.5 12 15.5C10.067 15.5 8.5 13.933 8.5 12C8.5 10.067 10.067 8.5 12 8.5C13.933 8.5 15.5 10.067 15.5 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M21.011 14.0965C21.5329 13.9558 21.7939 13.8854 21.8969 13.7508C22 13.6163 22 13.3998 22 12.9669V11.0332C22 10.6003 22 10.3838 21.8969 10.2493C21.7938 10.1147 21.5329 10.0443 21.011 9.90358C19.0606 9.37759 17.8399 7.33851 18.3433 5.40087C18.4817 4.86799 18.5509 4.60156 18.4848 4.44529C18.4187 4.28902 18.2291 4.18134 17.8497 3.96596L16.125 2.98673C15.7528 2.77539 15.5667 2.66972 15.3997 2.69222C15.2326 2.71472 15.0442 2.90273 14.6672 3.27873C13.208 4.73448 10.7936 4.73442 9.33434 3.27864C8.95743 2.90263 8.76898 2.71463 8.60193 2.69212C8.43489 2.66962 8.24877 2.77529 7.87653 2.98663L6.15184 3.96587C5.77253 4.18123 5.58287 4.28891 5.51678 4.44515C5.45068 4.6014 5.51987 4.86787 5.65825 5.4008C6.16137 7.3385 4.93972 9.37763 2.98902 9.9036C2.46712 10.0443 2.20617 10.1147 2.10308 10.2492C2 10.3838 2 10.6003 2 11.0332V12.9669C2 13.3998 2 13.6163 2.10308 13.7508C2.20615 13.8854 2.46711 13.9558 2.98902 14.0965C4.9394 14.6225 6.16008 16.6616 5.65672 18.5992C5.51829 19.1321 5.44907 19.3985 5.51516 19.5548C5.58126 19.7111 5.77092 19.8188 6.15025 20.0341L7.87495 21.0134C8.24721 21.2247 8.43334 21.3304 8.6004 21.3079C8.76746 21.2854 8.95588 21.0973 9.33271 20.7213C10.7927 19.2644 13.2088 19.2643 14.6689 20.7212C15.0457 21.0973 15.2341 21.2853 15.4012 21.3078C15.5682 21.3303 15.7544 21.2246 16.1266 21.0133L17.8513 20.034C18.2307 19.8187 18.4204 19.711 18.4864 19.5547C18.5525 19.3984 18.4833 19.132 18.3448 18.5991C17.8412 16.6616 19.0609 14.6226 21.011 14.0965Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>","ArrowRight01":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9.00005 6C9.00005 6 15 10.4189 15 12C15 13.5812 9 18 9 18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","ArrowLeft01":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15 6C15 6 9.00001 10.4189 9 12C8.99999 13.5812 15 18 15 18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","ArrowDown01":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 9.00005C18 9.00005 13.5811 15 12 15C10.4188 15 6 9 6 9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","Figma":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"15\" cy=\"12\" r=\"3\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M9 21C10.6569 21 12 19.6569 12 18V15H9C7.34315 15 6 16.3431 6 18C6 19.6569 7.34315 21 9 21Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 9V15H9C7.34315 15 6 13.6569 6 12C6 10.3431 7.34315 9 9 9H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 3V9H9C7.34315 9 6 7.65685 6 6C6 4.34315 7.34315 3 9 3H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 3V9H15C16.6569 9 18 7.65685 18 6C18 4.34315 16.6569 3 15 3H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","SourceCode":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 8L18.8398 9.85008C19.6133 10.6279 20 11.0168 20 11.5C20 11.9832 19.6133 12.3721 18.8398 13.1499L17 15\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M7 8L5.16019 9.85008C4.38673 10.6279 4 11.0168 4 11.5C4 11.9832 4.38673 12.3721 5.16019 13.1499L7 15\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M14.5 4L9.5 20\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","Share08":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M21 6.5C21 8.15685 19.6569 9.5 18 9.5C16.3431 9.5 15 8.15685 15 6.5C15 4.84315 16.3431 3.5 18 3.5C19.6569 3.5 21 4.84315 21 6.5Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M9 12C9 13.6569 7.65685 15 6 15C4.34315 15 3 13.6569 3 12C3 10.3431 4.34315 9 6 9C7.65685 9 9 10.3431 9 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M21 17.5C21 19.1569 19.6569 20.5 18 20.5C16.3431 20.5 15 19.1569 15 17.5C15 15.8431 16.3431 14.5 18 14.5C19.6569 14.5 21 15.8431 21 17.5Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M8.72852 10.7495L15.2285 7.75M8.72852 13.25L15.2285 16.2495\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg>","ArrowReloadHorizontal":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M20.5 5.5H9.5C5.78672 5.5 3 8.18503 3 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M3.5 18.5H14.5C18.2133 18.5 21 15.815 21 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M18.5 3C18.5 3 21 4.84122 21 5.50002C21 6.15882 18.5 8 18.5 8\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M5.49998 16C5.49998 16 3.00001 17.8412 3 18.5C2.99999 19.1588 5.5 21 5.5 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","Target02":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M14 2.20004C13.3538 2.06886 12.6849 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 11.3151 21.9311 10.6462 21.8 10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M12.0303 11.9625L16.5832 7.4096M19.7404 4.34462L19.1872 2.35748C19.0853 2.03011 18.6914 1.89965 18.4259 2.11662C16.9898 3.29018 15.4254 4.87091 16.703 7.36419C19.2771 8.56455 20.7466 6.94584 21.8733 5.5853C22.0975 5.3146 21.9623 4.90767 21.6247 4.81005L19.7404 4.34462Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","PencilEdit01":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15.2141 5.98239L16.6158 4.58063C17.39 3.80646 18.6452 3.80646 19.4194 4.58063C20.1935 5.3548 20.1935 6.60998 19.4194 7.38415L18.0176 8.78591M15.2141 5.98239L6.98023 14.2163C5.93493 15.2616 5.41226 15.7842 5.05637 16.4211C4.70047 17.058 4.3424 18.5619 4 20C5.43809 19.6576 6.94199 19.2995 7.57889 18.9436C8.21579 18.5877 8.73844 18.0651 9.78375 17.0198L18.0176 8.78591M15.2141 5.98239L18.0176 8.78591\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M11 20H17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>","Alert02":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13.9248 21H10.0752C5.44476 21 3.12955 21 2.27636 19.4939C1.42317 17.9879 2.60736 15.9914 4.97574 11.9985L6.90057 8.75333C9.17559 4.91778 10.3131 3 12 3C13.6869 3 14.8244 4.91777 17.0994 8.75332L19.0243 11.9985C21.3926 15.9914 22.5768 17.9879 21.7236 19.4939C20.8704 21 18.5552 21 13.9248 21Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 9V13\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12.125 16.75H12M12.25 16.75C12.25 16.8881 12.1381 17 12 17C11.8619 17 11.75 16.8881 11.75 16.75C11.75 16.6119 11.8619 16.5 12 16.5C12.1381 16.5 12.25 16.6119 12.25 16.75Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","ImageUpload":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 16L7.46967 11.5303C7.80923 11.1908 8.26978 11 8.75 11C9.23022 11 9.69077 11.1908 10.0303 11.5303L14 15.5M15.5 17L14 15.5M21 16L18.5303 13.5303C18.1908 13.1908 17.7302 13 17.25 13C16.7698 13 16.3092 13.1908 15.9697 13.5303L14 15.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 2.5C7.77027 2.5 5.6554 2.5 4.25276 3.69797C4.05358 3.86808 3.86808 4.05358 3.69797 4.25276C2.5 5.6554 2.5 7.77027 2.5 12C2.5 16.2297 2.5 18.3446 3.69797 19.7472C3.86808 19.9464 4.05358 20.1319 4.25276 20.302C5.6554 21.5 7.77027 21.5 12 21.5C16.2297 21.5 18.3446 21.5 19.7472 20.302C19.9464 20.1319 20.1319 19.9464 20.302 19.7472C21.5 18.3446 21.5 16.2297 21.5 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M15.5 5.5C16.0898 4.89316 17.6597 2.5 18.5 2.5C19.3403 2.5 20.9102 4.89316 21.5 5.5M18.5 3V9.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","Clipboard":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17.0235 3.03358L16.0689 2.77924C13.369 2.05986 12.019 1.70018 10.9555 2.31074C9.89196 2.9213 9.53023 4.26367 8.80678 6.94841L7.78366 10.7452C7.0602 13.4299 6.69848 14.7723 7.3125 15.8298C7.92652 16.8874 9.27651 17.247 11.9765 17.9664L12.9311 18.2208C15.631 18.9401 16.981 19.2998 18.0445 18.6893C19.108 18.0787 19.4698 16.7363 20.1932 14.0516L21.2163 10.2548C21.9398 7.57005 22.3015 6.22768 21.6875 5.17016C21.0735 4.11264 19.7235 3.75295 17.0235 3.03358Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M16.8538 7.43306C16.8538 8.24714 16.1901 8.90709 15.3714 8.90709C14.5527 8.90709 13.889 8.24714 13.889 7.43306C13.889 6.61898 14.5527 5.95904 15.3714 5.95904C16.1901 5.95904 16.8538 6.61898 16.8538 7.43306Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M12 20.9463L11.0477 21.2056C8.35403 21.9391 7.00722 22.3059 5.94619 21.6833C4.88517 21.0608 4.52429 19.6921 3.80253 16.9547L2.78182 13.0834C2.06006 10.346 1.69918 8.97731 2.31177 7.89904C2.84167 6.96631 4 7.00027 5.5 7.00015\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>","Search01":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 17L21 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19C15.4183 19 19 15.4183 19 11Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","Folder01":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M8 7H16.75C18.8567 7 19.91 7 20.6667 7.50559C20.9943 7.72447 21.2755 8.00572 21.4944 8.33329C22 9.08996 22 10.1433 22 12.25C22 15.7612 22 17.5167 21.1573 18.7779C20.7926 19.3238 20.3238 19.7926 19.7779 20.1573C18.5167 21 16.7612 21 13.25 21H12C7.28595 21 4.92893 21 3.46447 19.5355C2 18.0711 2 15.714 2 11V7.94427C2 6.1278 2 5.21956 2.38032 4.53806C2.65142 4.05227 3.05227 3.65142 3.53806 3.38032C4.21956 3 5.1278 3 6.94427 3C8.10802 3 8.6899 3 9.19926 3.19101C10.3622 3.62712 10.8418 4.68358 11.3666 5.73313L12 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>","PlusSign":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M12 4V20M20 12H4\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","Tick02":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M5 14L8.5 17.5L19 6.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","Pin":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 21L8 16\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M13.2585 18.8714C9.51516 18.0215 5.97844 14.4848 5.12853 10.7415C4.99399 10.1489 4.92672 9.85266 5.12161 9.37197C5.3165 8.89129 5.55457 8.74255 6.03071 8.44509C7.10705 7.77265 8.27254 7.55888 9.48209 7.66586C11.1793 7.81598 12.0279 7.89104 12.4512 7.67048C12.8746 7.44991 13.1622 6.93417 13.7376 5.90269L14.4664 4.59604C14.9465 3.73528 15.1866 3.3049 15.7513 3.10202C16.316 2.89913 16.6558 3.02199 17.3355 3.26771C18.9249 3.84236 20.1576 5.07505 20.7323 6.66449C20.978 7.34417 21.1009 7.68401 20.898 8.2487C20.6951 8.8134 20.2647 9.05346 19.4039 9.53358L18.0672 10.2792C17.0376 10.8534 16.5229 11.1406 16.3024 11.568C16.0819 11.9955 16.162 12.8256 16.3221 14.4859C16.4399 15.7068 16.2369 16.88 15.5555 17.9697C15.2577 18.4458 15.1088 18.6839 14.6283 18.8786C14.1477 19.0733 13.8513 19.006 13.2585 18.8714Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","LanguageSquare":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M7 8.37931H11.5M17 8.37931H14.5M11.5 8.37931H14.5M11.5 8.37931V7M14.5 8.37931C13.9725 10.2656 12.8679 12.0487 11.6071 13.6158M8.39286 17C9.41205 16.0628 10.5631 14.9134 11.6071 13.6158M11.6071 13.6158C10.9643 12.8621 10.0643 11.6426 9.80714 11.0909M11.6071 13.6158L13.5357 15.6207\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M2.5 12C2.5 7.52166 2.5 5.28249 3.89124 3.89124C5.28249 2.5 7.52166 2.5 12 2.5C16.4783 2.5 18.7175 2.5 20.1088 3.89124C21.5 5.28249 21.5 7.52166 21.5 12C21.5 16.4783 21.5 18.7175 20.1088 20.1088C18.7175 21.5 16.4783 21.5 12 21.5C7.52166 21.5 5.28249 21.5 3.89124 20.1088C2.5 18.7175 2.5 16.4783 2.5 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg>","StopCircle":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M9.38886 15.1629C9.89331 15.5 10.5955 15.5 12 15.5C13.4045 15.5 14.1067 15.5 14.6111 15.1629C14.8295 15.017 15.017 14.8295 15.1629 14.6111C15.5 14.1067 15.5 13.4045 15.5 12C15.5 10.5955 15.5 9.89331 15.1629 9.38886C15.017 9.17048 14.8295 8.98298 14.6111 8.83706C14.1067 8.5 13.4045 8.5 12 8.5C10.5955 8.5 9.89331 8.5 9.38886 8.83706C9.17048 8.98298 8.98298 9.17048 8.83706 9.38886C8.5 9.89331 8.5 10.5955 8.5 12C8.5 13.4045 8.5 14.1067 8.83706 14.6111C8.98298 14.8295 9.17048 15.017 9.38886 15.1629Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","TextFont":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M14 19L11.1069 10.7479C9.76348 6.91597 9.09177 5 8 5C6.90823 5 6.23652 6.91597 4.89309 10.7479L2 19M4.5 12H11.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M21.9692 13.9392V18.4392M21.9692 13.9392C22.0164 13.1161 22.0182 12.4891 21.9194 11.9773C21.6864 10.7709 20.4258 10.0439 19.206 9.89599C18.0385 9.75447 17.1015 10.055 16.1535 11.4363M21.9692 13.9392L19.1256 13.9392C18.6887 13.9392 18.2481 13.9603 17.8272 14.0773C15.2545 14.7925 15.4431 18.4003 18.0233 18.845C18.3099 18.8944 18.6025 18.9156 18.8927 18.9026C19.5703 18.8724 20.1955 18.545 20.7321 18.1301C21.3605 17.644 21.9692 16.9655 21.9692 15.9392V13.9392Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","ArrowUpRight01":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9 6.65032C9 6.65032 15.9383 6.10759 16.9154 7.08463C17.8924 8.06167 17.3496 15 17.3496 15M16.5 7.5L6.5 17.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","MoreHorizontal":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M6.00449 12.5V12M18.0045 12.5V12M12.0045 12.5V12M7.00449 12.5C7.00449 11.9477 6.55677 11.5 6.00449 11.5C5.4522 11.5 5.00449 11.9477 5.00449 12.5C5.00449 13.0523 5.4522 13.5 6.00449 13.5C6.55677 13.5 7.00449 13.0523 7.00449 12.5ZM19.0045 12.5C19.0045 11.9477 18.5568 11.5 18.0045 11.5C17.4522 11.5 17.0045 11.9477 17.0045 12.5C17.0045 13.0523 17.4522 13.5 18.0045 13.5C18.5568 13.5 19.0045 13.0523 19.0045 12.5ZM13.0045 12.5C13.0045 11.9477 12.5568 11.5 12.0045 11.5C11.4522 11.5 11.0045 11.9477 11.0045 12.5C11.0045 13.0523 11.4522 13.5 12.0045 13.5C12.5568 13.5 13.0045 13.0523 13.0045 12.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","View":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M21.544 11.045C21.848 11.4713 22 11.6845 22 12C22 12.3155 21.848 12.5287 21.544 12.955C20.1779 14.8706 16.6892 19 12 19C7.31078 19 3.8221 14.8706 2.45604 12.955C2.15201 12.5287 2 12.3155 2 12C2 11.6845 2.15201 11.4713 2.45604 11.045C3.8221 9.12944 7.31078 5 12 5C16.6892 5 20.1779 9.12944 21.544 11.045Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg>","Clock01":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M12 8V12L14 14\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","DashboardSquare01":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13.6903 19.4567C13.5 18.9973 13.5 18.4149 13.5 17.25C13.5 16.0851 13.5 15.5027 13.6903 15.0433C13.944 14.4307 14.4307 13.944 15.0433 13.6903C15.5027 13.5 16.0851 13.5 17.25 13.5C18.4149 13.5 18.9973 13.5 19.4567 13.6903C20.0693 13.944 20.556 14.4307 20.8097 15.0433C21 15.5027 21 16.0851 21 17.25C21 18.4149 21 18.9973 20.8097 19.4567C20.556 20.0693 20.0693 20.556 19.4567 20.8097C18.9973 21 18.4149 21 17.25 21C16.0851 21 15.5027 21 15.0433 20.8097C14.4307 20.556 13.944 20.0693 13.6903 19.4567Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M13.6903 8.95671C13.5 8.49728 13.5 7.91485 13.5 6.75C13.5 5.58515 13.5 5.00272 13.6903 4.54329C13.944 3.93072 14.4307 3.44404 15.0433 3.1903C15.5027 3 16.0851 3 17.25 3C18.4149 3 18.9973 3 19.4567 3.1903C20.0693 3.44404 20.556 3.93072 20.8097 4.54329C21 5.00272 21 5.58515 21 6.75C21 7.91485 21 8.49728 20.8097 8.95671C20.556 9.56928 20.0693 10.056 19.4567 10.3097C18.9973 10.5 18.4149 10.5 17.25 10.5C16.0851 10.5 15.5027 10.5 15.0433 10.3097C14.4307 10.056 13.944 9.56928 13.6903 8.95671Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M3.1903 19.4567C3 18.9973 3 18.4149 3 17.25C3 16.0851 3 15.5027 3.1903 15.0433C3.44404 14.4307 3.93072 13.944 4.54329 13.6903C5.00272 13.5 5.58515 13.5 6.75 13.5C7.91485 13.5 8.49728 13.5 8.95671 13.6903C9.56928 13.944 10.056 14.4307 10.3097 15.0433C10.5 15.5027 10.5 16.0851 10.5 17.25C10.5 18.4149 10.5 18.9973 10.3097 19.4567C10.056 20.0693 9.56928 20.556 8.95671 20.8097C8.49728 21 7.91485 21 6.75 21C5.58515 21 5.00272 21 4.54329 20.8097C3.93072 20.556 3.44404 20.0693 3.1903 19.4567Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M3.1903 8.95671C3 8.49728 3 7.91485 3 6.75C3 5.58515 3 5.00272 3.1903 4.54329C3.44404 3.93072 3.93072 3.44404 4.54329 3.1903C5.00272 3 5.58515 3 6.75 3C7.91485 3 8.49728 3 8.95671 3.1903C9.56928 3.44404 10.056 3.93072 10.3097 4.54329C10.5 5.00272 10.5 5.58515 10.5 6.75C10.5 7.91485 10.5 8.49728 10.3097 8.95671C10.056 9.56928 9.56928 10.056 8.95671 10.3097C8.49728 10.5 7.91485 10.5 6.75 10.5C5.58515 10.5 5.00272 10.5 4.54329 10.3097C3.93072 10.056 3.44404 9.56928 3.1903 8.95671Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","Puzzle":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M12.828 6.00096C12.9388 5.68791 12.999 5.35099 12.999 5C12.999 3.34315 11.6559 2 9.99904 2C8.34219 2 6.99904 3.34315 6.99904 5C6.99904 5.35099 7.05932 5.68791 7.17008 6.00096C4.88532 6.0093 3.66601 6.09039 2.87772 6.87868C2.08951 7.66689 2.00836 8.88603 2 11.1704C2.31251 11.06 2.64876 11 2.99904 11C4.6559 11 5.99904 12.3431 5.99904 14C5.99904 15.6569 4.6559 17 2.99904 17C2.64876 17 2.31251 16.94 2 16.8296C2.00836 19.114 2.08951 20.3331 2.87772 21.1213C3.66593 21.9095 4.88508 21.9907 7.16941 21.999C7.05908 21.6865 6.99904 21.3503 6.99904 21C6.99904 19.3431 8.34219 18 9.99904 18C11.6559 18 12.999 19.3431 12.999 21C12.999 21.3503 12.939 21.6865 12.8287 21.999C15.113 21.9907 16.3322 21.9095 17.1204 21.1213C17.9086 20.333 17.9897 19.1137 17.9981 16.829C18.3111 16.9397 18.648 17 18.999 17C20.6559 17 21.999 15.6569 21.999 14C21.999 12.3431 20.6559 11 18.999 11C18.648 11 18.3111 11.0603 17.9981 11.171C17.9897 8.88627 17.9086 7.66697 17.1204 6.87868C16.3321 6.09039 15.1128 6.0093 12.828 6.00096Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","Keyboard":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M14.5 7H9.5C6.21252 7 4.56878 7 3.46243 7.90796C3.25989 8.07418 3.07418 8.25989 2.90796 8.46243C2 9.56878 2 11.2125 2 14.5C2 17.7875 2 19.4312 2.90796 20.5376C3.07418 20.7401 3.25989 20.9258 3.46243 21.092C4.56878 22 6.21252 22 9.5 22H14.5C17.7875 22 19.4312 22 20.5376 21.092C20.7401 20.9258 20.9258 20.7401 21.092 20.5376C22 19.4312 22 17.7875 22 14.5C22 11.2125 22 9.56878 21.092 8.46243C20.9258 8.25989 20.7401 8.07418 20.5376 7.90796C19.4312 7 17.7875 7 14.5 7Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M12 7V5C12 4.44772 12.4477 4 13 4C13.5523 4 14 3.55228 14 3V2\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M7 12L8 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M11.5 12L12.5 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M16 12L17 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M7 17L17 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>","Download01":"<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2.99969 17.0002C2.99969 17.9302 2.99969 18.3952 3.10192 18.7767C3.37932 19.8119 4.18796 20.6206 5.22324 20.898C5.60474 21.0002 6.06972 21.0002 6.99969 21.0002L16.9997 21.0002C17.9297 21.0002 18.3947 21.0002 18.7762 20.898C19.8114 20.6206 20.6201 19.8119 20.8975 18.7767C20.9997 18.3952 20.9997 17.9302 20.9997 17.0002\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M16.4998 11.5002C16.4998 11.5002 13.1856 16.0002 11.9997 16.0002C10.8139 16.0002 7.49976 11.5002 7.49976 11.5002M11.9997 15.0002V3.00016\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>"};
+const ic = (n, s) => s ? IC[n].replace('width="18" height="18"', `width="${s}" height="${s}"`) : IC[n];
+const kbd = (...k) => `<span class="kbds">${k.map((x) => `<span class="kbd">${x}</span>`).join("")}</span>`;
+const lic = (l) => `<span class="lic ${l}"><i class="dot"></i>${l === "free" ? "Free" : "Paid"}</span>`;
+
+const FONTS = {
+  fraunces: { name: "Fraunces", fam: "'Fraunces', serif", lic: "free", src: "Google Fonts", cls: "Serif", w: 600, wn: "600 Semibold", size: "50px", lh: "1.04", ls: "-0.02em", color: "#1B1A17", tag: "h1", used: "Headings", count: 14, by: "Undercase Type" },
+  serif: { name: "Source Serif 4", fam: "'Source Serif 4', serif", lic: "free", src: "Google Fonts", cls: "Serif", w: 400, wn: "400 Regular", size: "17px", lh: "1.65", ls: "0", color: "#3A3833", tag: "p", used: "Paragraphs", count: 38, by: "Frank Grießhammer" },
+  haas: { name: "Neue Haas Unica", fam: "'Inter', sans-serif", lic: "paid", src: "Monotype", cls: "Sans", w: 500, wn: "500 Medium", size: "13.5px", lh: "1.4", ls: "0", color: "#3B3A36", tag: "nav", used: "Menu, labels, captions", count: 22, by: "Toshi Omagari", alike: [["Inter", "'Inter'", 93], ["Instrument Sans", "'Inter'", 88]] },
+};
+const ORDER = ["fraunces", "serif", "haas"];
+const st = { coach: 0, tab: "page", view: null, on: true, panel: true, guide: true, text: "", size: 30, sec: "Licence", exp: "CSS", dark: false, hover: null, pinned: false, el: null };
+
+/* ---------- website, dock and hover card ---------- */
+const site = () => `<div class="site${st.on ? " on" : ""}">
+  <header class="s-nav"><b data-f="haas">Field Journal</b><nav data-f="haas"><span>Stories</span><span>Gear</span><span>Maps</span><span>Subscribe</span></nav></header>
+  <article class="s-art"><p class="s-kick" data-f="haas">ESSAY · 12 MIN READ</p>
+    <h1 data-f="fraunces">Walking the long way round the lake</h1>
+    <p class="s-lede" data-f="serif">Four days, sixty miles and one wrong turn that turned out to be the best part of the trip.</p>
+    <div class="s-fig"></div><p class="s-cap" data-f="haas">The north shore at first light, from the old ferry landing.</p>
+    <h2 data-f="fraunces">The first morning</h2>
+    <p class="b" data-f="serif">We left before the cafés opened, which meant breakfast was whatever survived the bottom of the pack. The path climbs gently for the first hour and then not gently at all.</p>
+    <p class="b" data-f="serif">By noon the lake had turned from grey to a green so deep it looked painted on. Nobody spoke much.</p></article></div>`;
+const DOCK = [["inspect", "CursorPointer01", "Inspect fonts", "I"], ["area", "ScanImage", "Read a picture or an area", "A"], ["fonts", "TextFont", "Every font on this page", "F"], ["system", "Ruler", "Type system", "T"], ["save", "BookmarkAdd02", "Save the font", "S"]];
+const dock = () => `<div class="dock" role="toolbar" aria-label="Font Finder Plus">${DOCK.map(([k, i, t, key]) => `<button class="db" data-dock="${k}" aria-label="${t}" ${k === "inspect" ? `aria-pressed="${st.on}"` : ""}>${ic(i)}<span class="tip">${t}<span class="k">${key}</span></span></button>`).join("")}
+  <span class="sep"></span><button class="db" data-dock="panel" aria-label="Panel" aria-pressed="${st.panel}">${ic("SidebarRight")}<span class="tip">${st.panel ? "Close the panel" : "Open the panel"}</span></button>
+  <button class="db" data-dock="off" aria-label="Turn off">${ic("Cancel01")}<span class="tip">Turn off<span class="k">⌥⇧F</span></span></button></div>`;
+const hoverCard = () => {
+  const f = FONTS[st.hover];
+  if (!f) return `<div class="hc"></div>`;
+  const vals = [["Weight", f.wn, f.w], ["Size", f.size, f.size], ["Line height", f.lh, f.lh], ["Spacing", f.ls, f.ls], ["Colour", `<i class="dot" style="background:${f.color};border-radius:3px"></i>${f.color}`, f.color], ["Family", f.name, f.name]];
+  return `<div class="hc${st.pinned ? " is-pinned" : ""}"><div class="hc-h"><div><b style="font-family:${f.fam}">${f.name}</b><small>${st.tag || f.tag} · ${f.src} · ${lic(f.lic)}</small></div>${st.pinned ? `<button class="pinchip" data-hc="pin" aria-label="Pinned. Click to unpin">${ic("Pin", 12)}<span>Pinned</span>${ic("Cancel01", 12)}</button>` : ""}</div>
+    <div class="hc-m"><i style="top:24px"><span>CAP</span></i><i style="top:40px"><span>X-HEIGHT</span></i><i style="top:78px;border-top-style:solid"><span>BASELINE</span></i><span class="g" style="font-family:${f.fam};font-weight:${f.w}">Hxg</span></div>
+    <div class="hc-g">${vals.map(([a, b, raw]) => `<button data-copy="${a}: ${raw}" aria-label="Copy ${a}"><span>${a}</span><b>${b}</b><span class="cp">${ic("Copy01", 13)}</span></button>`).join("")}</div>
+    ${st.pinned ? `<div class="hc-a"><button class="pri" data-copycss>${ic("Copy01")}Copy CSS</button><button data-toast="${f.name} saved">${ic("Bookmark02")}Save</button><button class="sq" data-hc="details" aria-label="Open details in the panel">${ic("SidebarRight")}</button></div>
+      <p class="hc-hint">Click a value to copy just that. ${kbd("Esc")} unpins.</p>`
+    : `<p class="hc-hint pinme">${ic("Pin", 14)}Click or press ${kbd("Space")} to pin it</p>`}</div>`;
+};
+const COACH = [
+  () => `Point at any text to see its font`,
+  () => `Click the text or press ${kbd("Space")} to pin the card`,
+  () => `Pinned. Click a value to copy it, or ${kbd("C")} copies all the CSS. ${kbd("Esc")} unpins`,
+];
+const coach = () => st.coach < 3 && st.on ? `<div class="coach" role="status"><span class="step">${st.coach + 1}/3</span><span>${COACH[st.coach]()}</span><button data-act="coach" aria-label="Hide tips">${ic("Cancel01", 14)}</button></div>` : "";
+
+/* ---------- panel views ---------- */
+const topbar = () => `<div class="topbar"><div class="tabs" role="tablist">${["Page", "Image", "System", "Library"].map((t) => `<button role="tab" data-tab="${t.toLowerCase()}" aria-selected="${st.tab === t.toLowerCase()}">${t}</button>`).join("")}</div><button class="sqbtn" aria-label="Settings" data-toast="Opens Settings">${ic("Settings02")}</button></div>`;
+const fontCard = (k, i) => {
+  const f = FONTS[k];
+  return `<article class="fc" data-key="${k}"><div class="fc-t"><span class="n">${String(i + 1).padStart(2, "0")}</span><b>${f.name}</b>${lic(f.lic)}<span class="acts"><button class="ib" data-show="${k}" aria-label="Show on the page">${ic("Target02")}</button><button class="ib" data-toast="CSS copied" aria-label="Copy CSS">${ic("SourceCode")}</button><button class="ib" data-toast="${f.name} saved" aria-label="Save">${ic("Bookmark02")}</button></span></div>
+    <div class="smp" style="font-family:${f.fam};font-weight:${f.w};font-size:${st.size}px">${st.text || "The quick brown fox jumps over the lazy dog"}</div>
+    <div class="fc-b"><span>${f.cls} · ${f.used} · ${f.count} places</span><button data-detail="${k}">Details${ic("ArrowRight01")}</button></div></article>`;
+};
+const V = {
+  page: () => `
+    <section class="card"><div class="site-st"><span class="live ${st.on ? "on" : "off"}"></span><div class="w"><small>${st.on ? "Inspecting · point at any text" : "Paused"}</small><b>fieldjournal.example</b></div><span class="count">3 fonts</span><button class="switch" role="switch" aria-checked="${st.on}" aria-label="Inspect fonts" data-act="toggle"></button></div>
+      <div class="site-acts"><button class="btn pri" data-toast="Sent to Figma">${ic("Figma")}Copy for Figma</button><div class="igrp"><button class="ib" data-toast="CSS copied" aria-label="Copy CSS">${ic("SourceCode")}</button><button class="ib" data-toast="Opens Share" aria-label="Share">${ic("Share08")}</button><button class="ib" data-toast="Pick another tab to compare" aria-label="Compare">${ic("ArrowReloadHorizontal")}</button></div></div></section>
+    ${st.guide ? `<section class="card"><div class="ht" style="flex-direction:row;align-items:center"><h3 style="flex:1">How it works</h3><button class="ib" data-act="guide" aria-label="Hide">${ic("Cancel01")}</button></div>
+      <div class="keys">${[["See a font", `<span class="plain">Point at text</span>`], ["Pin the card", `<span class="kbds"><span class="kbd">Click</span><span class="plain" style="align-self:center">or</span><span class="kbd">Space</span></span>`], ["Copy one value", `<span class="plain">Click it on the card</span>`], ["Copy all as CSS", kbd("C")], ["Unpin, then turn off", kbd("Esc")], ["Turn on or off", kbd("⌥", "⇧", "F")]].map(([a, b]) => `<div><span>${a}</span>${b}</div>`).join("")}</div>
+      <button class="btn sm" data-act="replay" style="align-self:flex-start">Show the tips on the page again</button>
+      <div class="allsites"><div><b>Read every page by itself</b><span>Lets the panel read each page you open, without clicking.</span></div><button class="switch" role="switch" aria-checked="true" aria-label="Read every page" data-toast="Turns off in Settings too"></button></div></section>` : ""}
+    <div class="tester">${ic("PencilEdit01")}<input id="tt" placeholder="Type your own text" value="${st.text}"><span class="size"><input type="range" min="18" max="44" value="${st.size}" id="sz" aria-label="Size">${st.size}</span></div>
+    <section class="card"><div class="ht"><h3>Make it free</h3><p>1 font here is paid. Preview the page with the closest free font instead.</p></div>
+      <div class="swaps"><div><span>Neue Haas Unica</span>${ic("ArrowRight01")}<b>Inter</b><em>93%</em></div></div>
+      <button class="btn pri" data-toast="Showing free fonts on the page. Reload to undo" style="align-self:flex-start">Swap on the page</button></section>
+    <button class="rowlink" data-toast="Opens the list">${ic("Alert02").replace("<svg", '<svg class="warn"')}<div><b>1 font did not load</b><span>Another font shows instead</span></div>${ic("ArrowRight01")}</button>
+    <div class="label"><b>Fonts on this page</b><span class="count">${ORDER.length}</span></div>
+    ${ORDER.map(fontCard).join("")}`,
+  detail: (k) => {
+    const f = FONTS[k];
+    const secs = ["Licence", "Similar", "Pairs", "Page", "Letters", "Files"];
+    return `<div class="subtop"><button class="sqbtn white" data-back aria-label="Back">${ic("ArrowLeft01")}</button><span class="crumb">Page / <b>${f.name}</b></span><button class="btn sm pri" data-toast="${f.name} saved">${ic("Bookmark02")}Save</button></div>
+    <section class="card hero"><div class="meta">${lic(f.lic)}<span>${f.cls} · ${f.src}</span></div><div class="nm" style="font-family:${f.fam};font-weight:${f.w}">${f.name}</div><p class="sub" style="margin-top:-6px">by ${f.by}</p>
+      <div class="row"><button class="btn sm" data-toast="Name copied">${ic("Copy01")}Name</button><button class="btn sm" data-toast="CSS copied">${ic("SourceCode")}CSS</button><button class="btn sm" data-toast="Opens Share">${ic("Share08")}Share</button></div>
+      <button class="btn wide ${f.lic === "free" ? "pri" : ""}" data-toast="Opens ${f.src}">Open on ${f.src}${ic("ArrowUpRight01")}</button></section>
+    <nav class="secnav">${secs.map((s) => `<button data-sec="${s}" aria-current="${st.sec === s}">${s}</button>`).join("")}</nav>
+    ${f.lic === "free" ? `<section class="card" id="s-Licence"><div class="ht"><h3>SIL Open Font Licence</h3><p>Free for personal and commercial use.</p></div><div class="yes">${["Websites", "Print and images", "Apps and games", "Logos and branding"].map((x) => `<div><span>${x}</span><em>${ic("Tick02")}Yes</em></div>`).join("")}</div><p class="sub">A summary, not legal advice.</p></section>`
+      : `<section class="card" id="s-Licence"><div class="ht"><h3>Sold by Monotype</h3><p>You need a licence for each use. Check their terms before using it.</p></div><button class="btn" data-toast="Opens Monotype">See the licence${ic("ArrowUpRight01")}</button></section>`}
+    <section class="card" id="s-Similar"><div class="ht"><h3>Similar free fonts</h3><p class="sub">Closest by letter shape, from Google Fonts.</p></div>
+      ${(f.alike || [["Newsreader", "'Source Serif 4'", 84], ["Literata", "'Source Serif 4'", 80]]).map(([n, fam, m]) => `<div class="sim"><div class="t"><b>${n}</b>${lic("free")}<em>${m}%</em></div><div class="s" style="font-family:${fam}">The quick brown fox jumps</div><div class="r">Similar x-height and width.</div><div class="a"><button class="btn sm" data-toast="Showing ${n} on the page">Try on page</button><button class="btn sm" data-toast="Opens Google Fonts">Google Fonts</button></div></div>`).join("")}</section>
+    <section class="card" id="s-Page"><div class="ht"><h3>On this page</h3><p class="sub">${f.used} · ${f.count} places</p></div><div class="specs">${[["Weight", f.wn], ["Size", f.size], ["Line height", f.lh], ["Spacing", f.ls]].map(([a, b]) => `<div><span>${a}</span><b>${b}</b></div>`).join("")}</div><button class="btn" data-show="${k}">${ic("Target02")}Show on the page</button></section>
+    <section class="card" id="s-Letters"><div class="ht"><h3>Letters</h3><p class="sub">24 of 35 languages · 1,216 characters</p></div><div class="glyphs" style="font-family:${f.fam}">${"AaBbGgQq&?ß€".match(/./g).map((c) => `<span>${c}</span>`).join("")}</div></section>`;
+  },
+  image: () => `<section class="card"><div class="drop"><span class="ic">${ic("ImageUpload", 20)}</span><b>Paste, drop or choose a picture</b><p>A screenshot, photo or poster. It's read on this computer, nothing is uploaded.</p><span class="kbds" style="margin-top:2px">${kbd("⌘", "V")}</span>
+      <div class="acts"><button class="btn sm pri" data-toast="Pick a picture">Choose a picture</button><button class="btn sm" data-toast="Drag over the text you want" style="background:var(--card)">${ic("ScanImage")}Select an area</button></div></div></section>
+    <div class="label"><b>Recent</b><span class="count">3</span></div>
+    <section class="card" style="padding:6px 16px"><div class="recent">${[["linear-gradient(135deg,#f3d9b1,#c98b5b)", "Coffee shop menu", "Playfair Display · 2 days ago"], ["linear-gradient(135deg,#1f2a44,#4d6a9a)", "Conference poster", "Space Grotesk · last week"], ["linear-gradient(135deg,#e5e5e5,#a8a8a8)", "Screenshot 14:02", "Inter · last week"]].map(([g, a, b]) => `<button data-toast="Opens ${a}"><span class="th" style="background:${g}"></span><div><b>${a}</b><span>${b}</span></div>${ic("ArrowRight01", 16)}</button>`).join("")}</div></section>`,
+  system: () => {
+    const codes = { CSS: ":root {\n  --font-heading: 'Fraunces', serif;\n  --font-body: 'Source Serif 4', serif;\n  --text-h1: 50px/1.04;\n  --text-body: 17px/1.65;\n}", Tailwind: "@theme {\n  --font-heading: 'Fraunces', serif;\n  --font-body: 'Source Serif 4', serif;\n  --text-h1: 50px;\n}", Tokens: '{\n  "font": {\n    "heading": { "$value": "Fraunces" },\n    "body": { "$value": "Source Serif 4" }\n  }\n}', Figma: "6 text styles, ready to paste\ninto Figma with the plugin." };
+    return `<section class="card"><div class="ht"><h3>Health</h3></div><div class="score"><b>86</b><span>out of 100</span></div><div class="bar"><i></i></div>
+      <div class="checks">${[[1, "Body text is 16px or bigger"], [1, "Contrast passes AA"], [0, "Two heading sizes are very close"], [1, "Lines are 45 to 80 characters"]].map(([o, t]) => `<div><span class="${o ? "ok" : "no"}">${ic(o ? "Tick02" : "Alert02")}</span><span>${t}</span></div>`).join("")}</div></section>
+    <section class="card"><div class="ht"><h3>Type styles</h3><p class="sub">6 styles · scale close to 1.25</p></div><div class="styles">${[["Heading 1", "fraunces", 26, "50/1.04"], ["Heading 2", "fraunces", 20, "26/1.15"], ["Lead", "serif", 17, "20/1.5"], ["Body", "serif", 15, "17/1.65"], ["Label", "haas", 12, "11.5/1"], ["Caption", "haas", 12.5, "12.5/1.4"]].map(([n, k, s, m]) => `<div><span class="nm" style="font-family:${FONTS[k].fam};font-size:${s}px;font-weight:${FONTS[k].w}">${n}</span><em>${m}</em></div>`).join("")}</div></section>
+    <section class="card"><div class="ht"><h3>Export</h3></div><div class="seg">${Object.keys(codes).map((x) => `<button data-exp="${x}" aria-pressed="${st.exp === x}">${x}</button>`).join("")}</div><pre class="code">${codes[st.exp]}</pre><button class="btn pri wide" data-toast="${st.exp} copied">${st.exp === "Figma" ? ic("Figma") + "Copy for Figma" : ic("Copy01") + "Copy " + st.exp}</button></section>`;
+  },
+  library: () => `<label class="search">${ic("Search01")}<input placeholder="Search your fonts"></label>
+    <div class="label"><b>Collections</b><button class="ib" data-toast="New collection" aria-label="New collection">${ic("PlusSign")}</button></div>
+    <div class="shelf">${[["Editorial", ["#e86f4a", "#f2c14e"], 6], ["Client: Ledgerly", ["#4a7ee8", "#9ab8f2"], 4], ["Display", ["#5a5a5a", "#9a9a9a"], 9]].map(([n, c, k]) => `<button data-toast="Opens ${n}"><span class="sw">${c.map((x) => `<i style="background:${x}"></i>`).join("")}</span><b>${n}</b><span>${k} fonts</span></button>`).join("")}</div>
+    <div class="label"><b>Saved</b><span class="count">12</span></div>
+    ${["fraunces", "serif"].map((k, i) => fontCard(k, i).replace(/<span class="n">\d+<\/span>/, "")).join("")}`,
+};
+const panel = () => `<aside class="sp${st.dark ? " theme-dark" : ""}" aria-label="Chrome side panel"><div class="sp-chrome"><span class="logo">F</span>Font Finder Plus<span class="x"><button aria-label="Pin">${ic("Pin", 15)}</button><button data-dock="panel" aria-label="Close">${ic("Cancel01", 15)}</button></span></div>
+  <div class="app" id="app"><div class="view">${st.view ? V.detail(st.view) : topbar() + V[st.tab]()}</div></div></aside>`;
+
+/* ---------- render and behaviour ---------- */
+const stage = document.getElementById("stage");
+let lastEl = null;
+function render(keepScroll = true) {
+  const sc = document.querySelector(".site")?.scrollTop || 0, ap = keepScroll ? document.getElementById("app")?.scrollTop || 0 : 0;
+  stage.innerHTML = `<div class="desk"><div class="win"><div class="chrome"><span class="lights"><i></i><i></i><i></i></span><span class="url">fieldjournal.example/essays/the-lake</span><span class="ext"><span class="logo">F</span></span></div>
+    <div class="vp" id="vp">${site()}${st.on ? coach() + dock() + hoverCard() : ""}</div></div>${st.panel ? panel() : ""}</div>`;
+  const s = document.querySelector(".site"); if (s) s.scrollTop = sc;
+  const a = document.getElementById("app"); if (a) a.scrollTop = ap;
+  if (st.pinned && st.el != null) { const el = document.querySelectorAll(".site [data-f]")[st.el]; el?.classList.add("sel"); place(el); }
+}
+let toastT;
+function toast(m) { document.querySelector(".toast")?.remove(); const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = m; document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 2000); }
+function pin(el) { const all = [...document.querySelectorAll(".site [data-f]")]; st.pinned = true; st.el = all.indexOf(el); st.hover = el.dataset.f; if (st.coach < 2) st.coach = 2; }
+function place(el) {
+  const vp = document.getElementById("vp"), hc = vp?.querySelector(".hc");
+  if (!hc || !el) return;
+  const rg = document.createRange(); rg.selectNodeContents(el); const r = rg.getClientRects()[0] || el.getBoundingClientRect(); const v = vp.getBoundingClientRect();
+  const er = el.getBoundingClientRect(); let top = er.bottom - v.top + 12; if (top + hc.offsetHeight > v.height - 90) top = Math.max(8, er.top - v.top - hc.offsetHeight - 12);
+  const left = Math.min(Math.max(12, r.left - v.left), v.width - hc.offsetWidth - 12);
+  hc.style.top = top + "px"; hc.style.left = left + "px"; hc.classList.add("show"); hc.classList.toggle("pinned", st.pinned);
+}
+document.addEventListener("mouseover", (e) => {
+  if (!st.on || st.pinned) return;
+  const el = e.target.closest(".site [data-f]"); if (!el) return;
+  lastEl = el; st.tag = el.tagName.toLowerCase(); if (st.coach === 0) { st.coach = 1; const c = document.querySelector(".coach span:nth-child(2)"); if (c) { c.innerHTML = COACH[1](); document.querySelector(".coach .step").textContent = "2/3"; } }
+  if (st.hover !== el.dataset.f || document.querySelector("#vp .hc small")?.textContent.split(" ")[0] !== st.tag) { st.hover = el.dataset.f; document.querySelector("#vp .hc").outerHTML = hoverCard(); }
+  place(el);
+});
+document.addEventListener("mouseout", (e) => { if (!st.pinned && e.target.closest?.(".site [data-f]") && !e.relatedTarget?.closest?.(".site [data-f]")) document.querySelector("#vp .hc")?.classList.remove("show"); });
+document.addEventListener("input", (e) => {
+  if (e.target.id === "tt") { st.text = e.target.value; document.querySelectorAll(".fc .smp").forEach((s) => (s.textContent = st.text || "The quick brown fox jumps over the lazy dog")); }
+  if (e.target.id === "sz") { st.size = +e.target.value; e.target.nextSibling.textContent = st.size; document.querySelectorAll(".fc .smp").forEach((s) => (s.style.fontSize = st.size + "px")); }
+});
+document.addEventListener("click", (e) => {
+  const t = e.target;
+  const th = t.closest("[data-theme]"); if (th) { st.dark = th.dataset.theme === "dark"; document.querySelectorAll("[data-theme]").forEach((b) => b.setAttribute("aria-pressed", b === th)); return render(); }
+  const tst = t.closest("[data-toast]"); if (tst) toast(tst.dataset.toast);
+  const tab = t.closest("[data-tab]"); if (tab) { st.tab = tab.dataset.tab; st.view = null; return render(false); }
+  const det = t.closest("[data-detail]"); if (det) { st.view = det.dataset.detail; st.sec = "Licence"; return render(false); }
+  if (t.closest("[data-back]")) { st.view = null; return render(false); }
+  const sec = t.closest("[data-sec]"); if (sec) { st.sec = sec.dataset.sec; document.querySelectorAll("[data-sec]").forEach((b) => b.setAttribute("aria-current", b === sec)); const target = document.getElementById("s-" + st.sec); const app = document.getElementById("app"); if (target) app.scrollTop = target.offsetTop - 110; else toast(st.sec + " is in the full build"); return; }
+  const ex = t.closest("[data-exp]"); if (ex) { st.exp = ex.dataset.exp; return render(); }
+  const sh = t.closest("[data-show]"); if (sh) { const els = [...document.querySelectorAll(`.site [data-f="${sh.dataset.show}"]`)]; els[0]?.scrollIntoView({ behavior: "smooth", block: "center" }); els.forEach((x) => x.classList.add("flash")); setTimeout(() => els.forEach((x) => x.classList.remove("flash")), 2200); return; }
+  const act = t.closest("[data-act]");
+  if (act?.dataset.act === "toggle") { st.on = !st.on; st.pinned = false; return render(); }
+  if (act?.dataset.act === "guide") { st.guide = false; return render(); }
+  const cp = t.closest("[data-copy]"); if (cp) { cp.classList.add("copied"); const b = cp.querySelector("b"), old = b.innerHTML; b.textContent = "Copied"; setTimeout(() => { b.innerHTML = old; cp.classList.remove("copied"); }, 1100); if (st.coach === 2) st.coach = 3, document.querySelector(".coach")?.remove(); return; }
+  if (t.closest("[data-copycss]")) { toast("CSS copied: font, size, weight, line height, spacing, colour"); if (st.coach === 2) { st.coach = 3; document.querySelector(".coach")?.remove(); } return; }
+  const hcb = t.closest("[data-hc]"); if (hcb) { if (hcb.dataset.hc === "details") { st.panel = true; st.view = st.hover; st.sec = "Licence"; return render(false); } if (st.pinned) { st.pinned = false; st.el = null; } else if (lastEl) { pin(lastEl); } return render(); }
+  if (act?.dataset.act === "coach") { st.coach = 3; return render(); }
+  if (act?.dataset.act === "replay") { st.coach = 0; st.on = true; return render(); }
+  const d = t.closest("[data-dock]");
+  if (d) {
+    const k = d.dataset.dock;
+    if (k === "panel") st.panel = !st.panel;
+    if (k === "inspect") { st.on = true; st.pinned = false; }
+    if (k === "fonts") { st.panel = true; st.tab = "page"; st.view = null; }
+    if (k === "system") { st.panel = true; st.tab = "system"; st.view = null; }
+    if (k === "area") { st.panel = true; st.tab = "image"; st.view = null; toast("Drag over any part of the page"); }
+    if (k === "save") toast(st.hover ? `${FONTS[st.hover].name} saved to your library` : "Point at some text first");
+    if (k === "off") { st.on = false; st.pinned = false; toast("Turned off. Press ⌥⇧F or click the icon to start again"); }
+    return render(k !== "panel");
+  }
+  if (t.closest(".chrome .ext") && !st.on) { st.on = true; return render(); }
+  const el = t.closest(".site [data-f]");
+  if (el && st.on) {
+    const all = [...document.querySelectorAll(".site [data-f]")];
+    if (st.pinned && all.indexOf(el) === st.el) { st.pinned = false; st.el = null; return render(); }
+    pin(el); return render();
+  }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT") return;
+  if (e.key === "Escape") { if (st.pinned) { st.pinned = false; st.el = null; } else if (st.view) st.view = null; else st.on = false; render(); }
+  if (e.altKey && e.shiftKey && e.code === "KeyF") { st.on = !st.on; render(); }
+  if (e.code === "Space" && st.on && document.querySelector("#vp .hc.show")) { e.preventDefault(); if (st.pinned) { st.pinned = false; st.el = null; } else if (lastEl) pin(lastEl); render(); }
+  if ((e.key === "c" || e.key === "C") && !e.metaKey && !e.ctrlKey && st.on && st.hover && document.querySelector("#vp .hc.show")) { toast(`CSS for ${FONTS[st.hover].name} copied`); if (st.coach === 2) { st.coach = 3; render(); } }
+});
+document.addEventListener("scroll", (e) => { if (e.target.classList?.contains("site") && st.pinned) place(document.querySelectorAll(".site [data-f]")[st.el]); }, true);
+render();
+</script>
+</body>
+</html>
