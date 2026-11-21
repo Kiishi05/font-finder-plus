@@ -1,6 +1,6 @@
 import { CLASS_LABEL, SOURCE_LABEL, googleFamily, licenseBadge } from '../shared/catalog';
 import { declarationCss, lineHeightLabel, rgbToHex, round, weightLabel } from '../shared/css';
-import { Bookmark02Icon, Cancel01Icon, Copy01Icon, PinIcon, ScanImageIcon, StopCircleIcon, Tick02Icon, iconSvg } from '../shared/icons';
+import { Bookmark02Icon, LibBookmarkAddIcon as BookmarkAdd02Icon, Cancel01Icon, Copy01Icon, CursorPointer01Icon, PinIcon, RulerIcon, ScanImageIcon, SidebarRightIcon, SysTextFontIcon as TextFontIcon, Tick02Icon, iconSvg } from '../shared/icons';
 import type { ElementFontInfo } from '../shared/types';
 import { pictureContext } from './context';
 import { OWN_FONT_PREFIX, elementLabel, facesFor, familyCss, fontFacts, loadFaceMap, measureMetrics, resolveRendered, roleOf, type Rendered } from './detect';
@@ -33,6 +33,14 @@ let copiedRow: string | null = null;
 let saved = false;
 let uiFontsLoaded = false;
 let onStateChange: (on: boolean) => void = () => {};
+/** The dock stays, but pointing at text does nothing (the Inspect button in the dock). */
+let paused = false;
+/** Whether the side panel is open in this window (told by the background). */
+let panelOpen = false;
+/** First-run tips above the dock: 0 point, 1 pin, 2 copy, 3 done. Kept in chrome.storage.local. */
+let coachStep = 3;
+const COACH_KEY = 'ffp:coachStep';
+const isMac = /Mac|iPhone|iPad/.test(navigator.platform);
 
 const $ = <T extends Element>(sel: string) => root!.querySelector(sel) as T;
 
@@ -93,8 +101,7 @@ function ensureUi() {
         </div>
         <div class="tools">
           <span class="chip"></span>
-          <button class="iconbtn pin" aria-label="Pin this card" title="Pin or unpin (or click the page)">${iconSvg(PinIcon, 15)}</button>
-          <button class="iconbtn close" aria-label="Close the card" title="Close the card">${iconSvg(Cancel01Icon, 14)}</button>
+          <button class="pin" aria-label="Pinned. Click to unpin" title="Unpin (Esc)" hidden>${iconSvg(PinIcon, 12)}<span>Pinned</span>${iconSvg(Cancel01Icon, 11)}</button>
         </div>
       </div>
       <canvas class="metrics" width="576" height="208"></canvas>
@@ -103,52 +110,42 @@ function ensureUi() {
         <p></p>
         <button class="btn primary identify">${iconSvg(ScanImageIcon, 14)}<span>Identify the font in this picture</span></button>
       </div>
-      <div class="foot">
-        <button class="btn primary copycss">${iconSvg(Copy01Icon, 14)}<span>Copy all as CSS</span></button>
-        <button class="btn save">${iconSvg(Bookmark02Icon, 14)}<span>Save to library</span></button>
+      <div class="foot" hidden>
+        <button class="btn primary copycss">${iconSvg(Copy01Icon, 15)}<span>Copy CSS</span></button>
+        <button class="btn save">${iconSvg(Bookmark02Icon, 15)}<span>Save</span></button>
+        <button class="btn sq details" aria-label="Open the details in the side panel" title="Details in the side panel">${iconSvg(SidebarRightIcon, 16)}</button>
       </div>
+      <p class="hint"></p>
     </div>
-    <div class="bar" role="toolbar" aria-label="Font Finder Plus" hidden>
-      <span class="live"></span>
-      <span class="what">Hover any text to see its font</span>
-      <span class="keys">Click to pin the card, click again to unpin</span>
-      <button class="stop" title="Stop inspecting (Alt + Shift + F)">${iconSvg(StopCircleIcon, 15)}<span>Stop</span></button>
+    <div class="coach" role="status" hidden><span class="step"></span><span class="ctext"></span><button class="cx" aria-label="Hide the tips">${iconSvg(Cancel01Icon, 13)}</button></div>
+    <div class="dock" role="toolbar" aria-label="Font Finder Plus" hidden>
+      <button class="db" data-dock="inspect" aria-label="Inspect fonts" aria-pressed="true">${iconSvg(CursorPointer01Icon, 20)}<span class="tip">Inspect fonts<span class="k">${isMac ? '⌥⇧F' : 'Alt+Shift+F'}</span></span></button>
+      <button class="db" data-dock="area" aria-label="Read a picture or an area">${iconSvg(ScanImageIcon, 20)}<span class="tip">Read a picture or an area</span></button>
+      <button class="db" data-dock="fonts" aria-label="Every font on this page">${iconSvg(TextFontIcon, 20)}<span class="tip">Every font on this page</span></button>
+      <button class="db" data-dock="system" aria-label="Type system">${iconSvg(RulerIcon, 20)}<span class="tip">Type system</span></button>
+      <button class="db" data-dock="save" aria-label="Save the font">${iconSvg(BookmarkAdd02Icon, 20)}<span class="tip">Save the font<span class="k">S</span></span></button>
+      <span class="sep"></span>
+      <button class="db" data-dock="panel" aria-label="Side panel" aria-pressed="false">${iconSvg(SidebarRightIcon, 20)}<span class="tip">Open the side panel</span></button>
+      <button class="db stop" data-dock="off" aria-label="Turn off">${iconSvg(Cancel01Icon, 20)}<span class="tip">Turn off<span class="k">Esc</span></span></button>
     </div>
     <div class="flag" hidden></div>`;
   document.documentElement.appendChild(host);
 
   $('.pin').addEventListener('click', (e) => {
     e.stopPropagation();
-    setPinned(!pinned);
+    setPinned(false);
   });
-  $('.copycss').addEventListener('click', async (e) => {
+  $('.copycss').addEventListener('click', (e) => {
     e.stopPropagation();
-    if (!current) return;
-    const s = current.info;
-    await copyText(
-      declarationCss(s.declared, {
-        fontSize: s.fontSize,
-        fontWeight: s.weight,
-        fontStyle: s.style,
-        lineHeight: s.lineHeight,
-        letterSpacing: s.letterSpacing,
-        color: s.color,
-      }, s.family),
-    );
-    flashButton('.copycss', 'Copied CSS');
+    copyCss();
   });
-  $('.save').addEventListener('click', async (e) => {
+  $('.save').addEventListener('click', (e) => {
     e.stopPropagation();
-    if (!current) return;
-    const reply = await new Promise<{ ok: boolean } | null>((resolve) =>
-      chrome.runtime.sendMessage(
-        { type: 'ffp:save-from-page', info: current!.info, pageUrl: location.href, fileUrl: current!.fileUrl, files: current!.info.kind === 'web' ? facesFor(current!.info.family) : [] },
-        (r) => resolve(chrome.runtime.lastError ? null : r),
-      ),
-    );
-    saved = !!reply?.ok;
-    if (saved) $('.save').innerHTML = `${iconSvg(Bookmark02Icon, 14, 1.5, true)}<span>Saved</span>`;
-    flashButton('.save', saved ? 'Saved' : 'Could not save');
+    saveCurrent();
+  });
+  $('.details').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (current) openPanel({ view: 'detail', family: current.info.displayName ?? current.info.family });
   });
   $('.rows').addEventListener('click', async (e) => {
     const btn = (e.target as Element).closest('button[data-copy]') as HTMLButtonElement | null;
@@ -157,6 +154,7 @@ function ensureUi() {
     await copyText(btn.dataset.copy!);
     copiedRow = btn.dataset.key!;
     renderRows();
+    advanceCoach(3);
     setTimeout(() => {
       copiedRow = null;
       renderRows();
@@ -171,14 +169,148 @@ function ensureUi() {
     hideCard();
     chrome.runtime.sendMessage({ type: 'ffp:identify-rect', rect, pageUrl: location.href, context: pictureContext(pic.el) }, () => void chrome.runtime.lastError);
   });
-  $('.close').addEventListener('click', (e) => {
+  $('.cx').addEventListener('click', (e) => {
     e.stopPropagation();
-    hideCard();
+    advanceCoach(3);
   });
-  $('.stop').addEventListener('click', (e) => {
+  $('.dock').addEventListener('click', (e) => {
+    const b = (e.target as Element).closest('button[data-dock]') as HTMLButtonElement | null;
+    if (!b) return;
     e.stopPropagation();
-    stop();
+    switch (b.dataset.dock) {
+      case 'inspect':
+        setPaused(!paused);
+        break;
+      case 'area':
+        openPanel({ view: 'image', select: true });
+        break;
+      case 'fonts':
+        openPanel({ view: 'page' });
+        break;
+      case 'system':
+        openPanel({ view: 'system' });
+        break;
+      case 'save':
+        if (current && !current.picture) saveCurrent();
+        else flashTip(b, 'Point at some text first');
+        break;
+      case 'panel':
+        if (panelOpen) chrome.runtime.sendMessage({ type: 'ffp:close-panel-request' }, () => void chrome.runtime.lastError);
+        else openPanel({});
+        break;
+      case 'off':
+        stop();
+        break;
+    }
   });
+  chrome.storage?.onChanged?.addListener((changes, area) => {
+    if (area === 'local' && COACH_KEY in changes) {
+      coachStep = Number(changes[COACH_KEY].newValue ?? 0);
+      renderCoach();
+    }
+  });
+}
+
+/** Ask the background to open the side panel (it must do it at once, while the click still counts). */
+function openPanel(req: { view?: 'page' | 'system' | 'image' | 'detail'; select?: boolean; family?: string }) {
+  chrome.runtime.sendMessage({ type: 'ffp:open-panel', ...req }, () => void chrome.runtime.lastError);
+}
+
+export function setPanelOpen(open: boolean) {
+  panelOpen = open;
+  if (!root) return;
+  const b = $<HTMLButtonElement>('.db[data-dock="panel"]');
+  b.setAttribute('aria-pressed', String(open));
+  b.querySelector('.tip')!.textContent = open ? 'Close the side panel' : 'Open the side panel';
+}
+
+function flashTip(b: HTMLElement, text: string) {
+  const tip = b.querySelector('.tip') as HTMLElement;
+  const prev = tip.innerHTML;
+  tip.textContent = text;
+  b.classList.add('saytip');
+  setTimeout(() => {
+    tip.innerHTML = prev;
+    b.classList.remove('saytip');
+  }, 1600);
+}
+
+async function copyCss() {
+  if (!current || current.picture) return;
+  const s = current.info;
+  await copyText(
+    declarationCss(s.declared, {
+      fontSize: s.fontSize,
+      fontWeight: s.weight,
+      fontStyle: s.style,
+      lineHeight: s.lineHeight,
+      letterSpacing: s.letterSpacing,
+      color: s.color,
+    }, s.family),
+  );
+  if (!$<HTMLElement>('.foot').hidden) flashButton('.copycss', 'Copied');
+  else flashTip($('.db[data-dock="inspect"]'), 'CSS copied');
+  advanceCoach(3);
+}
+
+async function saveCurrent() {
+  if (!current || current.picture) return;
+  const reply = await new Promise<{ ok: boolean } | null>((resolve) =>
+    chrome.runtime.sendMessage(
+      { type: 'ffp:save-from-page', info: current!.info, pageUrl: location.href, fileUrl: current!.fileUrl, files: current!.info.kind === 'web' ? facesFor(current!.info.family) : [] },
+      (r) => resolve(chrome.runtime.lastError ? null : r),
+    ),
+  );
+  saved = !!reply?.ok;
+  if (saved) $('.save').innerHTML = `${iconSvg(Bookmark02Icon, 15, 1.5, true)}<span>Saved</span>`;
+  if (!$<HTMLElement>('.foot').hidden) flashButton('.save', saved ? 'Saved' : 'Could not save');
+  else flashTip($('.db[data-dock="save"]'), saved ? `${current.info.displayName ?? current.info.family} saved` : 'Could not save');
+}
+
+// ------------------------------------------------------------------ tips
+
+const COACH_TEXT = () => [
+  'Point at any text to see its font',
+  'Click the text or press <span class="kbd">Space</span> to pin the card',
+  'Pinned. Click a value to copy it, or <span class="kbd">C</span> copies all the CSS. <span class="kbd">Esc</span> unpins',
+];
+
+function renderCoach() {
+  if (!root) return;
+  const c = $<HTMLElement>('.coach');
+  c.hidden = !active || paused || coachStep >= 3;
+  if (c.hidden) return;
+  c.querySelector('.step')!.textContent = `${coachStep + 1}/3`;
+  c.querySelector('.ctext')!.innerHTML = COACH_TEXT()[coachStep];
+}
+
+/** Move the tips on to a step (never back). Step 3 hides them for good. */
+function advanceCoach(to: number) {
+  if (coachStep >= to) return;
+  coachStep = to;
+  try {
+    chrome.storage.local.set({ [COACH_KEY]: to });
+  } catch {
+    /* not available in tests */
+  }
+  renderCoach();
+}
+
+function setPaused(on: boolean) {
+  paused = on;
+  if (on) {
+    pinned = false;
+    current = null;
+    $<HTMLElement>('.card').hidden = true;
+    $<HTMLElement>('.card').classList.remove('pinned');
+    $<HTMLElement>('.hl').hidden = true;
+    document.documentElement.style.removeProperty('cursor');
+  } else {
+    document.documentElement.style.setProperty('cursor', 'crosshair', 'important');
+  }
+  $('.db[data-dock="inspect"]').setAttribute('aria-pressed', String(!on));
+  ($('.db[data-dock="inspect"] .tip') as HTMLElement).firstChild!.textContent = on ? 'Paused. Click to inspect again' : 'Inspect fonts';
+  renderCoach();
 }
 
 function flashButton(sel: string, text: string) {
@@ -339,7 +471,6 @@ function renderCard() {
   $<HTMLElement>('.picnote').hidden = !pic;
   $<HTMLElement>('.metrics').hidden = !!pic;
   $<HTMLElement>('.rows').hidden = !!pic;
-  $<HTMLElement>('.foot').hidden = !!pic;
   $<HTMLElement>('.chip').hidden = !!pic;
   const name = $<HTMLElement>('.name');
   if (pic) {
@@ -354,9 +485,9 @@ function renderCard() {
     name.style.fontFamily = '"FFP Geist", system-ui';
     name.style.fontWeight = '600';
     name.style.fontStyle = 'normal';
-    $<HTMLElement>('.meta').textContent = `[${pic.kind === 'svg' ? 'SVG DRAWING' : 'IMAGE'}]`;
+    $<HTMLElement>('.meta').textContent = pic.kind === 'svg' ? 'SVG drawing' : 'Image';
     $<HTMLElement>('.fallback').hidden = true;
-    $<HTMLElement>('.pin').classList.toggle('on', pinned);
+    renderPinState();
     return;
   }
   name.textContent = info.displayName ?? info.family;
@@ -364,7 +495,7 @@ function renderCard() {
   name.style.fontWeight = info.weight;
   name.style.fontStyle = info.style;
   const src = info.kind === 'web' ? SOURCE_LABEL[info.source] : info.kind === 'generic' ? 'Browser default' : 'System font';
-  $<HTMLElement>('.meta').textContent = `[${info.tag} · ${src.toUpperCase()}${info.catalogFamily && info.source !== 'google' ? ' · ON GOOGLE FONTS' : ''}]${current.swappedFrom ? ` · SHOWING INSTEAD OF ${current.swappedFrom.toUpperCase()}` : ''}`;
+  $<HTMLElement>('.meta').textContent = `${info.tag} · ${src}${info.catalogFamily && info.source !== 'google' ? ' · on Google Fonts' : ''}${current.swappedFrom ? ` · showing instead of ${current.swappedFrom}` : ''}`;
   const fb = $<HTMLElement>('.fallback');
   fb.hidden = !info.fellBackFrom.length;
   fb.textContent = info.fellBackFrom.length ? `Fallback: ${info.fellBackFrom.join(', ')} did not load` : '';
@@ -373,29 +504,43 @@ function renderCard() {
   chip.className = `chip ${badge.tone}`;
   chip.innerHTML = `<span class="dot"></span>${badge.text}`;
   chip.title = `${CLASS_LABEL[info.classification]} · ${badge.text}`;
-  $<HTMLElement>('.pin').classList.toggle('on', pinned);
+  renderPinState();
   drawMetrics();
   renderRows();
+}
+
+/** Pinned: the "Pinned" button, the actions and the copy hint. Not pinned: how to pin. */
+function renderPinState() {
+  const pic = !!current?.picture;
+  $<HTMLElement>('.pin').hidden = !pinned;
+  $<HTMLElement>('.foot').hidden = !pinned || pic;
+  const hint = $<HTMLElement>('.hint');
+  hint.hidden = pic && !pinned;
+  hint.className = pinned ? 'hint' : 'hint pinme';
+  hint.innerHTML = pinned
+    ? pic ? '<span class="kbd">Esc</span> unpins' : 'Click a value to copy just that. <span class="kbd">Esc</span> unpins.'
+    : `${iconSvg(PinIcon, 13)}Click or press <span class="kbd">Space</span> to pin it`;
 }
 
 function renderRows() {
   if (!current) return;
   const i = current.info;
+  const italic = i.style !== 'normal' ? ` ${i.style[0].toUpperCase()}${i.style.slice(1)}` : '';
   const rows: { key: string; label: string; value: string; copy: string; swatch?: string }[] = [
-    { key: 'weight', label: 'Weight', value: weightLabel(i.weight), copy: i.weight },
-    { key: 'style', label: 'Style', value: i.style[0].toUpperCase() + i.style.slice(1), copy: i.style },
+    { key: 'weight', label: 'Weight', value: `${weightLabel(i.weight)}${italic}`, copy: i.weight },
     { key: 'size', label: 'Size', value: `${round(i.fontSize, 2)}px`, copy: `${round(i.fontSize, 2)}px` },
     { key: 'line', label: 'Line height', value: lineHeightLabel(i.lineHeight, i.fontSize), copy: i.lineHeight },
-    { key: 'track', label: 'Tracking', value: i.letterSpacing === 'normal' ? 'Normal' : i.letterSpacing, copy: i.letterSpacing },
-    { key: 'color', label: 'Color', value: rgbToHex(i.color), copy: rgbToHex(i.color).split(' ')[0], swatch: i.color },
+    { key: 'track', label: 'Spacing', value: i.letterSpacing === 'normal' ? 'Normal' : i.letterSpacing, copy: i.letterSpacing },
+    { key: 'color', label: 'Colour', value: rgbToHex(i.color), copy: rgbToHex(i.color).split(' ')[0], swatch: i.color },
+    { key: 'family', label: 'Family', value: i.displayName ?? i.family, copy: i.displayName ?? i.family },
   ];
   $<HTMLElement>('.rows').innerHTML = rows
     .map((r) => {
       const copied = copiedRow === r.key;
-      return `<button class="row${copied ? ' copied' : ''}" data-copy="${escapeHtml(r.copy)}" data-key="${r.key}" title="Click to copy">
+      return `<button class="row${copied ? ' copied' : ''}" data-copy="${escapeHtml(r.copy)}" data-key="${r.key}" title="Click to copy" aria-label="Copy ${r.label}: ${escapeHtml(r.value)}">
         <span class="k">${r.label}</span>
-        <span class="v">${r.swatch ? `<span class="sw" style="background:${escapeHtml(r.swatch)}"></span>` : ''}${escapeHtml(r.value)}</span>
-        <span class="s">${copied ? `${iconSvg(Tick02Icon, 13, 2)}Copied` : iconSvg(Copy01Icon, 13)}</span>
+        <span class="v">${r.swatch ? `<span class="sw" style="background:${escapeHtml(r.swatch)}"></span>` : ''}${copied ? 'Copied' : escapeHtml(r.value)}</span>
+        <span class="s">${copied ? iconSvg(Tick02Icon, 12, 2) : iconSvg(Copy01Icon, 12)}</span>
       </button>`;
     })
     .join('');
@@ -409,7 +554,7 @@ function drawMetrics() {
   const H = canvas.height;
   const scale = W / 288; // canvas is drawn at 2x
   c.clearRect(0, 0, W, H);
-  c.fillStyle = '#F4F4F3';
+  c.fillStyle = '#F8F8F7';
   c.beginPath();
   c.roundRect(0, 0, W, H, 12 * scale);
   c.fill();
@@ -432,7 +577,7 @@ function drawMetrics() {
     c.restore();
   };
   line(base - capA, '#8A8A86', true);
-  line(base - xA, '#19C05A', true);
+  line(base - xA, '#B4B4B0', true);
   line(base, '#111111', false);
   c.fillStyle = '#111111';
   c.textBaseline = 'alphabetic';
@@ -444,7 +589,7 @@ function drawMetrics() {
     c.fillText(text, W - 10 * scale, y);
   };
   label(info.capHeight != null ? `CAP ${info.capHeight}PX` : 'CAP', base - capA - 5 * scale, '#5C5C5A');
-  label(info.xHeight != null ? `X-HEIGHT ${info.xHeight}PX` : 'X-HEIGHT', base - xA - 5 * scale, '#0B7A37');
+  label(info.xHeight != null ? `X-HEIGHT ${info.xHeight}PX` : 'X-HEIGHT', base - xA - 5 * scale, '#5C5C5A');
   label('BASELINE', base - 5 * scale, '#111111');
   c.textAlign = 'left';
 }
@@ -483,6 +628,7 @@ function show(el: Element) {
   card.hidden = false;
   renderCard();
   position();
+  if (!current.picture) advanceCoach(1);
 }
 
 /** Hide the card until the mouse moves over other text. Inspecting keeps going. */
@@ -492,7 +638,6 @@ function hideCard() {
   const card = $<HTMLElement>('.card');
   card.hidden = true;
   card.classList.remove('pinned');
-  $<HTMLElement>('.pin').classList.remove('on');
   $<HTMLElement>('.hl').hidden = true;
   hiddenUntilMove = true;
 }
@@ -502,7 +647,9 @@ let hiddenUntilMove = false;
 function setPinned(on: boolean) {
   pinned = on;
   $<HTMLElement>('.card').classList.toggle('pinned', on);
-  $<HTMLElement>('.pin').classList.toggle('on', on);
+  renderPinState();
+  position();
+  if (on) advanceCoach(2);
   if (on && current) {
     chrome.runtime.sendMessage({ type: 'ffp:pinned', info: current.info, pageUrl: location.href }, () => void chrome.runtime.lastError);
   }
@@ -530,7 +677,7 @@ function onMove(e: MouseEvent) {
     if (moved < 12) return;
     hiddenUntilMove = false;
   }
-  if (pinned || rafPending) return;
+  if (paused || pinned || rafPending) return;
   rafPending = true;
   requestAnimationFrame(() => {
     rafPending = false;
@@ -542,7 +689,7 @@ function onMove(e: MouseEvent) {
 
 
 function onClick(e: MouseEvent) {
-  if (isOurNode(e.composedPath()[0] as Node)) return;
+  if (paused || isOurNode(e.composedPath()[0] as Node)) return;
   // Clicking the page pins the card instead of following links or pressing buttons.
   e.preventDefault();
   e.stopPropagation();
@@ -564,9 +711,42 @@ function onClick(e: MouseEvent) {
 }
 
 function block(e: Event) {
-  if (isOurNode(e.composedPath()[0] as Node)) return;
+  if (paused || isOurNode(e.composedPath()[0] as Node)) return;
   e.preventDefault();
   e.stopPropagation();
+}
+
+function editable(t: EventTarget | null) {
+  const el = t as HTMLElement | null;
+  return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+}
+
+/** Space pins or unpins, C copies the CSS, S saves, Esc unpins and then turns off. */
+function onKey(e: KeyboardEvent) {
+  if (e.metaKey || e.ctrlKey || e.altKey || editable(e.composedPath()[0] ?? e.target)) return;
+  const cardShown = !!current && !$<HTMLElement>('.card').hidden;
+  if (e.key === 'Escape') {
+    // Chrome leaves full screen with Esc: never turn off then.
+    if (document.fullscreenElement) return;
+    if (pinned) setPinned(false);
+    else stop();
+    e.preventDefault();
+    return;
+  }
+  if (paused || !cardShown) return;
+  if (e.code === 'Space') {
+    setPinned(!pinned);
+    e.preventDefault();
+    e.stopPropagation();
+  } else if (e.key === 'c' || e.key === 'C') {
+    copyCss();
+    e.preventDefault();
+    e.stopPropagation();
+  } else if (e.key === 's' || e.key === 'S') {
+    saveCurrent();
+    e.preventDefault();
+    e.stopPropagation();
+  }
 }
 
 function onScroll() {
@@ -578,7 +758,22 @@ export async function start() {
   active = true;
   ensureUi();
   host!.hidden = false;
-  $<HTMLElement>('.bar').hidden = false;
+  paused = false;
+  $<HTMLElement>('.dock').hidden = false;
+  setPaused(false);
+  addEventListener('keydown', onKey, true);
+  try {
+    chrome.storage.local.get(COACH_KEY, (v) => {
+      coachStep = Number(v?.[COACH_KEY] ?? 0);
+      renderCoach();
+    });
+  } catch {
+    coachStep = 3;
+  }
+  chrome.runtime.sendMessage({ type: 'ffp:panel-open?' }, (r?: { open: boolean }) => {
+    void chrome.runtime.lastError;
+    setPanelOpen(!!r?.open);
+  });
   loadUiFonts();
   loadFaceMap();
   addEventListener('mousemove', onMove, true);
@@ -600,10 +795,14 @@ export function stop() {
   removeEventListener('mousedown', block, true);
   removeEventListener('mouseup', block, true);
   removeEventListener('scroll', onScroll, true);
+  removeEventListener('keydown', onKey, true);
+  paused = false;
   document.documentElement.style.removeProperty('cursor');
   if (root) {
     $<HTMLElement>('.card').hidden = true;
-    $<HTMLElement>('.bar').hidden = true;
+    $<HTMLElement>('.card').classList.remove('pinned');
+    $<HTMLElement>('.dock').hidden = true;
+    $<HTMLElement>('.coach').hidden = true;
     $<HTMLElement>('.hl').hidden = true;
   }
   onStateChange(false);

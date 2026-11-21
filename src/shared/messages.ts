@@ -20,7 +20,8 @@ export type ToContent =
   | { type: 'ffp:prints'; family: string; weight: string; style: string }
   | { type: 'ffp:fine-prints'; family: string; weight: string; style: string }
   | { type: 'ffp:specimen'; family: string; weight: string; style: string; text: string }
-  | { type: 'ffp:highlight-issue'; id: string; label: string };
+  | { type: 'ffp:highlight-issue'; id: string; label: string }
+  | { type: 'ffp:panel-state'; open: boolean };
 
 export interface PingReply {
   ok: true;
@@ -48,7 +49,13 @@ export type ToExtension =
   | { type: 'ffp:open-detail'; family: string; source: SourceKind }
   | { type: 'ffp:fetch-font-bg'; url: string }
   | { type: 'ffp:inject'; tabId: number; startInspecting: boolean }
-  | { type: 'ffp:identify-rect'; rect: { x: number; y: number; w: number; h: number; dpr: number }; pageUrl: string; context?: string[] };
+  | { type: 'ffp:identify-rect'; rect: { x: number; y: number; w: number; h: number; dpr: number }; pageUrl: string; context?: string[] }
+  /** From the dock on the page: open the side panel, optionally at a tab or a font. */
+  | { type: 'ffp:open-panel'; view?: 'page' | 'system' | 'image' | 'detail'; select?: boolean; family?: string }
+  | { type: 'ffp:close-panel-request' }
+  | { type: 'ffp:panel-open?' }
+  /** To the side panel: close yourself. */
+  | { type: 'ffp:close-panel' };
 
 export type ScanReply = { ok: true; scan: PageScan } | { ok: false; error: string };
 

@@ -53,29 +53,34 @@ chrome.runtime.onConnect.addListener((port) => {
   if (!m) return;
   const windowId = Number(m[1]);
   openPanels.add(windowId);
+  tellTabs(windowId, true);
   port.onDisconnect.addListener(async () => {
     openPanels.delete(windowId);
     // Give a reconnect (background restart) a moment before treating it as closed.
     await new Promise((r) => setTimeout(r, 600));
     if (openPanels.has(windowId)) return;
-    const tabs = await chrome.tabs.query({ windowId });
-    for (const t of tabs) {
-      if (t.id == null) continue;
-      sendToTab(t.id, { type: 'ffp:inspect', on: false }, 500);
-      sendToTab(t.id, { type: 'ffp:highlight', key: null }, 500);
-    }
+    // The dock on the page keeps going without the panel; only the outlines go.
+    tellTabs(windowId, false);
   });
 });
 
-chrome.action.onClicked.addListener((tab) => {
+/** Let the dock on each page in the window show whether the side panel is open. */
+async function tellTabs(windowId: number, open: boolean) {
+  const tabs = await chrome.tabs.query({ windowId });
+  for (const t of tabs) {
+    if (t.id == null) continue;
+    sendToTab(t.id, { type: 'ffp:panel-state', open }, 500);
+    if (!open) sendToTab(t.id, { type: 'ffp:highlight', key: null }, 500);
+  }
+}
+
+chrome.action.onClicked.addListener(async (tab) => {
   if (tab.id == null) return;
-  // Open the side panel first, while Chrome still counts this as a user gesture.
-  // It opens for the window, so it stays open and follows you between tabs.
-  chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => undefined);
-  // Panel closed: open it and start. Panel already open: the icon (and
-  // Alt + Shift + F) turns the hover card on and off.
-  const panelOpen = tab.windowId != null && openPanels.has(tab.windowId);
-  toggleInspector(tab.id, panelOpen ? undefined : true);
+  // The icon (and Alt + Shift + F) turns the dock on the page on and off.
+  // The side panel opens from the dock, not by itself.
+  const state = await toggleInspector(tab.id);
+  // A page Chrome keeps extensions off (new tab, Web Store): open the panel so it can explain.
+  if (!state.ok) chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => undefined);
 });
 
 // A new page in a tab: forget any "cannot read this page" message from the last one.
@@ -92,7 +97,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     return;
   }
   if (info.menuItemId !== MENU_ID || tab?.id == null) return;
-  chrome.sidePanel.open({ windowId: tab.windowId }).catch(() => undefined);
   toggleInspector(tab.id, true);
 });
 
@@ -111,6 +115,22 @@ async function pictureHasText(windowId: number, r: { x: number; y: number; w: nu
 
 chrome.runtime.onMessage.addListener((msg: ToExtension | { type: 'ffp:fetch-bg'; url: string; as: 'text' | 'base64' } | { type: 'ffp:picture-text'; rect: { x: number; y: number; w: number; h: number; dpr: number } }, sender, reply) => {
   switch (msg.type) {
+    case 'ffp:open-panel': {
+      const windowId = sender.tab?.windowId;
+      if (windowId == null) return void reply({ ok: false });
+      // Open at once: Chrome only allows it while the click on the dock still counts.
+      chrome.sidePanel.open({ windowId }).catch(() => undefined);
+      if (msg.view) chrome.storage.session.set({ 'panel:request': { view: msg.view, select: !!msg.select, family: msg.family, at: Date.now() } });
+      reply({ ok: true });
+      return false;
+    }
+    case 'ffp:close-panel-request':
+      chrome.runtime.sendMessage({ type: 'ffp:close-panel' }, () => void chrome.runtime.lastError);
+      reply({ ok: true });
+      return false;
+    case 'ffp:panel-open?':
+      reply({ open: sender.tab?.windowId != null && openPanels.has(sender.tab.windowId) });
+      return false;
     case 'ffp:picture-text': {
       const windowId = sender.tab?.windowId;
       if (windowId == null) return void reply({ ok: false });

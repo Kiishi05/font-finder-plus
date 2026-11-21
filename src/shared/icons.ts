@@ -97,3 +97,5 @@ export {
   SearchRemoveIcon,
   WifiDisconnected01Icon,
 } from '@hugeicons/core-free-icons';
+// Dock and modern panel icons
+export { SidebarRightIcon, RulerIcon } from '@hugeicons/core-free-icons';

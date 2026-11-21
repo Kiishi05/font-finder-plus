@@ -15,11 +15,14 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
 
 ## Using it
 
-- **Start:** click the toolbar icon or press `Alt` + `Shift` + `F`. The side panel opens and the hover inspector starts on that tab. You can also right-click anywhere on the web page and choose **Inspect fonts on this page**.
-- **Stop:** click **Stop** on the black bar at the bottom of the page, click the toolbar icon again, press `Alt` + `Shift` + `F`, use the switch in the panel, or close the side panel.
-- **Hover card:** shows the rendered font, weight, style, size, line height, letter spacing and colour, plus cap height and x-height measured from the real font. Click any value to copy it.
-  - Click to pin the card so you can use its buttons, click again to unpin. Links and buttons on the page are not followed while inspecting.
-  - The card's close button hides it until you move to other text. `Esc` is not used, because Chrome also uses it to leave full screen.
+- **Start:** click the toolbar icon or press `Alt` + `Shift` + `F`. A dock appears at the bottom of the page and pointing at text shows its font. The side panel does not open by itself: open it from the dock. You can also right-click anywhere on the web page and choose **Inspect fonts on this page**.
+- **The dock:** Inspect (pause or resume pointing), Read a picture or an area, Every font on this page, Type system, Save the font, the side panel (open or close), and Turn off. Each button has a tooltip.
+- **Stop:** the X on the dock, `Esc` when no card is pinned (never while the page is full screen), the toolbar icon again, or `Alt` + `Shift` + `F`.
+- **Hover card:** the rendered font, its licence (Free or Paid), cap height and x-height measured from the real font, and weight, size, line height, spacing, colour and family.
+  - Click the text, or press `Space`, to pin the card. Pinned shows a **Pinned** button (click it or press `Esc` to unpin).
+  - On a pinned card, click any value to copy just that value, or **Copy CSS** (or `C`) for everything. `S` saves the font. The panel button opens its details in the side panel.
+  - Links and buttons on the page are not followed while inspecting; pause from the dock to use the page.
+- **Tips:** the first time, a small tip above the dock shows the next step (point, pin, copy). It can be closed, and **How it works** in the panel shows it again.
 - **Page tab:** every font the page renders, how many elements use it and where (headings, body, buttons, links, navigation, code, captions). Fonts that are named in the CSS but never loaded are called out, with the font that shows instead.
 - **Font detail:** facts read from the font file itself (format, foundry, designer, version, glyph count, metrics, variable axes), the CSS stack, the source, and the licence type where it is known.
 - **Icon fonts** (for example Font Awesome, Material Symbols or a site's own icon font) are named in one line and left out of the list, because they draw symbols rather than text.
@@ -57,7 +60,7 @@ After pulling new code: `git pull && npm install && npm run build`, then click t
 - **Text drawn as pictures:** SVG drawings and images in headings have no font to read; the Page tab says when a page has them (Klim's catalog draws its specimen names as SVG, for example).
 - Fonts whose files cannot be downloaded are measured from how the page draws them (at 16px, drawn 10 times larger), so similar fonts and Make it free still work.
 - **Copy CSS** keeps a short stack: the families up to the one that renders, then one generic fallback.
-- The side panel stays open across tabs in a window and follows the tab you are on. With access to all sites, the inspector starts by itself on each tab; without it, click the icon once on each tab (Chrome's rule).
+- The side panel stays open across tabs in a window and follows the tab you are on. Closing it leaves the dock on the page. With access to all sites, the panel reads each tab by itself; without it, click the icon once on each tab (Chrome's rule).
 - **Sample text:** each font's name, your own text, or a sample sentence in one of 16 languages.
 
 ## Fonts in images and social posts
