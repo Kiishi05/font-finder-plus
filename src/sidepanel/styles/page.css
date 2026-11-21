@@ -22,10 +22,10 @@
 /* ---- Site status card ---- */
 .pstatus { gap: 14px; padding: 16px; }
 .pstatus .st1 { display: flex; align-items: center; gap: 12px; min-width: 0; }
+/* The dot sits level with the small status line, not the middle of the block. */
+.pstatus .st1 .pdot { align-self: flex-start; margin-top: 5px; }
 .pdot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--faint); flex: none; transition: background-color 150ms ease; }
 .pdot.live { background: var(--ink); }
-.pdot.live::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid var(--ink); opacity: 0; animation: ffping 2s var(--ease-out) infinite; }
-@media (prefers-reduced-motion: reduce) { .pdot.live::after { animation: none !important; display: none; } }
 .pstatus .who { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .pstatus .who span { font-size: 12px; color: var(--faint); }
 .pstatus .who b { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -53,6 +53,8 @@
 }
 .tbar .tbar-size:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 4px; }
 .tbar .dd { position: relative; flex: none; }
+/* The language menu opens from the left edge so it never runs off the panel. */
+.tbar .dd > .ddlist:not(.menu) { left: 0; right: auto; transform-origin: top left; }
 .ddbtn { display: inline-flex; align-items: center; gap: 6px; height: 34px; max-width: 132px; padding: 0 8px 0 9px; border: none; border-radius: 10px; background: var(--field); color: var(--ink); font-size: 12.5px; cursor: pointer; transition: background-color 150ms ease, transform 160ms var(--ease-out); }
 .ddbtn > svg { color: var(--muted); flex: none; }
 .ddbtn .ddlabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
@@ -78,14 +80,14 @@
 /* ---- Make it free ---- */
 .mif .info { margin: -6px 0 0; color: var(--muted); font-size: 13px; }
 .mflist { margin: 0; padding: 4px 14px; list-style: none; display: flex; flex-direction: column; border-radius: var(--r-inner); background: var(--inset); }
-.mflist li { display: grid; grid-template-columns: minmax(0, 1fr) 14px minmax(0, max-content); align-items: center; gap: 10px; min-height: 40px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.mflist li { display: grid; grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr); align-items: center; gap: 12px; min-height: 40px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
 .mflist li:first-child { border-top: 0; }
 .mflist .from { color: var(--muted); overflow-wrap: anywhere; }
 .mflist .to { color: var(--faint); display: inline-flex; justify-content: center; }
 .mflist .to svg { width: 14px; height: 14px; }
-.mflist .dest { justify-self: end; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.mflist .dest { justify-self: start; text-align: left; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .mflist b { font-weight: 500; }
-.mflist .pct { display: inline-block; min-width: 36px; font: 500 11.5px/1 var(--mono); color: var(--faint); margin-left: 6px; text-align: right; font-variant-numeric: tabular-nums; }
+.mflist .pct { display: inline-block; font: 500 11.5px/1 var(--mono); color: var(--faint); margin-left: 6px; font-variant-numeric: tabular-nums; }
 .mflist .far { font-size: 12px; color: var(--faint); }
 .mif > .row { align-self: flex-start; }
 .mif small { font-size: 12px; color: var(--faint); line-height: 1.45; }

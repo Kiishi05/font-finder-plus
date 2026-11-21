@@ -199,6 +199,8 @@ function ensureUi() {
         else openPanel({});
         break;
       case 'off':
+        // The X closes Font Finder Plus completely: the dock and the side panel.
+        if (panelOpen) chrome.runtime.sendMessage({ type: 'ffp:close-panel-request' }, () => void chrome.runtime.lastError);
         stop();
         break;
     }

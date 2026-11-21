@@ -47,6 +47,8 @@ async function toggleInspector(tabId: number, forceOn?: boolean) {
 
 // Windows whose side panel is open (the panel keeps a port connected).
 const openPanels = new Set<number>();
+// Windows whose panel was closed from the dock's panel button: keep the dock then.
+const keepDock = new Map<number, number>();
 
 chrome.runtime.onConnect.addListener((port) => {
   const m = /^ffp-panel:(\d+)$/.exec(port.name);
@@ -59,8 +61,14 @@ chrome.runtime.onConnect.addListener((port) => {
     // Give a reconnect (background restart) a moment before treating it as closed.
     await new Promise((r) => setTimeout(r, 600));
     if (openPanels.has(windowId)) return;
-    // The dock on the page keeps going without the panel; only the outlines go.
     tellTabs(windowId, false);
+    // Closing the panel with its X turns Font Finder Plus off on the page too,
+    // unless the dock's own panel button closed it (then only the panel goes).
+    const kept = keepDock.get(windowId);
+    keepDock.delete(windowId);
+    if (kept && Date.now() - kept < 3000) return;
+    const tabs = await chrome.tabs.query({ windowId });
+    for (const t of tabs) if (t.id != null) sendToTab(t.id, { type: 'ffp:inspect', on: false }, 500);
   });
 });
 
@@ -125,6 +133,7 @@ chrome.runtime.onMessage.addListener((msg: ToExtension | { type: 'ffp:fetch-bg';
       return false;
     }
     case 'ffp:close-panel-request':
+      if (sender.tab?.windowId != null) keepDock.set(sender.tab.windowId, Date.now());
       chrome.runtime.sendMessage({ type: 'ffp:close-panel' }, () => void chrome.runtime.lastError);
       reply({ ok: true });
       return false;

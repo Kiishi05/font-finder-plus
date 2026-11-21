@@ -158,7 +158,7 @@ export function App() {
       {view.name === 'system' && <SystemView tab={tab} toast={showToast} />}
       {/* Kept open behind a font's details, so going back keeps the image and its results. */}
       {(view.name === 'image' || (view.name === 'detail' && view.from === 'image')) && (
-        <div hidden={view.name !== 'image'}>
+        <div className="viewstack" hidden={view.name !== 'image'}>
           <IdentifyView
             tab={tab}
             pending={pending}
