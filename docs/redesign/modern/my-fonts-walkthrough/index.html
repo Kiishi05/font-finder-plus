@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Fonts Walkthrough</title>
+<style>
+:root { --bg: #f4f4f3; --card: #ffffff; --ink: #161616; --ink-2: #4f4f4f; --ink-3: #6e6e6e; --line: rgba(0,0,0,0.08); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0e0e0e; --card: #1a1a1a; --ink: #f1f1f1; --ink-2: #bdbdbd; --ink-3: #8f8f8f; --line: rgba(255,255,255,0.08); } }
+:root[data-theme="dark"] { --bg: #0e0e0e; --card: #1a1a1a; --ink: #f1f1f1; --ink-2: #bdbdbd; --ink-3: #8f8f8f; --line: rgba(255,255,255,0.08); }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+main { max-width: 1180px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.02em; }
+.lead { margin: 0 0 28px; color: var(--ink-2); max-width: 640px; }
+.steps { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+figure { margin: 0; background: var(--card); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+figure img { width: 100%; height: auto; display: block; border-radius: 12px; border: 1px solid var(--line); }
+figcaption { display: flex; flex-direction: column; gap: 6px; padding: 0 4px 4px; }
+figcaption b { font-size: 15px; }
+figcaption span { color: var(--ink-2); font-size: 14px; }
+.n { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--card); font-size: 12px; font-weight: 600; margin-right: 8px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Use with my fonts, step by step</h1>
+<p class="lead">Pictures of each step on a phone, so you can see the whole flow without tapping. The side panel's System tab, after you choose your own heading and body fonts.</p>
+<div class="steps">
+<figure><img src="phone-grow-light-1-open.jpg" alt="System tab with the Use with my fonts button above the type scale" loading="lazy"><figcaption><b><span class="n">1</span>Start</b><span>Tap Use with my fonts. Below it is the site's type scale next to a clean scale.</span></figcaption></figure>
+<figure><img src="phone-grow-light-2-fonts.jpg" alt="Empty Heading font and Body font slots" loading="lazy"><figcaption><b><span class="n">2</span>Your fonts</b><span>Two empty slots, Heading font and Body font, plus an optional Mono font.</span></figcaption></figure>
+<figure><img src="phone-grow-light-3-pick.jpg" alt="Font list open under the Heading font slot" loading="lazy"><figcaption><b><span class="n">3</span>Pick a font</b><span>Tapping a slot opens a list right under it: your Library, Google Fonts or fonts on this computer.</span></figcaption></figure>
+<figure><img src="phone-grow-light-4-search.jpg" alt="Searching the font list" loading="lazy"><figcaption><b><span class="n">4</span>Search</b><span>Type to find a font. After the heading font, the body font list opens by itself.</span></figcaption></figure>
+<figure><img src="phone-grow-light-5-results.jpg" alt="Table with a Your fonts column" loading="lazy"><figcaption><b><span class="n">5</span>Your styles</b><span>The table gets a Your fonts column: new size, line height and spacing for each style.</span></figcaption></figure>
+<figure><img src="phone-grow-light-6-row.jpg" alt="One style opened to show what changed" loading="lazy"><figcaption><b><span class="n">6</span>What changed</b><span>Tap a style to see old → new and why, for example "Bigger: Instrument Serif has a smaller x-height". Type over any number.</span></figcaption></figure>
+<figure><img src="phone-grow-light-7-preview.jpg" alt="Small website preview in the new fonts" loading="lazy"><figcaption><b><span class="n">7</span>See it on the page</b><span>A switch shows the website in your fonts and new sizes.</span></figcaption></figure>
+<figure><img src="phone-grow-light-8-export.jpg" alt="Export options" loading="lazy"><figcaption><b><span class="n">8</span>Export</b><span>Simple names or the site's own names, then CSS, Tailwind or Figma.</span></figcaption></figure>
+<figure><img src="phone-grow-light-9-figma.jpg" alt="Send to Figma" loading="lazy"><figcaption><b><span class="n">9</span>To Figma</b><span>Copy for the Figma plugin, which creates the text styles.</span></figcaption></figure>
+</div>
+</main>
+</body>
+</html>
