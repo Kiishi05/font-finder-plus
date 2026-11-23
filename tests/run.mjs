@@ -592,22 +592,26 @@ try {
   await page.locator('h1').screenshot({ path: shotPath });
   await panel.bringToFront();
   await panel.locator('.tabs button', { hasText: 'Image' }).click();
-  // The text is read by itself once a picture opens. A picture with one style goes straight to its lines;
-  // with several styles, "Pick one line instead" switches to them.
+  // The text is read by itself once a picture opens. A picture with one style stays on its lines (Text found);
+  // with several styles it goes straight to its fonts, and "Adjust" goes back to the lines.
   const lineMode = async () => {
-    await panel.waitForFunction(() => document.querySelector('.ocrline') || document.querySelector('#allfonts'), null, { timeout: 90000 }).catch(() => {});
-    if (!(await panel.locator('.ocrline').count()) && (await panel.locator('button', { hasText: 'Pick one line instead' }).count())) await panel.locator('button', { hasText: 'Pick one line instead' }).click();
+    await panel.waitForFunction(() => document.querySelector('.ocrline') || document.querySelector('#allfonts:not([hidden])'), null, { timeout: 90000 }).catch(() => {});
+    if (!(await panel.locator('.ocrline').count()) && (await panel.locator('.ipic button', { hasText: 'Adjust' }).count())) await panel.locator('.ipic button', { hasText: 'Adjust' }).click();
     await panel.waitForSelector('.ocrline', { timeout: 5000 }).catch(() => {});
   };
+  // "Use another" on the picture card, or its close button once the fonts are shown.
+  const useAnother = () => panel.locator('.ipic button:has-text("Use another"), .ipic button[aria-label="Use another picture"]').first().click();
   await panel.setInputFiles('input[aria-label="Upload an image"]', shotPath);
   await panel.waitForSelector('.ipic canvas', { timeout: 10000 });
   await lineMode();
   const ocrText = await panel.locator('.ocrline').first().innerText().catch(() => '');
   check('text recognition runs inside the extension', /slow|careful|Notes/i.test(ocrText), ocrText.replace(/\s+/g, ' ').slice(0, 60));
+  await panel.locator('button.ifold', { hasText: 'Check the letters' }).click();
   check('letters are shown to check and correct', (await panel.locator('.tile').count()) >= 10);
-  await panel.locator('button', { hasText: 'Find the closest fonts' }).click();
+  await panel.locator('button', { hasText: 'Find the fonts' }).click();
   await panel.waitForSelector('.ires.match', { timeout: 60000 }).catch(() => {});
-  const found = await panel.evaluate(() => [...document.querySelectorAll('.ires.match .nmrow b')].map((b) => b.textContent));
+  // The card shows the picked match; the other matches are its chips.
+  const found = await panel.evaluate(() => [...document.querySelectorAll('.ires.match .chip')].map((c) => c.firstChild.textContent));
   check('the font in the image is among the closest matches', found.slice(0, 3).some((f) => /Fraunces/.test(f)), found.slice(0, 5).join(', '));
   await panel.waitForFunction(() => /Has every letter|Missing \d+/.test(document.querySelector('.match')?.textContent ?? ''), null, { timeout: 15000 }).catch(() => {});
   // The licence is the badge's tooltip.
@@ -621,12 +625,12 @@ try {
   await page.waitForTimeout(300);
   check('the text read keeps its spaces', /Notes on slow/.test(await panel.locator('.match .isample').first().innerText()));
   await panel.screenshot({ path: path.join(out, 'panel-identify.png'), fullPage: true });
-  await panel.locator('button', { hasText: 'Use another' }).click();
+  await useAnother();
   await panel.waitForSelector('.histrow', { timeout: 5000 }).catch(() => {});
   check('the search is kept in history', (await panel.locator('.histrow').count()) >= 1);
 
   // Select an area on the page
-  await panel.locator('button', { hasText: 'Select an area on the page' }).click();
+  await panel.locator('button', { hasText: 'Select an area' }).click();
   await page.bringToFront();
   const overlay = await page.waitForSelector('#ffp-select', { timeout: 5000 }).then(() => true).catch(() => false);
   console.log('  select overlay shown:', overlay);
@@ -646,7 +650,7 @@ try {
   await panel.waitForFunction(() => document.querySelector('.ocrline') || document.querySelector('#allfonts') || document.querySelector('.ireading'), null, { timeout: 10000 }).catch(() => {});
   const sel = await panel.evaluate(() => { const c = document.querySelector('.ipic canvas'); return c ? { w: c.width, h: c.height, reading: !!document.querySelector('.ocrline, #allfonts, .ireading') } : document.querySelector('.notice')?.textContent ?? 'no notice'; });
   check('selecting an area of the page captures it', !!sel && sel.w > 100 && sel.h > 20 && sel.reading, JSON.stringify(sel));
-  await panel.locator('button', { hasText: 'Use another' }).click().catch(() => {});
+  await useAnother().catch(() => {});
 
   // Paste an image
   const pngB64 = fs.readFileSync(shotPath).toString('base64');
@@ -658,7 +662,7 @@ try {
   }, pngB64);
   await panel.waitForSelector('.ipic canvas', { timeout: 10000 }).catch(() => {});
   check('pasting an image opens it', (await panel.locator('.ipic canvas').count()) === 1);
-  await panel.locator('button', { hasText: 'Use another' }).click();
+  await useAnother();
 
   // Hover a picture: the card says it is a picture and can identify it, matching the page's own fonts too
   await page.bringToFront();
@@ -688,11 +692,16 @@ try {
   check('Identify this picture opens it in the Image tab', (await panel.locator('.ipic canvas').count()) === 1);
   await panel.bringToFront();
   await lineMode();
-  await panel.locator('button', { hasText: 'Find the closest fonts' }).click();
+  await panel.locator('button', { hasText: 'Find the fonts' }).click();
   await panel.waitForSelector('.ires.match', { timeout: 60000 }).catch(() => {});
-  const picMatches = await panel.evaluate(() => [...document.querySelectorAll('.ires.match')].slice(0, 3).map((m) => m.querySelector('.nmrow b').textContent + (/On this page/.test(m.textContent) ? ' (on page)' : '')));
+  // Each of the top three matches in turn (the chips switch the card between them).
+  const picMatches = [];
+  for (let k = 0; k < 3 && k < (await panel.locator('.ires.match .chip').count()); k++) {
+    await panel.locator('.ires.match .chip').nth(k).click();
+    picMatches.push(await panel.evaluate(() => { const m = document.querySelector('.ires.match'); return m.querySelector('.nmrow b').textContent + (/On this page/.test(m.textContent) ? ' (on page)' : ''); }));
+  }
   check('a picture in a font the page uses is matched to that font', picMatches.some((m) => /Demo.*on page/.test(m)), picMatches.join(', '));
-  await panel.locator('button', { hasText: 'Use another' }).click();
+  await useAnother();
 
   // Right-click an image (the menu itself cannot be clicked in a test; it stores this request)
   const imgUrl = `http://127.0.0.1:${PORT}/heading.png`;
@@ -700,7 +709,7 @@ try {
   await sw.evaluate(async ([src, id]) => chrome.storage.session.set({ 'identify:pending': { srcUrl: src, tabId: id, pageUrl: 'http://127.0.0.1/', at: Date.now() } }), [imgUrl, tabId]);
   await panel.waitForSelector('.ipic canvas', { timeout: 10000 }).catch(() => {});
   check('right-click "Identify the font in this image" opens the image', (await panel.locator('.ipic canvas').count()) === 1);
-  await panel.locator('button', { hasText: 'Use another' }).click();
+  await useAnother();
 
   // HEIC (iPhone) photo
   const heic = '/tmp/claude-0/-home-user-font-finder-plus/d778d12b-bf83-5531-b188-a6c1d99ab026/scratchpad/heic/example.heic';
@@ -709,7 +718,7 @@ try {
     await panel.waitForSelector('.ipic canvas', { timeout: 30000 }).catch(() => {});
     const hc = await panel.evaluate(() => { const c = document.querySelector('.ipic canvas'); return c ? { w: c.width, h: c.height } : document.querySelector('.notice')?.textContent ?? 'no notice'; });
     check('HEIC photos open', !!hc && hc.w > 100, JSON.stringify(hc));
-    await panel.locator('button', { hasText: 'Use another' }).click().catch(() => {});
+    await useAnother().catch(() => {});
   }
 
   if (logs.length) console.log('  logs:\n   ' + logs.slice(0, 12).join('\n   '));
@@ -742,13 +751,13 @@ try {
   await postPage.close();
   await panel.bringToFront();
   await panel.locator('.tabs button', { hasText: 'Image' }).click();
-  if (await panel.locator('button', { hasText: 'Use another' }).count()) await panel.locator('button', { hasText: 'Use another' }).click();
+  if (await panel.locator('.ipic').count()) await useAnother();
   await panel.setInputFiles('input[aria-label="Upload an image"]', postPath);
   await panel.waitForSelector('.ipic canvas', { timeout: 10000 });
   await panel.waitForSelector('#allfonts', { timeout: 90000 }).catch(() => {});
   await panel.waitForFunction(() => document.querySelector('#allfonts') && !/Comparing letters|Matching…/.test(document.querySelector('#allfonts').textContent), null, { timeout: 90000 }).catch(() => {});
   const allText = await panel.locator('#allfonts').innerText().catch(() => '');
-  check('a post with several fonts opens "Every font in the image"', (await panel.locator('#allfonts').count()) === 1 && (await panel.locator('.ocrline').count()) === 0 && (await panel.locator('#allfonts button', { hasText: 'Pick one line instead' }).count()) === 1);
+  check('a post with several fonts opens "Every font in the image"', (await panel.locator('#allfonts').count()) === 1 && (await panel.locator('.ocrline').count()) === 0 && (await panel.locator('.ipic button', { hasText: 'Adjust' }).count()) === 1);
   check('each text style is matched on its own', (await panel.locator('.blockcard').count()) >= 4, `${await panel.locator('.blockcard').count()} blocks`);
   check('font names written in the image are found', /Clash Display/.test(allText) && /Space Mono/.test(allText) && /Fraunces/.test(allText), allText.replace(/\s+/g, ' ').slice(0, 200));
   const monoCard = await panel.evaluate(() => [...document.querySelectorAll('.blockcard')].find((c) => c.querySelector('.nmrow b')?.textContent === 'Space Mono')?.textContent ?? '');
@@ -781,7 +790,7 @@ try {
   await listPage.close();
   await panel.bringToFront();
   await panel.locator('.tabs button', { hasText: 'Image' }).click();
-  if (await panel.locator('button', { hasText: 'Use another' }).count()) await panel.locator('button', { hasText: 'Use another' }).click();
+  if (await panel.locator('.ipic').count()) await useAnother();
   await panel.setInputFiles('input[aria-label="Upload an image"]', listPath);
   await panel.waitForSelector('.ipic canvas', { timeout: 10000 });
   await panel.waitForSelector('#allfonts', { timeout: 90000 }).catch(() => {});

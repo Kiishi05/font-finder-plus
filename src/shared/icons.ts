@@ -99,3 +99,13 @@ export {
 } from '@hugeicons/core-free-icons';
 // Dock and modern panel icons
 export { SidebarRightIcon, RulerIcon } from '@hugeicons/core-free-icons';
+// Image tab (redesign) icons
+export {
+  Cancel01Icon as ImgCloseIcon,
+  CropIcon as ImgCropIcon,
+  Image02Icon as ImgFileIcon,
+  Undo02Icon as ImgResetIcon,
+  StraightEdgeIcon as ImgStraightenIcon,
+  Sun03Icon as ImgSunIcon,
+} from '@hugeicons/core-free-icons';
+// end Image tab (redesign) icons
