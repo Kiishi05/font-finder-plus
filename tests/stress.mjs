@@ -20,6 +20,7 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { FONT_RECORDER, snapshotHtml } from './lib/snapshot.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
@@ -36,6 +37,7 @@ const ctx = await chromium.launchPersistentContext(await mkdtemp(path.join(tmpdi
   proxy: proxy ? { server: proxy, bypass: '127.0.0.1,localhost' } : undefined,
   args: [`--disable-extensions-except=${ext}`, `--load-extension=${ext}`],
 });
+if (process.env.FFP_SNAPSHOT) await ctx.addInitScript(FONT_RECORDER);
 let [sw] = ctx.serviceWorkers();
 if (!sw) sw = await ctx.waitForEvent('serviceworker');
 const extId = new URL(sw.url()).host;
@@ -82,41 +84,11 @@ async function shoot(panel, name) {
 }
 
 // FFP_SNAPSHOT=1: also save each screen as one standalone HTML file (for importing
-// into Figma with html.to.design). Canvases become images, our bundled fonts become
-// the same fonts from Google Fonts, and scripts are left out.
+// into Figma with html.to.design). See tests/lib/snapshot.mjs.
 const snapDir = path.join(out, 'snapshots');
 async function snapshot(page, name, rootSel = null) {
   fs.mkdirSync(snapDir, { recursive: true });
-  const html = await page.evaluate((rootSel) => {
-    const host = rootSel ? document.querySelector(rootSel) : null;
-    const src = host?.shadowRoot ?? document;
-    const cssParts = [];
-    const sheets = host?.shadowRoot ? [...host.shadowRoot.querySelectorAll('style')].map((s) => s.sheet) : [...document.styleSheets];
-    for (const sh of sheets) {
-      try { for (const r of sh.cssRules) if (!(r instanceof CSSFontFaceRule)) cssParts.push(r.cssText); } catch {}
-    }
-    let css = cssParts.join('\n').replace(/"?FFP Geist Mono"?/g, '"Geist Mono"').replace(/"?FFP Geist"?/g, 'Geist').replace(/"?FFP NotDef( Wide)?"?,?/g, '');
-    const rootEl = host?.shadowRoot ? host.shadowRoot : document.body;
-    const clone = (host?.shadowRoot ? (() => { const d = document.createElement('div'); d.innerHTML = rootEl.innerHTML; return d; })() : rootEl.cloneNode(true));
-    // Canvases (font samples, crops) become images.
-    const live = [...rootEl.querySelectorAll('canvas')];
-    [...clone.querySelectorAll('canvas')].forEach((c, i) => {
-      try { const img = document.createElement('img'); img.src = live[i].toDataURL('image/png'); img.className = c.className; img.style.cssText = c.style.cssText; img.width = live[i].clientWidth || live[i].width; img.height = live[i].clientHeight || live[i].height; c.replaceWith(img); } catch {}
-    });
-    clone.querySelectorAll('script, style, link').forEach((e) => e.remove());
-    // Blob images (pictures in the Image tab) become data URLs where possible.
-    const liveImgs = [...rootEl.querySelectorAll('img')];
-    [...clone.querySelectorAll('img')].forEach((im, i) => {
-      const l = liveImgs[i];
-      if (l && /^blob:/.test(l.src)) {
-        try { const c = document.createElement('canvas'); c.width = l.naturalWidth; c.height = l.naturalHeight; c.getContext('2d').drawImage(l, 0, 0); im.src = c.toDataURL('image/jpeg', 0.85); } catch {}
-      }
-    });
-    const theme = document.documentElement.getAttribute('data-theme') ?? 'light';
-    const w = host ? innerWidth : document.documentElement.clientWidth;
-    const body = host ? `<div style="position:relative;width:${innerWidth}px;height:${innerHeight}px">${clone.innerHTML}</div>` : clone.innerHTML;
-    return `<html data-theme="${theme}"><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet"><style>${css}</style></head><body style="width:${w}px;margin:0">${body}</body></html>`;
-  }, rootSel);
+  const { html } = await snapshotHtml(page, { rootSel, title: name });
   fs.writeFileSync(path.join(snapDir, `${name}.html`), html);
 }
 
