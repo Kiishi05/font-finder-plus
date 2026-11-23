@@ -6,7 +6,10 @@ The Figma half of Font Finder Plus. The Chrome extension reads a website's real 
 - **Free stand-ins.** A font you do not have is replaced by its closest free Google Fonts look-alike (matched by letter shapes and proportions). You can pick another from the list.
 - **Text styles and variables.** One text style per style on the site (named `example.com/h1`, `example.com/body`...), with size, line height, letter spacing and case. Sizes and line heights are also variables, bound to the styles. A variable per font records which family is in use.
 - **A specimen page.** Each font drawn in the real font (vector outlines from its file, or a picture of how the page draws it when the file cannot be read), its licence in plain words, foundry, where to get it, and the text styles.
-- **Check again.** After you install a missing font, reopen the plugin and click **Check again for installed fonts**. Every style that used a stand-in switches to the real font.
+- **Check again.** After you install a missing font, reopen the plugin and click **Check again** on Home. Every style that used a stand-in switches to the real font.
+- **Fix a captured page.** Select a frame (from any web capture), click **Find missing fonts**, pick a replacement for each font Figma lacks, and click **Fix**. Weight and italic are kept, runs can link to matching Font Finder Plus text styles, and the whole fix is one undo step.
+- **See your type on the web.** Pick the file's text styles, give each a role (Main heading, Other headings, Paragraphs, Buttons and menu), pick a website and click **Copy for Chrome**. In Chrome, open that site, click Font Finder Plus, then **System > Paste type from Figma**. The copied text is JSON: `{"ffp":"figma-type","v":1,"name":...,"site":...,"styles":[{"name","role","family","weight","size","lineHeight","letterSpacing"}]}` with sizes and line heights in px (Figma's Auto line height is 1.2 times the size) and letter spacing in em. Opening the site straight from Figma is not built yet.
+- **Settings.** Variables and the style guide page on or off by default, text style naming (by site and tag, or by role), and the recent websites.
 
 Licence summaries are summaries, not legal advice. "Unknown" means unknown: nothing is guessed.
 
@@ -36,8 +39,9 @@ Plugins in development only run in the desktop app. Once published to the Figma 
 ```
 figma-plugin/
   manifest.json   plugin settings (no network access)
-  src/code.ts     runs in Figma: checks fonts, makes styles, variables and the specimen page
-  src/ui.ts       the plugin window: paste, font list, stand-in choice
+  src/code.ts     runs in Figma: checks fonts, makes styles, variables and the style guide page, fixes missing fonts, reads text styles
+  src/ui.ts       the plugin window: Home, bring a website in, fix a page, see it on the web, settings
+  src/web.ts      See it on the web: units, role guessing and the copied JSON (shared by code.ts and ui.ts)
   src/ui.html     the window's layout and styles (uses Figma's theme colours)
   src/match.ts    matching site fonts to Figma's fonts (weights to style names)
   dist/           built files (npm run build:figma)

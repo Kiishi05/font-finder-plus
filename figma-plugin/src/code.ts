@@ -2,15 +2,20 @@
 // website's fonts and text styles), shows which fonts this Figma has, and builds
 // text styles, variables and a specimen page. Free stand-ins fill in for fonts
 // that are not installed; "Check again" swaps the real fonts in once they are.
+// It also fixes captured frames whose fonts Figma is missing, and copies the
+// file's own text styles for the extension to try on a website.
 import type { FigmaFont, FigmaPayload, FigmaStyle } from '../../src/shared/figma-payload';
-import { familyIndex, findFamily, pickStyle, slug, textCase, type AvailableFont } from './match';
+import { familyIndex, findFamily, isItalicStyle, pickStyle, slug, textCase, weightOfStyle, type AvailableFont } from './match';
+import { guessRoles, letterSpacingEm, lineHeightPx, type FigmaLetterSpacing, type FigmaLineHeight, type WebStyle } from './web';
 
 declare const __html__: string;
 
 type Index = ReturnType<typeof familyIndex>;
 interface Choice { key: string; family: string | null }
-interface Opts { styles: boolean; variables: boolean; specimen: boolean }
-interface Saved { realNames: string[]; weight: string; italic: boolean; site: string; font: string }
+interface Opts { styles: boolean; variables: boolean; specimen: boolean; naming?: 'site' | 'role' }
+interface Saved { realNames: string[]; weight: string; italic: boolean; site: string; font: string; licence?: string }
+interface Settings { variables: boolean; specimen: boolean; naming: 'site' | 'role' }
+const DEFAULT_SETTINGS: Settings = { variables: true, specimen: true, naming: 'site' };
 
 const UI_FAMILY = 'Inter';
 const FALLBACKS: Record<string, string[]> = {
@@ -18,9 +23,11 @@ const FALLBACKS: Record<string, string[]> = {
   serif: ['Source Serif 4', 'Merriweather', 'Lora', 'Georgia', 'Times New Roman'],
   script: ['Dancing Script', 'Pacifico'],
 };
+/** Common sans serifs, for a missing font Font Finder Plus knows nothing about. */
+const SANS = ['Inter', 'Arimo', 'Roboto', 'Helvetica Neue', 'Helvetica', 'Arial'];
 const TIMEOUT = 8000;
 
-figma.showUI(__html__, { width: 420, height: 640, themeColors: true });
+figma.showUI(__html__, { width: 360, height: 640, themeColors: true });
 
 let index: Index | null = null;
 let lastPayload: FigmaPayload | null = null;
@@ -143,6 +150,12 @@ const weightName = (w: string) => WEIGHT_NAME[String(Math.round(Number(w) / 100)
 const spacingPct = (s: FigmaStyle) => { const v = Math.round((s.letterSpacing / s.size) * 1000) / 10; return v === 0 ? '0%' : `${v}%`; };
 const CASE: Record<string, string> = { uppercase: 'Uppercase', lowercase: 'Lowercase', capitalize: 'Title case' };
 
+/** "example.com/Headings/h1" by site and tag, or "Headings/Heading 1" by role (Settings). */
+function styleName(s: FigmaStyle, site: string, naming: 'site' | 'role') {
+  if (naming === 'role') return `${s.group ?? 'Body'}/${slug((s.label ?? s.name).replace(/\s*\(.*\)$/, '').replace(/\//g, '-'))}`;
+  return `${site}/${s.group ? `${s.group}/` : ''}${keyOf(s)}`;
+}
+
 const lhText = (s: FigmaStyle) => (s.lineHeight ? `${Math.round(s.size)}/${Math.round(s.lineHeight)}` : `${Math.round(s.size)}/auto`);
 
 async function build(p: FigmaPayload, choices: Choice[], opts: Opts) {
@@ -203,7 +216,7 @@ async function build(p: FigmaPayload, choices: Choice[], opts: Opts) {
       const italic = s.style !== 'normal';
       const font: FontName = { family: u.family, style: pickStyle(u.styles, s.weight, italic) ?? 'Regular' };
       if (!(await load(font))) continue;
-      const name = `${site}/${s.group ? `${s.group}/` : ''}${keyOf(s)}`;
+      const name = styleName(s, site, opts.naming ?? 'site');
       const st = local.find((x) => x.name === name) ?? figma.createTextStyle();
       st.name = name;
       st.fontName = font;
@@ -214,7 +227,7 @@ async function build(p: FigmaPayload, choices: Choice[], opts: Opts) {
       st.description = u.real
         ? `${f.name} ${s.weight}${italic ? ' italic' : ''}, ${lhText(s)}. From ${site}.`
         : `Real font: ${f.name} ${s.weight}${italic ? ' italic' : ''} (not installed). Stand-in: ${font.family} ${font.style}. From ${site}. Run Font Finder Plus > Check again after installing it.`;
-      const saved: Saved = { realNames: namesOf(f).filter((x): x is string => !!x), weight: s.weight, italic, site, font: f.name };
+      const saved: Saved = { realNames: namesOf(f).filter((x): x is string => !!x), weight: s.weight, italic, site, font: f.name, licence: f.licence.type };
       st.setPluginData('ffp', JSON.stringify(saved));
       if (collection) {
         try {
@@ -442,9 +455,201 @@ async function recheck() {
   return { swapped, still: [...still], total: styles.length };
 }
 
-async function countSaved() {
-  return (await figma.getLocalTextStylesAsync()).filter((s) => s.getPluginData('ffp')).length;
+const readSaved = (st: BaseStyle): Saved | null => {
+  try {
+    const raw = st.getPluginData('ffp');
+    return raw ? (JSON.parse(raw) as Saved) : null;
+  } catch {
+    return null;
+  }
+};
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+/** True when a style made by this plugin still shows a stand-in instead of the real font. */
+const usesStandIn = (st: TextStyle, saved: Saved) => !saved.realNames.some((n) => squash(n) === squash(st.fontName.family));
+
+/** Text styles that use a stand-in: how many, which styles and which real fonts. */
+async function standInSummary() {
+  const styles: string[] = [];
+  const fonts = new Set<string>();
+  for (const st of await figma.getLocalTextStylesAsync()) {
+    const saved = readSaved(st);
+    if (!saved || !usesStandIn(st, saved)) continue;
+    styles.push(st.name.split('/').pop()!);
+    fonts.add(saved.font);
+  }
+  return { count: styles.length, styles, fonts: [...fonts] };
 }
+
+// ------------------------------------------------------------- settings and recent sites
+
+async function getSettings(): Promise<Settings> {
+  const s = (await figma.clientStorage.getAsync('ffp-settings').catch(() => null)) as Partial<Settings> | null;
+  return { ...DEFAULT_SETTINGS, ...(s ?? {}) };
+}
+async function getRecent(): Promise<string[]> {
+  const r = await figma.clientStorage.getAsync('ffp-recent-sites').catch(() => null);
+  return Array.isArray(r) ? r.filter((x): x is string => typeof x === 'string').slice(0, 6) : [];
+}
+async function setRecent(list: string[]) {
+  const clean = [...new Set(list.filter(Boolean))].slice(0, 6);
+  await figma.clientStorage.setAsync('ffp-recent-sites', clean);
+  return clean;
+}
+
+// ------------------------------------------------------------- see it on the web
+
+/** The file's local text styles, in web units, with a guessed role for each. */
+async function webStyles(): Promise<WebStyle[]> {
+  const local = await figma.getLocalTextStylesAsync();
+  const roles = guessRoles(local.map((st) => ({ name: st.name, size: Number(st.fontSize) || 16 })));
+  return local.map((st, i) => {
+    const size = Number(st.fontSize) || 16;
+    const saved = readSaved(st);
+    return {
+      id: st.id,
+      name: st.name,
+      family: st.fontName.family,
+      style: st.fontName.style,
+      weight: weightOfStyle(st.fontName.style),
+      size: Math.round(size * 100) / 100,
+      lineHeight: lineHeightPx(st.lineHeight as FigmaLineHeight, size),
+      letterSpacing: letterSpacingEm(st.letterSpacing as FigmaLetterSpacing, size),
+      role: roles[i],
+      paid: saved?.licence === 'commercial',
+      standInFor: saved && usesStandIn(st, saved) ? saved.font : null,
+    };
+  });
+}
+
+// ------------------------------------------------------------- fix a captured page
+
+interface Candidate { family: string; score: number | null }
+interface MissingFont { family: string; styles: string[]; layers: number; licence: string | null; candidates: Candidate[] }
+
+/** The text layers in the selection (the selected layers and everything inside them). */
+function selectedTexts(): TextNode[] {
+  const out: TextNode[] = [];
+  for (const n of figma.currentPage.selection) {
+    if (n.type === 'TEXT') out.push(n);
+    else if ('findAllWithCriteria' in n) out.push(...(n as FrameNode).findAllWithCriteria({ types: ['TEXT'] }));
+  }
+  return [...new Set(out)];
+}
+
+function selectionInfo() {
+  const sel = figma.currentPage.selection;
+  return { count: sel.length, name: sel.length === 1 ? sel[0].name : sel.length ? `${sel.length} layers` : '' };
+}
+
+/** Fonts this Figma could use instead of a missing one, best first. */
+function candidatesFor(family: string, ix: Index): { list: Candidate[]; licence: string | null } {
+  const seen = new Set<string>();
+  const list: Candidate[] = [];
+  const add = (fam: string | null | undefined, score: number | null) => {
+    if (!fam) return;
+    const hit = findFamily(ix, [fam]);
+    if (!hit || seen.has(hit.family)) return;
+    seen.add(hit.family);
+    list.push({ family: hit.family, score });
+  };
+  // The same family under another name, or with other styles (only the style is missing).
+  add(family, null);
+  // The look-alikes Font Finder Plus found for it, from the last paste.
+  const f = lastPayload?.fonts.find((x) => namesOf(x).some((n) => n && squash(n) === squash(family)));
+  if (f) {
+    add(f.standIn?.family, f.standIn?.score ?? null);
+    for (const a of f.alternatives) add(a.family, a.score);
+  }
+  // Then a font of the same kind, then Inter.
+  const kind = f?.classification ?? (/mono|code|courier/i.test(family) ? 'mono' : /serif|times|garamond|caslon|georgia/i.test(family) && !/sans/i.test(family) ? 'serif' : 'sans');
+  for (const fam of FALLBACKS[kind] ?? SANS) add(fam, null);
+  add(UI_FAMILY, null);
+  return { list, licence: f?.licence.type ?? null };
+}
+
+/** The fonts that text layers in the selection use but this Figma lacks. */
+async function scanSelection() {
+  const ix = await getIndex(true);
+  const texts = selectedTexts();
+  const missing = new Map<string, { styles: Set<string>; layers: Set<TextNode> }>();
+  for (const t of texts) {
+    if (!t.hasMissingFont) continue;
+    for (const seg of t.getStyledTextSegments(['fontName'])) {
+      const fn = seg.fontName;
+      const fam = findFamily(ix, [fn.family]);
+      if (fam && fam.styles.includes(fn.style)) continue;
+      const m = missing.get(fn.family) ?? { styles: new Set<string>(), layers: new Set<TextNode>() };
+      m.styles.add(fn.style);
+      m.layers.add(t);
+      missing.set(fn.family, m);
+    }
+  }
+  const fonts: MissingFont[] = [...missing].map(([family, m]) => {
+    const c = candidatesFor(family, ix);
+    return { family, styles: [...m.styles], layers: m.layers.size, licence: c.licence, candidates: c.list };
+  });
+  fonts.sort((a, b) => b.layers - a.layers);
+  const layers = new Set([...missing.values()].flatMap((m) => [...m.layers])).size;
+  return { ...selectionInfo(), texts: texts.length, layers, fonts };
+}
+
+/**
+ * Swap each missing font for the chosen one, keeping weight and italic. With `link`,
+ * a run whose real font, weight and size match a text style this plugin made uses that
+ * style instead. One undo step.
+ */
+async function fixSelection(map: Record<string, string>, link: boolean) {
+  const ix = await getIndex(true);
+  const texts = selectedTexts();
+  const local = link
+    ? (await figma.getLocalTextStylesAsync()).map((st) => ({ st, saved: readSaved(st) })).filter((x): x is { st: TextStyle; saved: Saved } => !!x.saved)
+    : [];
+  const fixed = new Set<TextNode>();
+  const failed = new Set<string>();
+  let linked = 0;
+  for (const t of texts) {
+    if (!t.hasMissingFont) continue;
+    for (const seg of t.getStyledTextSegments(['fontName', 'fontSize'])) {
+      const fn = seg.fontName;
+      const target = map[fn.family];
+      if (!target) continue;
+      const have = findFamily(ix, [fn.family]);
+      if (have && have.styles.includes(fn.style)) continue;
+      const weight = weightOfStyle(fn.style);
+      const italic = isItalicStyle(fn.style);
+      const match = local.find(({ st, saved }) =>
+        saved.realNames.some((n) => squash(n) === squash(fn.family)) &&
+        Math.abs((Number(saved.weight) || 400) - weight) < 100 &&
+        saved.italic === italic &&
+        Math.abs(Number(st.fontSize) - Number(seg.fontSize)) < 0.5);
+      if (match && (await load(match.st.fontName))) {
+        await t.setRangeTextStyleIdAsync(seg.start, seg.end, match.st.id);
+        linked++;
+        fixed.add(t);
+        continue;
+      }
+      const fam = findFamily(ix, [target]);
+      const font: FontName | null = fam ? { family: fam.family, style: pickStyle(fam.styles, weight, italic) ?? 'Regular' } : null;
+      if (!font || !(await load(font))) {
+        failed.add(target);
+        continue;
+      }
+      t.setRangeFontName(seg.start, seg.end, font);
+      fixed.add(t);
+    }
+  }
+  if (fixed.size) figma.commitUndo();
+  return { layers: fixed.size, linked, failed: [...failed], map };
+}
+
+async function init() {
+  const [summary, settings, recent] = await Promise.all([standInSummary(), getSettings(), getRecent()]);
+  const last = (await figma.clientStorage.getAsync('ffp-last-payload').catch(() => null)) as FigmaPayload | null;
+  if (last && !lastPayload) lastPayload = last;
+  figma.ui.postMessage({ type: 'init', saved: summary.count, standIns: summary, file: figma.root.name, settings, recent, selection: selectionInfo() });
+}
+
+figma.on('selectionchange', () => figma.ui.postMessage({ type: 'selection', selection: selectionInfo() }));
 
 figma.ui.onmessage = async (msg: { type: string; [k: string]: unknown }) => {
   try {
@@ -457,18 +662,36 @@ figma.ui.onmessage = async (msg: { type: string; [k: string]: unknown }) => {
       figma.ui.postMessage({ type: 'built', result: r });
       figma.notify(`Font Finder Plus: ${r.styles} text styles${r.page ? ` and the page "${r.page}"` : ''} created.`);
     } else if (msg.type === 'recheck') {
-      figma.ui.postMessage({ type: 'rechecked', result: await recheck() });
+      const result = await recheck();
+      figma.ui.postMessage({ type: 'rechecked', result: { ...result, standIns: await standInSummary() } });
     } else if (msg.type === 'goto-page') {
       const node = lastPageId ? await figma.getNodeByIdAsync(lastPageId) : null;
       if (node && node.type === 'PAGE') {
         await figma.setCurrentPageAsync(node);
         if (node.children.length) figma.viewport.scrollAndZoomIntoView([node.children[0]]);
-      } else figma.notify('The specimen page is no longer in this file.');
+      } else figma.notify('The style guide page is no longer in this file.');
+    } else if (msg.type === 'web-styles') {
+      figma.ui.postMessage({ type: 'web-styles', styles: await webStyles(), file: figma.root.name });
+    } else if (msg.type === 'remember-site') {
+      const site = String(msg.site ?? '');
+      figma.ui.postMessage({ type: 'recent', recent: await setRecent([site, ...(await getRecent()).filter((x) => x !== site)]) });
+    } else if (msg.type === 'forget-site') {
+      figma.ui.postMessage({ type: 'recent', recent: await setRecent((await getRecent()).filter((x) => x !== msg.site)) });
+    } else if (msg.type === 'clear-sites') {
+      figma.ui.postMessage({ type: 'recent', recent: await setRecent([]) });
+    } else if (msg.type === 'settings') {
+      const s: Settings = { ...(await getSettings()), ...(msg.settings as Partial<Settings>) };
+      await figma.clientStorage.setAsync('ffp-settings', s);
+      figma.ui.postMessage({ type: 'settings', settings: s });
+    } else if (msg.type === 'fix-scan') {
+      figma.ui.postMessage({ type: 'fix-scanned', result: await scanSelection() });
+    } else if (msg.type === 'fix-apply') {
+      figma.ui.postMessage({ type: 'fixed', result: await fixSelection(msg.map as Record<string, string>, !!msg.link) });
     } else if (msg.type === 'open') figma.openExternal(String(msg.url));
     else if (msg.type === 'close') figma.closePlugin();
   } catch (err) {
-    figma.ui.postMessage({ type: 'error', msg: String((err as Error)?.message ?? err) });
+    figma.ui.postMessage({ type: 'error', msg: String((err as Error)?.message ?? err), during: msg.type });
   }
 };
 
-countSaved().then((n) => figma.ui.postMessage({ type: 'init', saved: n }));
+init();
