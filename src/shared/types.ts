@@ -292,10 +292,26 @@ export interface DevInfo {
   googleCss: string[];
 }
 
+/** What the readability checks measured, whether or not they passed. */
+export interface SystemMeasures {
+  /** Lowest text contrast found (WCAG ratio) and its colours. */
+  contrast: { ratio: number; text: string } | null;
+  /** Smallest visible text, px. */
+  smallest: number | null;
+  /** Typical characters per line in paragraphs (the median). */
+  perLine: number | null;
+  /** Lightest weight used for text under 16px. */
+  thinnest: number | null;
+  /** Smallest letter spacing on all-caps text, em. Null when there is no all-caps text. */
+  capsSpacing: number | null;
+}
+
 export interface SystemScan {
   styles: TextStyle[];
   issues: ReadabilityIssue[];
   dev: DevInfo;
+  /** Older content scripts may not send it. */
+  measures?: SystemMeasures;
 }
 
 /** A specimen board: a set of saved fonts shown together (Library, Boards). */

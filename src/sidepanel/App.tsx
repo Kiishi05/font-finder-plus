@@ -14,11 +14,13 @@ import { ShareView } from './views/ShareView';
 import { SiteShareView } from './views/SiteShareView';
 import { BoardEditor, BoardsView } from './views/BoardsView';
 import { SeenView } from './views/SeenView';
+import { MyFontsView } from './views/MyFontsView';
 
 export type View =
   | { name: 'page' }
   | { name: 'library' }
   | { name: 'system' }
+  | { name: 'myfonts' }
   | { name: 'image' }
   | { name: 'boards' }
   | { name: 'seen' }
@@ -130,8 +132,8 @@ export function App() {
     if (!sameTab || !samePage) setView(view.from === 'image' ? { name: 'image' } : { name: 'page' });
   }, [tab.tabId, tab.ping?.url]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const top = view.name === 'detail' ? view.from : view.name === 'boards' || view.name === 'board' || view.name === 'seen' ? 'library' : view.name === 'share' ? 'library' : view.name === 'siteshare' ? 'page' : view.name;
-  const fullScreen = view.name === 'detail' || view.name === 'settings' || view.name === 'seen' || view.name === 'boards' || view.name === 'board' || view.name === 'share' || view.name === 'siteshare';
+  const top = view.name === 'detail' ? view.from : view.name === 'boards' || view.name === 'board' || view.name === 'seen' ? 'library' : view.name === 'share' ? 'library' : view.name === 'siteshare' ? 'page' : view.name === 'myfonts' ? 'system' : view.name;
+  const fullScreen = view.name === 'detail' || view.name === 'settings' || view.name === 'seen' || view.name === 'boards' || view.name === 'board' || view.name === 'share' || view.name === 'siteshare' || view.name === 'myfonts';
 
   return (
     <div className="app">
@@ -155,7 +157,8 @@ export function App() {
       {view.name === 'library' && (
         <LibraryView tester={libTester} onTester={setLibTester} onOpen={(fontId) => setView({ name: 'detail', fontId, from: 'library' })} onBoards={() => setView({ name: 'boards' })} onSeen={() => setView({ name: 'seen' })} toast={showToast} />
       )}
-      {view.name === 'system' && <SystemView tab={tab} toast={showToast} />}
+      {view.name === 'system' && <SystemView tab={tab} toast={showToast} onMyFonts={() => { setView({ name: 'myfonts' }); window.scrollTo(0, 0); }} />}
+      {view.name === 'myfonts' && <MyFontsView tab={tab} toast={showToast} onBack={() => setView({ name: 'system' })} />}
       {/* Kept open behind a font's details, so going back keeps the image and its results. */}
       {(view.name === 'image' || (view.name === 'detail' && view.from === 'image')) && (
         <div className="viewstack" hidden={view.name !== 'image'}>

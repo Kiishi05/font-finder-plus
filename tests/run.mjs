@@ -480,18 +480,47 @@ try {
   await panel.waitForSelector('#sys-styles', { timeout: 20000 });
   await panel.waitForTimeout(1200);
   await panel.screenshot({ path: path.join(out, 'panel-system.png'), fullPage: true });
-  await panel.locator('#sys-styles button', { hasText: /^Show \d+ more/ }).click().catch(() => {});
+  await panel.locator('#sys-styles button.sysdisc', { hasText: /^Show \d+ more/ }).click().catch(() => {});
   const sysText = await panel.locator('body').innerText();
-  const names = await panel.evaluate(() => [...document.querySelectorAll('.tagname')].map((n) => n.textContent));
+  const names = await panel.evaluate(() => [...document.querySelectorAll('#sys-styles .cr')].map((n) => n.dataset.style));
   check('type styles listed and named', names.includes('h1') && names.includes('body'), names.join(', '));
-  check('size scale reported', /scale|No single size scale/i.test(await panel.locator('.scalebox').innerText()));
+  // Clean scale: this site next to a tidy scale built from the body size.
+  const scaleText = await panel.locator('#sys-styles').innerText();
+  check('clean scale: explainer names the body size and the step', /tidy scale built from its body size \(\d+(\.\d)?px\)\. Each step is 1\.(2|25|333)× the one before/.test(scaleText), scaleText.slice(0, 160).replace(/\n/g, ' '));
+  check('clean scale: ratio switch marks the closest, each value shows its difference', /How much bigger each step is/.test(scaleText) && /closest/.test(scaleText) && /(\+|−)\d+(\.5)?px|same/.test(scaleText) && /Style\s+This site\s+Clean scale/.test(scaleText));
+  await panel.locator('#sys-styles .seg button', { hasText: '×1.333' }).click();
+  check('switching the ratio redoes the scale', /Each step is 1\.333×/.test(await panel.locator('#sys-styles').innerText()));
+  const farLook = await panel.evaluate(() => {
+    const b = document.querySelector('#sys-styles .cs.far .cv b');
+    if (!b) return 'none';
+    const cs = getComputedStyle(b);
+    return `${cs.fontWeight}|${cs.color}|${!!b.parentElement.querySelector('.fardot')}`;
+  });
+  check('sizes far from the scale get a dot and bold text, not amber', farLook === 'none' || (/^(6|7|8|9)00\|/.test(farLook) && farLook.endsWith('|true') && !/rgb\((227, 155, 18|138, 90, 0|240, 180, 76|242, 176, 74)\)/.test(farLook)), farLook);
+  await panel.locator('#sys-styles button', { hasText: 'Try on page' }).click();
+  await page.waitForTimeout(600);
+  const tried = await page.evaluate(() => document.querySelectorAll('[data-ffp-type]').length);
+  check('Try on page puts the clean scale on the page', tried > 0, `${tried} elements`);
+  await panel.locator('#sys-styles button', { hasText: 'Put page back' }).click();
+  await page.waitForTimeout(300);
+  check('Put page back undoes the clean scale', await page.evaluate(() => document.querySelectorAll('[data-ffp-type]').length === 0 && getComputedStyle(document.querySelector('h1')).fontSize === '48px'));
+  check('Use with my fonts is a white card button below the scale', await panel.evaluate(() => { const b = document.querySelector('button.mfentry'); return !!b && b.previousElementSibling?.id === 'sys-styles' && /Use with my fonts/.test(b.textContent) && /Pick a heading and body font\. Sizes and spacing are adjusted to fit them\./.test(b.textContent); }));
+  // Ladder readability: a score, then check tiles with icons and measured values.
   check('readability flags low contrast', /Low contrast text/.test(sysText));
-  await panel.locator('.issue', { hasText: 'Low contrast text' }).locator('button', { hasText: 'Show on page' }).click();
+  const tiles = await panel.evaluate(() => [...document.querySelectorAll('#sys-health .tile:not(.sum)')].map((t) => `${t.querySelector('.st')?.getAttribute('aria-label')}|${t.querySelector('.v')?.textContent}|${t.querySelector('b')?.textContent}`));
+  check('readability: 7 check tiles, each with a status icon and a measured value', tiles.length === 7 && tiles.every((t) => /^(Passes|Check|Fails)\|[^|]+\|/.test(t)) && tiles.some((t) => /^Fails\|\d+(\.\d)?:1\|Contrast$/.test(t)), tiles.join('; '));
+  await panel.locator('#sys-health .tile', { hasText: 'Contrast' }).click();
+  await panel.locator('#sys-health .tdet button', { hasText: 'Show on page' }).click();
   await page.waitForTimeout(300);
   check('readability Show on page outlines the text', await page.evaluate(() => document.getElementById('ffp-root').shadowRoot.querySelectorAll('.mark').length >= 1));
+  await panel.locator('#sys-health .tile', { hasText: 'Body size' }).click();
+  check('choosing a tile shows its detail', /Body text/.test(await panel.locator('#sys-health .tdet').innerText()));
+  // Developer checks are folded.
+  check('developer checks start folded', !(await panel.locator('#sys-dev .stat').count()));
+  await panel.locator('#sys-dev button.fold').click();
   const filesStat = await panel.evaluate(() => [...document.querySelectorAll('#sys-dev .stat')].find((st) => st.querySelector('span')?.textContent === 'Files')?.querySelector('b')?.textContent ?? '');
   check('developer section counts font files', /^[1-9]\d*$/.test(filesStat), `Files ${filesStat}`);
-  const exported = async () => panel.locator('pre.code').innerText();
+  const exported = async () => panel.locator('#sys-export pre.code').innerText();
   const css = await exported();
   check('CSS export has variables and a Google Fonts import', css.includes('--font-heading') && css.includes('fonts.googleapis.com/css2?family=Fraunces') && css.includes('.text-h1'));
   const pickExport = async (label) => {
@@ -511,20 +540,96 @@ try {
   await pickExport('Webflow styles');
   const wf = await exported();
   check('Webflow export is a setup guide: fonts, variables, tag styles and classes', /Site settings > Fonts/.test(wf) && /Variables panel/.test(wf) && /All H1 Headings/.test(wf) && /Body \(All Pages\)/.test(wf), wf.slice(0, 160));
+  check('one export dropdown with Copy and Download', (await panel.locator('#sys-export .sysdd').count()) === 1 && (await panel.locator('#sys-export button', { hasText: /^Copy$/ }).count()) === 1 && (await panel.locator('#sys-export button', { hasText: 'Download' }).count()) === 1);
+  await pickExport('Figma (Font Finder Plus plugin)');
+  check('Figma is in the same dropdown, with Copy for Figma', (await panel.locator('#sys-export button', { hasText: 'Copy for Figma' }).count()) === 1);
+  await pickExport('CSS variables');
   // Phase 10: type system health check
   const health = await panel.locator('#sys-health').innerText();
   const score = Number(/(\d+)\s*\/100/.exec(health)?.[1] ?? -1);
-  check('health check gives one score out of 100 with a grade', score >= 0 && score <= 100 && /Excellent|Good|Fair|Needs work/.test(health), health.slice(0, 120).replace(/\n/g, ' '));
-  check('health check scores families, sizes, weights, loading and readability', ['Font families', 'Sizes', 'Weights', 'Loading', 'Readability'].every((k) => health.includes(k)));
+  const parts = await panel.locator('#sys-parts').innerText();
+  check('health check gives one score out of 100 with a grade', score >= 0 && score <= 100 && /\d+\/100 · (Excellent|Good|Fair|Needs work)/.test(parts), `${score} ${parts.slice(0, 80).replace(/\n/g, ' ')}`);
+  check('health check scores families, sizes, weights, loading and readability', ['Font families', 'Sizes', 'Weights', 'Loading', 'Readability'].every((k) => parts.includes(k)));
   // One part opens at a time: read each one's findings.
-  await panel.locator('#sys-health button.part', { hasText: 'Readability' }).click();
-  const healthRead = await panel.locator('#sys-health').innerText();
-  await panel.locator('#sys-health button.part', { hasText: 'Font families' }).click();
-  const healthOpen = healthRead + '\n' + (await panel.locator('#sys-health').innerText());
+  await panel.locator('#sys-parts button.part', { hasText: 'Readability' }).click();
+  const healthRead = await panel.locator('#sys-parts').innerText();
+  await panel.locator('#sys-parts button.part', { hasText: 'Font families' }).click();
+  const healthOpen = healthRead + '\n' + (await panel.locator('#sys-parts').innerText());
   check('health findings say what to fix (low contrast, a font that never loads)', /Low contrast text/.test(healthOpen) && /never loads/.test(healthOpen) && score < 100, healthOpen.replace(/\s+/g, ' ').slice(0, 300));
+  await panel.locator('#sys-compare button.fold').click();
   const cmp = await panel.locator('#sys-compare').innerText();
   // The other tab is on the same site, so it is named by its title.
   check('compare shows the other tab', /127\.0\.0\.1|Second page/.test(cmp) && /Fonts/.test(cmp) && /Body text/.test(cmp), cmp.slice(0, 120).replace(/\n/g, ' '));
+
+  // Paste type from Figma: the plugin's format, applied to the page, with undo.
+  await panel.locator('button#sys-figma-paste').click();
+  await panel.waitForSelector('#sys-figma-paste input', { timeout: 5000 }).catch(() => {});
+  const figType = '{"ffp":"figma-type","v":1,"name":"Northwind type","styles":[{"name":"Display","role":"h1","family":"Fraunces","weight":600,"size":64,"lineHeight":68,"letterSpacing":-0.02},{"name":"Body","role":"body","family":"Inter","weight":400,"size":18,"lineHeight":28,"letterSpacing":0},{"name":"Spare","role":"none","family":"Inter","weight":400,"size":12,"lineHeight":16,"letterSpacing":0}]}';
+  if (await panel.locator('#sys-figma-paste input').count()) await panel.locator('#sys-figma-paste input').fill(figType);
+  await panel.waitForSelector('#sys-figma-paste .landed', { timeout: 30000 }).catch(() => {});
+  const landed = await panel.locator('#sys-figma-paste').innerText().catch(() => '');
+  const h1Now = await page.evaluate(() => { const cs = getComputedStyle(document.querySelector('h1')); return `${cs.fontSize}|${cs.lineHeight}|${cs.fontWeight}|${cs.letterSpacing}`; });
+  check('Paste type from Figma applies the styles to the page', h1Now.startsWith('64px|68px|600|') && /-1\.28px/.test(h1Now), h1Now);
+  check('Paste type from Figma shows where each style landed', /Northwind type/.test(landed) && /Display/.test(landed) && /H1 · 1/.test(landed) && /Body text · \d+/.test(landed) && /Not applied/.test(landed), landed.replace(/\n/g, ' | ').slice(0, 200));
+  await panel.locator('#sys-figma-paste button', { hasText: 'Put page back' }).click();
+  await page.waitForTimeout(300);
+  check('Paste type from Figma has an undo', await page.evaluate(() => getComputedStyle(document.querySelector('h1')).fontSize === '48px' && !document.querySelector('[data-ffp-type]')));
+
+  // Use with my fonts: its own sub-page in three steps.
+  await panel.locator('button.mfentry', { hasText: 'Use with my fonts' }).click();
+  await panel.waitForSelector('#mf-pick', { timeout: 10000 });
+  const top1 = await panel.locator('.mftop').innerText();
+  check('Use with my fonts is a sub-page: back button and the step as its title', /Step 1 of 3\s*·\s*Pick your fonts/.test(top1) && (await panel.locator('.mftop .backbtn').count()) === 1 && !(await panel.locator('.topbar').count()), top1);
+  check('the example font link is gone', !/Try with Instrument Serif/.test(await panel.locator('body').innerText()));
+  await panel.locator('.slot', { hasText: 'Heading font' }).click();
+  const search = panel.locator('.picker .search input');
+  check('a slot opens a font search (44px field, no stroke)', await search.evaluate((i) => { const l = i.closest('.search'); const cs = getComputedStyle(l); return l.getBoundingClientRect().height === 44 && cs.borderTopWidth === '0px'; }).catch(() => false));
+  await search.fill('Instrument Serif');
+  await panel.locator('.fitem', { hasText: 'Instrument Serif' }).first().click();
+  await panel.waitForSelector('.slotwrap .picker', { timeout: 5000 });
+  check('after the heading font, the body font list opens by itself', /Body font/.test(await panel.locator('.slotwrap:has(.picker)').innerText()));
+  await panel.locator('.picker .search input').fill('Work Sans');
+  await panel.waitForFunction(() => [...document.querySelectorAll('.fitem .fn')].some((e) => /^Work Sans/.test(e.textContent) && /ffp-name/.test(e.style.fontFamily)), null, { timeout: 15000 }).catch(() => {});
+  const ownFont = await panel.locator('.fitem', { hasText: /^Work Sans/ }).first().locator('.fn').evaluate((e) => e.style.fontFamily);
+  check('results are set in their own font', /ffp-name/.test(ownFont), ownFont);
+  await panel.locator('.fitem', { hasText: /^Work Sans/ }).first().click();
+  await panel.locator('button', { hasText: 'See your styles' }).click();
+  await panel.waitForSelector('#mf-styles .mfrow', { timeout: 15000 });
+  await panel.waitForFunction(() => /Bigger|Smaller|Same x-height/.test(document.querySelector('#mf-styles')?.textContent ?? ''), null, { timeout: 20000 }).catch(() => {});
+  const top2 = await panel.locator('.mftop').innerText();
+  const stylesText = await panel.locator('#mf-styles').innerText();
+  check('Step 2 of 3 · Your styles', /Step 2 of 3\s*·\s*Your styles/.test(top2), top2);
+  check('each style shows from → to with a plain reason, from the fonts\' measurements', /→/.test(stylesText) && /(Bigger|Smaller): (Instrument Serif|Work Sans) has a (smaller|bigger) (x-height|cap height)/.test(stylesText), stylesText.slice(0, 300).replace(/\n/g, ' | '));
+  check('heading and body fonts stay at the top with Change buttons', await panel.evaluate(() => { const c = document.querySelector('.mfchosen'); return !!c && /Instrument Serif/.test(c.textContent) && /Work Sans/.test(c.textContent) && c.querySelectorAll('button').length === 2; }));
+  check('no big sample block: samples are capped at a modest size', await panel.evaluate(() => [...document.querySelectorAll('#mf-styles .smp')].every((s) => parseFloat(getComputedStyle(s).fontSize) <= 26)));
+  await panel.locator('.mfrow[data-style="h1"] button', { hasText: 'Edit' }).click();
+  await panel.locator('.mfrow[data-style="h1"] input').first().fill('60');
+  await panel.waitForTimeout(200);
+  const h1Row = await panel.locator('.mfrow[data-style="h1"]').innerText();
+  check('values can be edited', /60px/.test(h1Row) && /You set this/.test(h1Row), h1Row.replace(/\n/g, ' | ').slice(0, 200));
+  await panel.locator('#mf-onpage-label').locator('xpath=../..').locator('[role="switch"]').click();
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('h1')).fontSize === '60px', null, { timeout: 30000 }).catch(() => {});
+  const h1Mine = await page.evaluate(() => { const cs = getComputedStyle(document.querySelector('h1')); return `${cs.fontSize}|${cs.fontFamily}`; });
+  check('See it on this page changes the real website', /^60px\|"FFP Type \d+", "Instrument Serif"/.test(h1Mine), h1Mine);
+  check('the page font really loads', await page.evaluate(() => [...document.fonts].some((f) => /^"?FFP Type/.test(f.family) && f.status === 'loaded')));
+  await panel.screenshot({ path: path.join(out, 'panel-myfonts-styles.png'), fullPage: true });
+  await panel.locator('[role="switch"][aria-labelledby="mf-onpage-label"]').click();
+  await page.waitForTimeout(400);
+  check('turning it off puts the page back', await page.evaluate(() => getComputedStyle(document.querySelector('h1')).fontSize === '48px' && !document.querySelector('[data-ffp-type]')));
+  await panel.locator('button', { hasText: 'Export these styles' }).click();
+  await panel.waitForSelector('#mf-export', { timeout: 5000 });
+  const mine = async () => panel.locator('#mf-export pre.code').innerText();
+  const mineCss = await mine();
+  check('Step 3 of 3 · Export, as CSS', /Step 3 of 3\s*·\s*Export/.test(await panel.locator('.mftop').innerText()) && /--font-heading: "Instrument Serif", serif;/.test(mineCss) && /\.heading-1 \{/.test(mineCss) && /font-size: 60px;/.test(mineCss) && /fonts\.googleapis\.com\/css2\?family=Instrument\+Serif/.test(mineCss), mineCss.slice(0, 200));
+  await panel.locator('#mf-export .seg button', { hasText: "The site's" }).click();
+  check('style names can be the site\'s', /\n\.h1 \{/.test(await mine()));
+  await panel.locator('#mf-export .seg button', { hasText: 'Tailwind' }).click();
+  check('Tailwind export', /@theme \{/.test(await mine()) && /--text-h1: 60px;/.test(await mine()));
+  await panel.locator('#mf-export .seg button', { hasText: 'Figma' }).click();
+  check('Figma export reuses Copy for Figma', (await panel.locator('#mf-export button', { hasText: 'Copy for Figma' }).count()) === 1);
+  await panel.screenshot({ path: path.join(out, 'panel-myfonts-export.png'), fullPage: true });
+  for (let i = 0; i < 3; i++) await panel.locator('.mftop .backbtn').click();
+  check('Back steps through and returns to the System tab', (await panel.locator('#sys-styles').count()) === 1);
 
   // Make it free: a font with no file to read is measured on the page
   await panel.locator('.tabs button', { hasText: 'Page' }).click();
@@ -870,6 +975,14 @@ try {
   await panel.locator('button[aria-label="Back"]').click();
   await panel.locator('.tabs button', { hasText: 'Page' }).click();
   await panel.waitForSelector('.fcard', { timeout: 20000 }).catch(() => {});
+
+  // Unit checks for the Use with my fonts maths and the Figma type format.
+  try {
+    execSync('node tests/typeadapt.mjs', { cwd: root, stdio: 'pipe' });
+    check('typeadapt unit checks pass', true);
+  } catch (e) {
+    check('typeadapt unit checks pass', false, String(e.stdout ?? e).split('\n').filter((l) => l.startsWith('FAIL')).join('; '));
+  }
 
   // Accessibility audit with axe-core, light and dark, on each main view.
   const axeSrc = await fs.promises.readFile(require.resolve('axe-core/axe.min.js'), 'utf8');

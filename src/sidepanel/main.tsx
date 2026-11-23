@@ -6,6 +6,7 @@ import './styles/page.css';
 import './styles/details.css';
 import './styles/image.css';
 import './styles/system.css';
+import './styles/myfonts.css';
 import './styles/library.css';
 import './styles/settings.css';
 

@@ -1,6 +1,6 @@
 // System tab data, gathered in the page: the distinct text styles, readability
 // checks, and how fonts are loaded. Nothing leaves the browser.
-import type { DevFace, DevInfo, ReadabilityIssue, SystemScan, TextStyle } from '../shared/types';
+import type { DevFace, DevInfo, ReadabilityIssue, SystemMeasures, SystemScan, TextStyle } from '../shared/types';
 import { OWN_FONT_PREFIX, fontKey as keyOf, facesFor, fontFacts, resolveRendered, roleOf } from './detect';
 import { familyOf, isClipped, isIconText, ownText, textElements } from './scan';
 
@@ -75,6 +75,19 @@ export function scanSystem(): SystemScan {
   };
   const blocksChecked = new Set<Element>();
   const gaps = new Map<TextStyle, Map<number, number>>();
+  // Elements of each style, and what the checks measured (for the tiles and Show on page).
+  const styleEls = new Map<TextStyle, Element[]>();
+  const low = { contrast: null as { ratio: number; text: string } | null, contrastEls: [] as Element[], smallest: null as number | null, smallEls: [] as Element[], thinnest: null as number | null, thinEls: [] as Element[], caps: null as number | null, capsEls: [] as Element[] };
+  const lines_: { perLine: number; el: Element }[] = [];
+  const keepLow = (cur: number | null, v: number, list: Element[], el: Element, eps = 0.01): number => {
+    if (cur == null || v < cur - eps) {
+      list.length = 0;
+      list.push(el);
+      return v;
+    }
+    if (Math.abs(v - cur) <= eps && list.length < 200) list.push(el);
+    return cur;
+  };
 
   for (const el of els) {
     const text = ownText(el);
@@ -109,6 +122,9 @@ export function scanSystem(): SystemScan {
       styles.set(key, st);
     }
     st.count++;
+    const se = styleEls.get(st) ?? [];
+    if (se.length < 2000) se.push(el);
+    styleEls.set(st, se);
     // Space after the paragraph: the bottom margin of the block that holds the text.
     const para = cs.display === 'inline' ? el.closest('p,h1,h2,h3,h4,h5,h6,li,blockquote,figcaption,dd,dt') : el;
     if (para) {
@@ -134,6 +150,9 @@ export function scanSystem(): SystemScan {
     if (fg && bg) {
       const opacity = Number(cs.opacity) || 1;
       const c = contrast(blend([fg[0], fg[1], fg[2], fg[3] * opacity], bg), bg);
+      const was = low.contrast?.ratio ?? null;
+      const now = keepLow(was, c, low.contrastEls, el, 0.05);
+      if (now !== was) low.contrast = { ratio: Math.round(c * 10) / 10, text: `${hex(blend([fg[0], fg[1], fg[2], fg[3] * opacity], bg))} on ${hex(bg)}` };
       const need = large ? 3 : 4.5;
       if (c < need) {
         const f = flag('contrast', 'fail', 'Low contrast text', 'Below WCAG AA: at least 4.5:1 for normal text and 3:1 for large text.', el, text);
@@ -143,6 +162,9 @@ export function scanSystem(): SystemScan {
         }
       }
     }
+    low.smallest = keepLow(low.smallest, size, low.smallEls, el, 0.05);
+    if (size < 16) low.thinnest = keepLow(low.thinnest, weight, low.thinEls, el, 0);
+    if (cs.textTransform === 'uppercase') low.caps = keepLow(low.caps, Math.round((ls / size) * 1000) / 1000, low.capsEls, el, 0.002);
     if (size < 12) flag('tiny', 'warn', 'Very small text', 'Text under 12px is hard to read for many people.', el, text);
     if (weight <= 300 && size < 16 && role === 'body') flag('thin', 'warn', 'Thin text at a small size', 'Light weights (300 or lower) fade at small sizes. Use 400 or larger text.', el, text);
     if (cs.textTransform === 'uppercase' && text.length > 40) flag('caps', 'tip', 'Long text in all caps', 'All caps slows reading in sentences. Keep it for short labels.', el, text);
@@ -163,6 +185,7 @@ export function scanSystem(): SystemScan {
         if (lines >= 2 && ratio < 1.3) flag('tight', 'warn', 'Tight line height in paragraphs', 'Paragraphs read best with line height around 1.4 to 1.6 times the text size.', block, full);
         if (lines >= 2 && ratio > 2) flag('loose', 'tip', 'Very loose line height', 'Line height above 2 can make lines feel disconnected.', block, full);
         const perLine = full.length / lines;
+        if (lines >= 2) lines_.push({ perLine, el: block });
         if (lines >= 2 && perLine > 90) flag('long', 'warn', 'Lines are too long', `About ${Math.round(perLine)} characters per line. 45 to 80 is easier to read; try a narrower column.`, block, full);
         if (lines >= 3 && perLine < 30) flag('short', 'tip', 'Lines are very short', `About ${Math.round(perLine)} characters per line. Very short lines break up reading.`, block, full);
       }
@@ -185,6 +208,22 @@ export function scanSystem(): SystemScan {
   }
   issues.sort((a, b) => order[a.level] - order[b.level] || b.count - a.count);
 
+  for (const [st, list] of styleEls) issueEls.set(`style:${st.id}`, list);
+  issueEls.set('m:contrast', low.contrastEls);
+  issueEls.set('m:small', low.smallEls);
+  issueEls.set('m:thin', low.thinEls);
+  issueEls.set('m:caps', low.capsEls);
+  const sorted = [...lines_].sort((a, b) => a.perLine - b.perLine);
+  const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : null;
+  issueEls.set('m:length', sorted.slice(-20).map((x) => x.el));
+  const measures: SystemMeasures = {
+    contrast: low.contrast,
+    smallest: low.smallest,
+    perLine: median ? Math.round(median.perLine) : null,
+    thinnest: low.thinnest,
+    capsSpacing: low.caps,
+  };
+
   return {
     styles: [...styles.values()].map((st) => {
       const t = gaps.get(st);
@@ -192,6 +231,7 @@ export function scanSystem(): SystemScan {
     }).sort((a, b) => b.size - a.size || b.count - a.count),
     issues,
     dev: devInfo(),
+    measures,
   };
 }
 

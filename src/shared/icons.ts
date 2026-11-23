@@ -109,3 +109,13 @@ export {
   Sun03Icon as ImgSunIcon,
 } from '@hugeicons/core-free-icons';
 // end Image tab (redesign) icons
+// System tab redesign and Use with my fonts icons
+export {
+  MagicWand01Icon as SysMagicIcon,
+  ClipboardPasteIcon as SysClipboardIcon,
+  ArrowReloadHorizontalIcon as SysArrowReloadIcon,
+  Undo02Icon as SysUndoIcon,
+  Edit02Icon as SysEditIcon,
+  ComputerIcon as SysComputerIcon,
+} from '@hugeicons/core-free-icons';
+// end System tab redesign icons

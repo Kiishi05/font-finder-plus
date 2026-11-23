@@ -17,6 +17,7 @@ function isPdf(): boolean {
 import { SHAPE_TEXT, shapeFromCanvas } from '../shared/shape';
 import { elementsForIssue, scanSystem } from './system';
 import { activeSwaps, swapFont, unswap, varyFont } from './swap';
+import { applyType, pageTypeMetrics } from './applytype';
 
 declare global {
   interface Window {
@@ -171,6 +172,19 @@ if (!window.__ffpLoaded) {
       case 'ffp:highlight':
         reply({ ok: true, ...highlightKey(msg.key, msg.label) });
         return false;
+      case 'ffp:apply-type':
+        applyType(Array.isArray(msg.styles) ? msg.styles : [], !!msg.on)
+          .then((r) => {
+            refreshCard();
+            reply(r);
+          })
+          .catch((err) => reply({ ok: false, applied: [], error: String(err?.message ?? err) }));
+        return true;
+      case 'ffp:type-metrics':
+        pageTypeMetrics(msg.fonts.slice(0, 40))
+          .then((metrics) => reply({ ok: true, metrics }))
+          .catch(() => reply({ ok: false, metrics: [] }));
+        return true;
     }
     return false;
   });

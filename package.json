@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "build:catalog": "node scripts/build-gf-catalog.mjs",
     "test": "node tests/run.mjs",
+    "test:unit": "node tests/typeadapt.mjs",
     "package": "node scripts/package.mjs",
     "build:figma": "node scripts/build-figma.mjs",
     "build:free": "node scripts/build-free-catalogs.mjs",

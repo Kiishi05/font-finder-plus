@@ -332,3 +332,27 @@ export function devSummary(dev: DevInfo, scan: PageScan | null): DevSummary {
   if (!tips.length) tips.push({ level: 'ok', text: 'Nothing to flag in how fonts load on this page.' });
   return { files: urls.size, knownBytes, unknownSizes, formats, families, tips };
 }
+
+// ------------------------------------------------------------- plain names
+
+const PRETTY: Record<string, string> = { display: 'Display', lead: 'Lead', body: 'Body', small: 'Small', caption: 'Caption', button: 'Button', link: 'Link', nav: 'Navigation', code: 'Code', text: 'Text', label: 'Label' };
+
+/** "h1" to "Heading 1", "body-2" to "Body 2". */
+export function prettyStyleName(name: string): string {
+  const m = /^(.*?)(?:-(\d+))?$/.exec(name)!;
+  const base = /^h([1-6])$/.test(m[1]) ? `Heading ${m[1].slice(1)}` : PRETTY[m[1]] ?? m[1].charAt(0).toUpperCase() + m[1].slice(1);
+  return m[2] ? `${base} (${m[2]})` : base;
+}
+
+/** A clean scale as CSS custom properties. */
+export function cleanScaleCss(rows: { name: string; size: number; ideal: number }[], base: number, ratio: number, host: string): string {
+  const lines = [`/* Clean type scale for ${host}: ${base}px body, each step ${ratio}× the one before. Made with Font Finder Plus */`, ':root {'];
+  const seen = new Set<string>();
+  for (const r of rows) {
+    if (seen.has(r.name)) continue;
+    seen.add(r.name);
+    lines.push(`  --text-${r.name}: ${r.ideal}px;${r.ideal !== r.size ? ` /* was ${r.size}px */` : ''}`);
+  }
+  lines.push('}', '');
+  return lines.join('\n');
+}

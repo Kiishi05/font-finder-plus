@@ -1,0 +1,99 @@
+/* Use with my fonts: a sub-page of the System tab */
+.mfv { display: flex; flex-direction: column; gap: 10px; }
+.mfv .sub { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.mfv .ht { display: flex; flex-direction: column; gap: 6px; }
+
+/* Sticky sub-top: the white-square back button and the step as the title */
+.mfv .mftop { position: sticky; top: 0; z-index: 20; margin: -12px -12px 0; padding: 12px 12px 8px; background: var(--bg); gap: 10px; }
+.mfv .mftop h1.crumb { margin: 0; font: 400 13px/1.3 var(--ui); color: var(--muted); }
+.mfv .mftop h1.crumb span { color: var(--muted); }
+.mfv .mftop h1.crumb b { color: var(--ink); font-weight: 600; }
+
+/* Buttons: 16-18px above */
+.mfv .acts { display: flex; gap: 8px; margin-top: 4px; }
+.mfv .acts .grow { flex: 1; }
+.mfv .btn.wide svg { margin-left: 2px; }
+
+/* ---------- Step 1: slots ---------- */
+.mfv .slots { display: flex; flex-direction: column; gap: 8px; }
+.mfv .slotwrap { display: flex; flex-direction: column; gap: 8px; }
+.mfv .slot { display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 12px; border: 0; border-radius: var(--r-inner); background: var(--inset); color: var(--ink); text-align: left; transition: background-color 150ms ease, box-shadow 150ms ease; }
+@media (hover: hover) and (pointer: fine) { .mfv .slot:hover { background: var(--field); } }
+.mfv .slot[aria-expanded='true'] { box-shadow: inset 0 0 0 1.5px var(--ink); background: var(--inset); }
+.mfv .slot .aa { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: var(--r-ctl); background: var(--card); color: var(--ink); font-size: 18px; line-height: 1; overflow: hidden; }
+.mfv .slot .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-top: 1px; }
+.mfv .slot .t b { font-weight: 500; font-size: 14px; line-height: 20px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mfv .slot .t small { font-size: 12.5px; color: var(--muted); line-height: 17px; }
+.mfv .slot.set .t b.fname { font-size: 17px; font-weight: 400; }
+.mfv .slot .go { flex: none; align-self: center; font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.mfv .slot.opt:not(.set) .aa { width: 32px; height: 32px; }
+
+/* The font search: a 44px field with no stroke, then a clean list */
+.mfv .picker { display: flex; flex-direction: column; gap: 6px; padding: 0 0 4px; }
+.mfv .picker .search { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: var(--r-field); background: var(--field); color: var(--muted); }
+.mfv .picker .search:focus-within { box-shadow: 0 0 0 2px var(--ink); }
+.mfv .picker .search input { flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: transparent; color: var(--ink); font-size: 13.5px; }
+.mfv .picker .search input::placeholder { color: var(--muted); }
+.mfv .flist { list-style: none; margin: 0; padding: 0; max-height: 340px; overflow-y: auto; display: flex; flex-direction: column; }
+.mfv .flist .grp { display: block; padding: 12px 10px 4px; font-size: 12px; color: var(--muted); }
+.mfv .fitem { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; width: 100%; min-height: 44px; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); text-align: left; transition: background-color 120ms ease; }
+@media (hover: hover) and (pointer: fine) { .mfv .fitem:hover { background: var(--inset); } }
+.mfv .fitem[aria-pressed='true'] { background: var(--inset); }
+.mfv .fitem .fn { grid-column: 1; font-size: 17px; line-height: 1.3; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mfv .fitem .fn.none { font-size: 14px; font-weight: 500; }
+.mfv .fitem small { grid-column: 1; font-size: 12px; color: var(--muted); }
+.mfv .fitem .tick { grid-column: 2; grid-row: 1 / span 2; display: inline-flex; color: var(--ink); }
+.mfv .flist .nores { padding: 12px 10px; font-size: 12.5px; color: var(--muted); }
+.mfv .localask { align-self: flex-start; padding: 8px 10px; align-items: flex-start; }
+.mfv .localask svg { margin-top: 1px; }
+
+/* ---------- Step 2: your fonts, the page switch, each style ---------- */
+.mfv .mfchosen { gap: 0; padding-top: 4px; padding-bottom: 4px; }
+.mfv .chosen { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.mfv .chosen:first-child { border-top: 0; }
+.mfv .chosen .aa { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: var(--r-ctl); background: var(--inset); font-size: 18px; line-height: 1; }
+.mfv .chosen .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mfv .chosen .t small { font-size: 12px; color: var(--muted); }
+.mfv .chosen .t b { font-size: 17px; font-weight: 400; line-height: 1.3; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.mfv .pvrow { display: flex; align-items: flex-start; gap: 12px; }
+.mfv .pvrow .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.mfv .pvrow .t b { font: 600 15px/1.3 var(--ui); letter-spacing: -0.01em; }
+.mfv .pvrow .t span { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+
+.mfv .mfrows { display: flex; flex-direction: column; }
+.mfv .mfrow { display: flex; flex-direction: column; gap: 10px; padding: 14px 0; border-top: 1px solid var(--line); min-width: 0; }
+.mfv .mfrow:first-child { border-top: 0; padding-top: 0; }
+.mfv .mfrow:last-child { padding-bottom: 0; }
+.mfv .mfrow .top { display: flex; align-items: flex-start; gap: 8px; }
+.mfv .mfrow .nm { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding-top: 1px; }
+.mfv .mfrow .nm b { font-weight: 600; font-size: 13.5px; }
+.mfv .mfrow .nm small { font-size: 12px; color: var(--muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mfv .mfrow .smp { color: var(--ink); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 2px 0; }
+.mfv .chgs { display: flex; flex-direction: column; gap: 8px; }
+.mfv .chg { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 2px 10px; font-size: 12.5px; }
+.mfv .chg .l { color: var(--muted); line-height: 20px; }
+.mfv .chg .v { font: 400 12.5px/20px var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+.mfv .chg .v s { color: var(--muted); text-decoration-thickness: 1px; }
+.mfv .chg .v .arr { margin: 0 6px; color: var(--muted); }
+.mfv .chg .v b { font-weight: 600; }
+.mfv .chg.same .v { color: var(--muted); }
+.mfv .chg .why { grid-column: 2; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.mfv .edit { display: flex; flex-direction: column; gap: 12px; padding: 12px; border-radius: var(--r-inner); background: var(--inset); }
+.mfv .edit .seg { background: var(--field); }
+.mfv .edit .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.mfv .nf { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.mfv .nf span { font-size: 12px; color: var(--muted); }
+.mfv .nf .field { width: 100%; background: var(--card); font-family: var(--mono); font-size: 13px; }
+.mfv .edit .linkbtn { align-self: flex-start; align-items: flex-start; }
+
+/* ---------- Step 3: export ---------- */
+.mfv .lab { display: flex; flex-direction: column; gap: 6px; }
+.mfv .lab > span { font-size: 12px; color: var(--muted); }
+.mfv .seg button { height: 32px; font-size: 13px; color: var(--on-track); min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 0 6px; }
+.mfv .seg button[aria-pressed='true'] { color: var(--ink); }
+.mfv .code { margin: 0; max-height: 320px; overflow: auto; padding: 12px 14px; border-radius: var(--r-inner); background: var(--inset); color: var(--muted); font: 12px/1.6 var(--mono); white-space: pre; }
+.mfv .figlist { display: flex; flex-direction: column; padding: 4px 14px; border-radius: var(--r-inner); background: var(--inset); }
+.mfv .figlist > div { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 12.5px; }
+.mfv .figlist > div:first-child { border-top: 0; }
+.mfv .figlist em { font: normal 400 12px/1.5 var(--mono); color: var(--muted); text-align: right; }
