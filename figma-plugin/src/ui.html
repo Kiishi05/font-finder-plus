@@ -7,10 +7,10 @@
    ink buttons, no strokes on controls. Figma's dark theme adds the figma-dark class to
    <html> (themeColors: true). Green is only Free, amber only Paid, red only delete or fail. */
 :root {
-  --pbg: #f4f4f3; --card: #ffffff; --inset: #f8f8f7; --field: #f0f0ee; --field-2: #e6e6e4; --track: #e9e9e7;
-  --ink: #161616; --ink-2: #4f4f4f; --ink-3: #6e6e6e; --faint: #a3a3a0; --line: rgba(0, 0, 0, 0.07);
+  --pbg: #F4F5F7; --card: #ffffff; --inset: #F8F9FA; --field: #EEF0F3; --field-2: #E3E6EA; --track: #E8EAEE;
+  --ink: #1C2024; --ink-2: #4B5059; --ink-3: #686D76; --faint: #9EA3AB; --line: rgba(0, 0, 0, 0.07);
   --free: #0b7a37; --free-dot: #19a35a; --paid: #8a5a00; --paid-dot: #e39b12;
-  --red: #c42b22; --red-soft: #fcebea; --red-tile: #fcebea; --dash: #c4c4c0;
+  --red: #c42b22; --red-soft: #fcebea; --red-tile: #fcebea; --dash: #C3C7CD;
   --knob: #ffffff;
   --ui: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", "Geist Mono", ui-monospace, Menlo, monospace;
@@ -19,11 +19,11 @@
   color-scheme: light;
 }
 :root.figma-dark {
-  --pbg: #0e0e0e; --card: #1a1a1a; --inset: #212121; --field: #262626; --field-2: #303030; --track: #222222;
-  --ink: #f1f1f1; --ink-2: #bdbdbd; --ink-3: #8f8f8f; --faint: #6b6b6b; --line: rgba(255, 255, 255, 0.08);
+  --pbg: #0F1012; --card: #18191C; --inset: #1F2125; --field: #25272C; --field-2: #2E3136; --track: #212327;
+  --ink: #EDEEF0; --ink-2: #B4B8BF; --ink-3: #8B9099; --faint: #646A73; --line: rgba(255, 255, 255, 0.08);
   --free: #4cc884; --free-dot: #3ad47a; --paid: #f0b44c; --paid-dot: #e39b12;
-  --red: #ff8a80; --red-soft: rgba(255, 138, 128, 0.12); --red-tile: #2a2a2a; --dash: #4d4d4d;
-  --knob: #161616;
+  --red: #ff8a80; --red-soft: rgba(255, 138, 128, 0.12); --red-tile: #292B30; --dash: #494E56;
+  --knob: #1C2024;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -270,7 +270,7 @@ textarea.field:focus, .field:focus-within { box-shadow: 0 0 0 2px var(--ink); }
 .ib svg { width: 15px; height: 15px; }
 @media (hover: hover) and (pointer: fine) { .ib:hover { background: var(--field); color: var(--red); } }
 
-#toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); max-width: calc(100% - 32px); width: max-content; background: #161616; color: #fff; padding: 10px 14px; border-radius: 12px; font-size: 13px; z-index: 50; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); animation: toastin 200ms var(--ease); text-align: center; }
+#toast { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); max-width: calc(100% - 32px); width: max-content; background: #1C2024; color: #fff; padding: 10px 14px; border-radius: 12px; font-size: 13px; z-index: 50; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); animation: toastin 200ms var(--ease); text-align: center; }
 body.has-foot #toast { bottom: 84px; }
 @keyframes toastin { from { opacity: 0; transform: translate(-50%, 8px); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

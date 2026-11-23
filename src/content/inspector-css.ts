@@ -8,7 +8,7 @@ export const css = `
 button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; padding: 0; }
 button:focus-visible { outline: 2px solid #2F6BFF; outline-offset: 2px; }
 svg { display: block; flex: none; }
-.kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px; background: #FFFFFF; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12), 0 1px 0 rgba(0,0,0,0.06); font: 500 10.5px/1 "FFP Geist Mono", ui-monospace, monospace; color: #4F4F4F; vertical-align: middle; }
+.kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px; background: #FFFFFF; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12), 0 1px 0 rgba(0,0,0,0.06); font: 500 10.5px/1 "FFP Geist Mono", ui-monospace, monospace; color: #4B5059; vertical-align: middle; }
 
 /* The outline around the text under the pointer */
 .hl {
@@ -27,56 +27,56 @@ svg { display: block; flex: none; }
 .card {
   position: fixed; left: 0; top: 0; width: 300px;
   display: flex; flex-direction: column; gap: 12px; padding: 14px;
-  border-radius: 18px; background: #FFFFFF; color: #161616;
+  border-radius: 18px; background: #FFFFFF; color: #1C2024;
   font: 13px/1.4 "FFP Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
   box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 16px 36px rgba(0,0,0,0.14);
   pointer-events: none;
 }
-.card.pinned { pointer-events: auto; box-shadow: 0 0 0 1.5px #161616, 0 16px 36px rgba(0,0,0,0.16); }
+.card.pinned { pointer-events: auto; box-shadow: 0 0 0 1.5px #1C2024, 0 16px 36px rgba(0,0,0,0.16); }
 .head { display: flex; align-items: flex-start; gap: 8px; }
 .titles { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
-.name { font-size: 17px; line-height: 1.15; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: #161616; }
-.meta { font-size: 12px; color: #7A7A7A; }
+.name { font-size: 17px; line-height: 1.15; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: #1C2024; }
+.meta { font-size: 12px; color: #6B7079; }
 .fallback { font-size: 12px; color: #8A5A00; }
 .head .tools { display: flex; align-items: center; gap: 6px; flex: none; }
 .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; white-space: nowrap; margin-top: 2px; }
 .chip .dot { width: 7px; height: 7px; border-radius: 50%; }
 .chip.free { color: #0B7A37; } .chip.free .dot { background: #19A35A; }
 .chip.warn { color: #8A5A00; } .chip.warn .dot { background: #E39B12; }
-.chip.neutral { color: #7A7A7A; } .chip.neutral .dot { background: #A8A8A4; }
-.pin { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 8px; border-radius: 8px; background: #161616; color: #FFFFFF; font-size: 11.5px; font-weight: 500; }
-.pin:hover { background: #333333; }
+.chip.neutral { color: #6B7079; } .chip.neutral .dot { background: #A5AAB2; }
+.pin { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 8px; border-radius: 8px; background: #1C2024; color: #FFFFFF; font-size: 11.5px; font-weight: 500; }
+.pin:hover { background: #31343A; }
 .pin svg:last-child { opacity: 0.6; }
 .metrics { width: 272px; height: 98px; display: block; }
 .rows { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
 .row { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; padding: 8px 10px; border-radius: 10px; text-align: left; transition: background 120ms; }
-.row .k { font-size: 11.5px; color: #7A7A7A; }
-.row .v { display: flex; align-items: center; gap: 6px; max-width: 100%; font: 500 12.5px/1.2 "FFP Geist Mono", ui-monospace, monospace; color: #161616; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.row .s { position: absolute; right: 8px; top: 8px; color: #7A7A7A; opacity: 0; transition: opacity 120ms; }
-.card.pinned .row:hover { background: #F4F4F3; }
+.row .k { font-size: 11.5px; color: #6B7079; }
+.row .v { display: flex; align-items: center; gap: 6px; max-width: 100%; font: 500 12.5px/1.2 "FFP Geist Mono", ui-monospace, monospace; color: #1C2024; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .s { position: absolute; right: 8px; top: 8px; color: #6B7079; opacity: 0; transition: opacity 120ms; }
+.card.pinned .row:hover { background: #F4F5F7; }
 .card.pinned .row:hover .s { opacity: 1; }
 .row.copied .v, .row.copied .s { color: #0B7A37; opacity: 1; }
 .sw { width: 10px; height: 10px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12); flex: none; }
 .foot { display: flex; gap: 8px; }
-.btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; border-radius: 11px; background: #F0F0EE; color: #161616; font-size: 13px; font-weight: 500; white-space: nowrap; transition: background 150ms, transform 140ms cubic-bezier(0.23, 1, 0.32, 1); }
-.btn:hover { background: #E6E6E4; }
+.btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; border-radius: 11px; background: #EEF0F3; color: #1C2024; font-size: 13px; font-weight: 500; white-space: nowrap; transition: background 150ms, transform 140ms cubic-bezier(0.23, 1, 0.32, 1); }
+.btn:hover { background: #E3E6EA; }
 .btn:active { transform: scale(0.97); }
-.btn.primary { background: #161616; color: #FFFFFF; }
-.btn.primary:hover { background: #2A2A2A; }
+.btn.primary { background: #1C2024; color: #FFFFFF; }
+.btn.primary:hover { background: #292B30; }
 .btn.sq { flex: none; width: 38px; }
 .btn.done { color: #0B7A37; }
 .btn.primary.done { color: #FFFFFF; }
-.hint { margin: -2px 0 0; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 12px; color: #7A7A7A; }
-.hint.pinme { margin: 0; padding: 10px 12px; border-radius: 11px; background: #F4F4F3; color: #4F4F4F; }
+.hint { margin: -2px 0 0; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 12px; color: #6B7079; }
+.hint.pinme { margin: 0; padding: 10px 12px; border-radius: 11px; background: #F4F5F7; color: #4B5059; }
 .picnote { display: flex; flex-direction: column; gap: 10px; }
-.picnote p { margin: 0; font-size: 13px; color: #4F4F4F; }
+.picnote p { margin: 0; font-size: 13px; color: #4B5059; }
 .picnote .btn { flex: none; }
 
 /* Dock */
 .dock {
   position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
   display: flex; align-items: center; gap: 2px; padding: 6px; border-radius: 20px;
-  background: #1A1A1A; color: rgba(255,255,255,0.72); pointer-events: auto;
+  background: #18191C; color: rgba(255,255,255,0.72); pointer-events: auto;
   font: 12px "FFP Geist", system-ui, sans-serif;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 12px 32px rgba(0,0,0,0.28);
   animation: ffp-dock 320ms cubic-bezier(0.23, 1, 0.32, 1);
@@ -90,7 +90,7 @@ svg { display: block; flex: none; }
 .db .tip {
   position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%) translateY(2px);
   display: flex; align-items: center; gap: 8px; white-space: nowrap; padding: 6px 8px 6px 10px; border-radius: 9px;
-  background: #1A1A1A; color: #FFFFFF; font-weight: 500; box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  background: #18191C; color: #FFFFFF; font-weight: 500; box-shadow: 0 6px 16px rgba(0,0,0,0.25);
   pointer-events: none; opacity: 0; transition: opacity 120ms, transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .db:hover .tip, .db:focus-visible .tip, .db.saytip .tip { opacity: 1; transform: translateX(-50%); }
@@ -102,20 +102,20 @@ svg { display: block; flex: none; }
 .coach {
   position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%);
   display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 10px; border-radius: 14px;
-  background: #FFFFFF; color: #161616; white-space: nowrap; pointer-events: auto;
+  background: #FFFFFF; color: #1C2024; white-space: nowrap; pointer-events: auto;
   font: 13px/1.3 "FFP Geist", system-ui, sans-serif;
   box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 10px 28px rgba(0,0,0,0.14);
   animation: ffp-dock 300ms cubic-bezier(0.23, 1, 0.32, 1);
 }
-.coach .step { font: 500 11px/1 "FFP Geist Mono", ui-monospace, monospace; color: #7A7A7A; padding: 4px 6px; border-radius: 6px; background: #F0F0EE; }
+.coach .step { font: 500 11px/1 "FFP Geist Mono", ui-monospace, monospace; color: #6B7079; padding: 4px 6px; border-radius: 6px; background: #EEF0F3; }
 .coach .ctext { display: inline-flex; align-items: center; gap: 5px; }
-.coach .cx { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: #7A7A7A; }
-.coach .cx:hover { background: #F0F0EE; }
+.coach .cx { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: #6B7079; }
+.coach .cx:hover { background: #EEF0F3; }
 
 /* Label for "Show on page" */
 .flag {
   position: fixed; left: 50%; top: 14px; transform: translateX(-50%);
-  padding: 8px 12px; border-radius: 10px; background: #1A1A1A; color: #FFFFFF;
+  padding: 8px 12px; border-radius: 10px; background: #18191C; color: #FFFFFF;
   font: 500 12.5px "FFP Geist", system-ui, sans-serif; box-shadow: 0 6px 18px rgba(0,0,0,0.18);
 }
 @media (max-width: 640px) { .coach { white-space: normal; width: calc(100vw - 24px); } }

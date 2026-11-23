@@ -556,7 +556,7 @@ function drawMetrics() {
   const H = canvas.height;
   const scale = W / 288; // canvas is drawn at 2x
   c.clearRect(0, 0, W, H);
-  c.fillStyle = '#F8F8F7';
+  c.fillStyle = '#F8F9FA';
   c.beginPath();
   c.roundRect(0, 0, W, H, 12 * scale);
   c.fill();
@@ -578,10 +578,10 @@ function drawMetrics() {
     c.stroke();
     c.restore();
   };
-  line(base - capA, '#8A8A86', true);
-  line(base - xA, '#B4B4B0', true);
-  line(base, '#111111', false);
-  c.fillStyle = '#111111';
+  line(base - capA, '#878C95', true);
+  line(base - xA, '#B1B6BE', true);
+  line(base, '#16181C', false);
+  c.fillStyle = '#16181C';
   c.textBaseline = 'alphabetic';
   c.fillText('Hxg', 14 * scale, base);
   c.font = `${10 * scale}px "${OWN_FONT_PREFIX}JetBrains Mono", ui-monospace, monospace`;
@@ -590,9 +590,9 @@ function drawMetrics() {
     c.fillStyle = color;
     c.fillText(text, W - 10 * scale, y);
   };
-  label(info.capHeight != null ? `CAP ${info.capHeight}PX` : 'CAP', base - capA - 5 * scale, '#5C5C5A');
-  label(info.xHeight != null ? `X-HEIGHT ${info.xHeight}PX` : 'X-HEIGHT', base - xA - 5 * scale, '#5C5C5A');
-  label('BASELINE', base - 5 * scale, '#111111');
+  label(info.capHeight != null ? `CAP ${info.capHeight}PX` : 'CAP', base - capA - 5 * scale, '#5A5F68');
+  label(info.xHeight != null ? `X-HEIGHT ${info.xHeight}PX` : 'X-HEIGHT', base - xA - 5 * scale, '#5A5F68');
+  label('BASELINE', base - 5 * scale, '#16181C');
   c.textAlign = 'left';
 }
 
