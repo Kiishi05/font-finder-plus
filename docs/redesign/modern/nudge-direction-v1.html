@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-primary="cobalt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nudge Direction v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=JetBrains+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   Tokens. Nudge's structure (flat panel, wells, one brand colour) with a
+   COOL neutral scale instead of Nudge's warm stone greys.
+   Type scale: 12 / 13 / 14 / 16 / 20, weights 400 and 600 only.
+   ===================================================================== */
+:root {
+  --canvas: #EEF0F3; --panel: #ffffff; --panel-2: #F5F6F8; --raised: #FAFBFC; --btn-on: #ffffff;
+  --well: rgba(15,23,42,.045); --well-2: rgba(15,23,42,.085); --hover: rgba(15,23,42,.035);
+  --text: #1C2024; --text-2: #60646C; --text-3: #8B8D98;
+  --line: rgba(15,23,42,.08);
+  --lift: 0 1px 2px rgba(15,23,42,.08), 0 1px 1px rgba(15,23,42,.04);
+  --pop: 0 0 0 1px rgba(15,23,42,.05), 0 4px 16px rgba(15,23,42,.10);
+  --free: #0b7a37; --free-dot: #19a35a; --paid: #8a5a00; --paid-dot: #E39B12; --red: #D4332A;
+  --chrome: #F0F1F4; --chrome-line: rgba(15,23,42,.07);
+  --ui: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --ease: cubic-bezier(.23, 1, .32, 1);
+  --r4: 4px; --r8: 8px; --r12: 12px; --r16: 16px; --r24: 24px;
+  /* sizes: buttons and value fields 36px (Nudge), text inputs 40px, 44px for everything on touch */
+  --ctl: 36px; --inp: 40px; --ib: 34px;
+  --fs-xs: 12px; --lh-xs: 16px; --fs-sm: 13px; --lh-sm: 20px; --fs-md: 14px; --lh-md: 20px; --fs-lg: 16px; --lh-lg: 24px; --fs-xl: 20px; --lh-xl: 28px;
+  --w-reg: 400; --w-bold: 600;
+}
+@media (pointer: coarse) { :root { --ctl: 44px; --inp: 44px; --ib: 44px; } }
+html[data-theme="dark"] {
+  --canvas: #0B0B0D; --panel: #111113; --panel-2: #18191B; --raised: #18191B; --btn-on: #2A2B2F;
+  --well: rgba(255,255,255,.06); --well-2: rgba(255,255,255,.11); --hover: rgba(255,255,255,.04);
+  --text: #EDEEF0; --text-2: #B0B4BA; --text-3: #777B84;
+  --line: rgba(255,255,255,.08);
+  --lift: 0 0 #0000;
+  --pop: 0 0 0 1px rgba(255,255,255,.08), 0 8px 24px rgba(0,0,0,.5);
+  --free: #4cc884; --free-dot: #3ad47a; --paid: #f0b44c;
+  --chrome: #18191B; --chrome-line: rgba(255,255,255,.06);
+  color-scheme: dark;
+}
+/* primary colour: --p fill, --p-hover, --p-text (links, active text), --p-soft tint, --on-p text on fill */
+html[data-primary="orange"] { --p: #C9480E; --p-hover: #B33C0B; --p-text: #B33C0B; --p-soft: rgba(201,72,14,.09); --p-soft-2: rgba(201,72,14,.15); --on-p: #fff; --ring: #C9480E; --dock-on: #C9480E; }
+html[data-primary="cobalt"] { --p: #2B63F5; --p-hover: #2457E0; --p-text: #2457E0; --p-soft: rgba(43,99,245,.08); --p-soft-2: rgba(43,99,245,.14); --on-p: #fff; --ring: #2B63F5; --dock-on: #2B63F5; }
+html[data-primary="violet"] { --p: #6E56CF; --p-hover: #5A43B8; --p-text: #5A43B8; --p-soft: rgba(110,86,207,.09); --p-soft-2: rgba(110,86,207,.15); --on-p: #fff; --ring: #6E56CF; --dock-on: #6E56CF; }
+html[data-primary="ink"] { --p: #1C2024; --p-hover: #33383F; --p-text: #1C2024; --p-soft: rgba(15,23,42,.06); --p-soft-2: rgba(15,23,42,.10); --on-p: #fff; --ring: #1C2024; --dock-on: rgba(255,255,255,.2); }
+html[data-theme="dark"][data-primary="orange"] { --p-text: #FF8257; --p-soft: rgba(255,130,87,.12); --p-soft-2: rgba(255,130,87,.2); --ring: #FF8257; }
+html[data-theme="dark"][data-primary="cobalt"] { --p-text: #7B9DFF; --p-soft: rgba(123,157,255,.12); --p-soft-2: rgba(123,157,255,.2); --ring: #7B9DFF; }
+html[data-theme="dark"][data-primary="violet"] { --p-text: #A996F2; --p-soft: rgba(169,150,242,.12); --p-soft-2: rgba(169,150,242,.2); --ring: #A996F2; }
+html[data-theme="dark"][data-primary="ink"] { --p: #EDEEF0; --p-hover: #ffffff; --p-text: #EDEEF0; --p-soft: rgba(255,255,255,.08); --p-soft-2: rgba(255,255,255,.13); --on-p: #111113; --ring: #EDEEF0; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--canvas); color: var(--text); font: var(--w-reg) var(--fs-sm)/var(--lh-sm) var(--ui); -webkit-font-smoothing: antialiased; font-feature-settings: "cv11", "ss01"; overflow-x: hidden; }
+button, input { font: inherit; color: inherit; border: 0; background: none; padding: 0; margin: 0; }
+button { cursor: pointer; text-align: inherit; }
+svg { display: block; flex: none; }
+b, strong { font-weight: var(--w-bold); }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 6px; }
+input:focus-visible { outline: none; }
+.well:focus-within { box-shadow: 0 0 0 2px var(--ring); }
+
+/* ---------- type roles ---------- */
+.t-xl { font-size: var(--fs-xl); line-height: var(--lh-xl); font-weight: var(--w-bold); letter-spacing: -.015em; }
+.t-lg { font-size: var(--fs-lg); line-height: var(--lh-lg); font-weight: var(--w-bold); letter-spacing: -.01em; }
+.t-md { font-size: var(--fs-md); line-height: var(--lh-md); font-weight: var(--w-bold); letter-spacing: -.005em; }
+.t-xs { font-size: var(--fs-xs); line-height: var(--lh-xs); color: var(--text-2); }
+
+/* ============ comparison strip: the primary colour picker ============ */
+.strip { position: relative; z-index: 60; padding: 16px 24px 16px; background: var(--panel); display: flex; flex-direction: column; gap: 12px; }
+.strip .top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.strip h1 { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex: 1; min-width: 220px; }
+.strip h1 span.v { font-weight: var(--w-reg); color: var(--text-2); }
+.seg { display: inline-flex; padding: 2px; gap: 2px; border-radius: 10px; background: var(--well); }
+.seg button { height: 32px; padding: 0 12px; border-radius: var(--r8); font-weight: var(--w-bold); color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--btn-on); color: var(--text); box-shadow: var(--lift); }
+@media (pointer: coarse) { .seg button { height: 40px; } }
+.prims { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.prim { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-radius: var(--r12); background: var(--well); text-align: left; min-width: 0; }
+.prim:hover { background: var(--well-2); }
+.prim[aria-pressed="true"] { background: var(--btn-on); box-shadow: 0 0 0 2px var(--sw), var(--lift); }
+html[data-theme="dark"] .prim .sw, html[data-theme="dark"] .logo { box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+.prim .sw { width: 32px; height: 32px; border-radius: var(--r8); flex: none; display: grid; place-items: center; color: #fff; font: var(--w-bold) var(--fs-xs)/1 var(--ui); }
+.prim > div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.prim .n { font-weight: var(--w-bold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prim .h { font: 500 var(--fs-xs)/var(--lh-xs) var(--mono); color: var(--text-2); }
+.prim .rec { position: absolute; top: 8px; right: 8px; height: 20px; padding: 0 8px; border-radius: 999px; background: rgba(43,99,245,.12); color: #2457E0; font-size: var(--fs-xs); font-weight: var(--w-bold); display: inline-flex; align-items: center; }
+html[data-theme="dark"] .prim .rec { color: #7B9DFF; background: rgba(123,157,255,.14); }
+.strip .note { margin: 0; font-size: var(--fs-xs); line-height: 18px; color: var(--text-2); max-width: 1100px; }
+.strip .note b { color: var(--text); }
+
+/* ============ desk, browser window, fake website ============ */
+#stage { padding: 8px 24px 28px; }
+.desk { display: flex; max-width: 1360px; margin: 0 auto; height: calc(100vh - 230px); min-height: 680px; border-radius: 14px; overflow: hidden; box-shadow: 0 0 0 1px rgba(15,23,42,.08), 0 24px 60px -24px rgba(15,23,42,.25); background: #fff; }
+.win { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.chrome { height: 44px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: #F0F1F4; border-bottom: 1px solid rgba(15,23,42,.07); }
+.chrome .lights { display: flex; gap: 7px; } .chrome .lights i { width: 11px; height: 11px; border-radius: 50%; background: #D5D7DC; }
+.chrome .url { flex: 1; min-width: 0; max-width: 520px; height: 28px; border-radius: 999px; background: #fff; display: flex; align-items: center; padding: 0 14px; font-size: 12.5px; color: #4b4f57; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.chrome .ext { margin-left: auto; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: #E2E4E8; }
+.logo { display: inline-grid; place-items: center; background: #161616; color: #fff; font: 600 11px/1 "Fraunces", serif; width: 18px; height: 18px; border-radius: 5px; position: relative; flex: none; }
+.logo::after { content: ""; position: absolute; right: 18%; top: 18%; width: 18%; height: 18%; border-radius: 1px; background: #ff5a36; }
+.vp { flex: 1; position: relative; overflow: hidden; background: #fbfaf7; }
+.site { height: 100%; overflow: auto; padding-bottom: 120px; color: #1b1a17; }
+.s-nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 48px; border-bottom: 1px solid rgba(0,0,0,.06); }
+.s-nav b { font: 600 16px/1 "Inter"; letter-spacing: -.01em; }
+.s-nav nav { display: flex; gap: 22px; font: 400 13.5px/1 "Inter"; color: #3b3a36; }
+.s-art { max-width: 720px; margin: 0 auto; padding: 44px 48px 0; }
+.s-kick { font: 500 11.5px/1 "Inter"; letter-spacing: .12em; color: #8a6d3b; margin: 0 0 18px; }
+.s-art h1 { font: 600 50px/1.04 "Fraunces", serif; letter-spacing: -.02em; margin: 0 0 20px; }
+.s-lede { font: 400 20px/1.5 "Source Serif 4", serif; color: #2f2d29; margin: 0 0 22px; }
+.s-art p.b { font: 400 17px/1.65 "Source Serif 4", serif; color: #3a3833; margin: 0 0 18px; }
+.s-art h2 { font: 600 26px/1.15 "Fraunces", serif; margin: 30px 0 12px; }
+.s-fig { height: 200px; border-radius: 6px; background: linear-gradient(135deg, #c9d6cf, #e8dcc5 60%, #d9c3a5); margin: 8px 0; }
+.s-cap { font: 400 12.5px/1.4 "Inter"; color: #7a776f; margin: 0 0 24px; }
+.site.mine h1, .site.mine h2 { font-family: var(--my-h) !important; }
+.site.mine .s-lede, .site.mine p.b { font-family: var(--my-b) !important; }
+.site.scaled h1 { font-size: var(--sc-h1) !important; } .site.scaled h2 { font-size: var(--sc-h2) !important; } .site.scaled .s-lede { font-size: var(--sc-lead) !important; } .site.scaled .s-cap { font-size: var(--sc-cap) !important; }
+.on [data-f] { cursor: crosshair; }
+.on [data-f]:hover, [data-f].sel { outline: 1.5px solid var(--p); outline-offset: 3px; border-radius: 2px; }
+html[data-theme="dark"][data-primary="ink"] .on [data-f]:hover, html[data-theme="dark"][data-primary="ink"] [data-f].sel { outline-color: #1C2024; }
+[data-f].flash { outline: 2px solid var(--p); outline-offset: 4px; border-radius: 2px; background: var(--p-soft); }
+
+/* dock: stays dark; a grip on the left moves it; the active tool takes the primary colour */
+.dock { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 2px; padding: 6px 6px 6px 2px; border-radius: 16px; background: #1a1b1e; box-shadow: 0 12px 32px rgba(0,0,0,.28); color: rgba(255,255,255,.72); touch-action: none; }
+.dock.dragging { box-shadow: 0 18px 40px rgba(0,0,0,.35); }
+.dock .grip { width: 22px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: rgba(255,255,255,.4); cursor: grab; touch-action: none; }
+.dock .grip:hover { color: rgba(255,255,255,.8); }
+.dock.dragging .grip { cursor: grabbing; }
+.dock .db { position: relative; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; transition: background 150ms, color 150ms, transform 140ms var(--ease); }
+.dock .db svg { width: 20px; height: 20px; }
+.dock .db:hover { background: rgba(255,255,255,.08); color: #fff; }
+.dock .db:active { transform: scale(.94); }
+.dock .db[aria-pressed="true"] { background: var(--dock-on); color: #fff; }
+.dock .db.soft[aria-pressed="true"] { background: rgba(255,255,255,.12); }
+.dock .sep { width: 1px; height: 22px; margin: 0 4px; background: rgba(255,255,255,.14); }
+.dock .db .tip { position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%) translateY(2px); white-space: nowrap; display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 10px; border-radius: 8px; background: #1a1b1e; color: #fff; font: 600 12px/1 var(--ui); pointer-events: none; opacity: 0; transition: opacity 120ms, transform 160ms var(--ease); }
+@media (hover: hover) { .dock .db:hover .tip { opacity: 1; transform: translateX(-50%); transition-delay: 250ms; } }
+.dock .tip .k { font: 500 11px/1 var(--mono); color: rgba(255,255,255,.6); padding: 3px 5px; border-radius: 4px; background: rgba(255,255,255,.1); }
+
+/* hover card (sits on the website, so it stays light) */
+.hc { position: absolute; z-index: 31; width: 288px; max-width: calc(100% - 24px); padding: 12px; border-radius: var(--r12); background: #fff; color: #1C2024; box-shadow: 0 0 0 1px rgba(15,23,42,.05), 0 4px 16px rgba(15,23,42,.10); display: flex; flex-direction: column; gap: 12px; pointer-events: none; opacity: 0; transform: translateY(4px); transition: opacity 120ms var(--ease), transform 160ms var(--ease); font: 400 13px/20px var(--ui); }
+.hc.show { opacity: 1; transform: none; } .hc.pinned { pointer-events: auto; }
+.hc.is-pinned { box-shadow: 0 0 0 1.5px var(--p), 0 4px 16px rgba(15,23,42,.12); }
+html[data-theme="dark"][data-primary="ink"] .hc.is-pinned { box-shadow: 0 0 0 1.5px #1C2024, 0 4px 16px rgba(15,23,42,.12); }
+.hc-h { display: flex; align-items: flex-start; gap: 8px; }
+.hc-h > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.hc-h b { font-size: 16px; line-height: 24px; letter-spacing: -.01em; }
+.hc-h small { color: #60646C; font-size: 12px; line-height: 16px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pinchip { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border-radius: 999px; background: rgba(15,23,42,.045); color: #1C2024; font-size: 12px; font-weight: 600; }
+.pinchip svg { width: 12px; height: 12px; }
+.hc-m { height: 80px; border-radius: 8px; background: rgba(15,23,42,.045); position: relative; overflow: hidden; }
+.hc-m .g { position: absolute; left: 12px; bottom: 10px; font-size: 56px; line-height: 1; color: #1C2024; }
+.hc-m i { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed rgba(15,23,42,.18); }
+.hc-m i span { position: absolute; right: 10px; top: -14px; font: 500 9.5px/1 var(--mono); color: #60646C; }
+.hc-g { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.hc-g .f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.hc-g .f > span { font-size: 12px; line-height: 16px; color: #60646C; }
+.hc-g button { height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-radius: 8px; background: rgba(15,23,42,.045); font: 500 12px/1 var(--mono); color: #1C2024; min-width: 0; transition: background 120ms; }
+.hc-g button > svg { width: 14px; height: 14px; color: #60646C; }
+.hc-g button > em { font-style: normal; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; flex: 1; text-align: left; }
+.hc.pinned .hc-g button:hover { background: rgba(15,23,42,.085); }
+.hc-a { display: flex; gap: 8px; }
+.hc-a button { flex: 1; height: 36px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: rgba(15,23,42,.045); }
+.hc-a button.pri { background: var(--p); color: var(--on-p); }
+html[data-theme="dark"][data-primary="ink"] .hc-a button.pri { background: #1C2024; color: #fff; }
+.hc-a .sq { flex: none; width: 36px; }
+.hc-a svg { width: 16px; height: 16px; }
+.hc-hint { margin: 0; font-size: 12px; line-height: 16px; color: #60646C; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.hc .kbd, .coach .kbd { background: rgba(15,23,42,.06); color: #1C2024; }
+.coach { position: absolute; left: 50%; bottom: 80px; transform: translateX(-50%); z-index: 29; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 12px; border-radius: var(--r12); background: #fff; color: #1C2024; box-shadow: 0 0 0 1px rgba(15,23,42,.05), 0 4px 16px rgba(15,23,42,.10); width: max-content; max-width: calc(100% - 24px); }
+.coach .step { font: 500 11px/1 var(--mono); color: #60646C; }
+.coach .msg { line-height: 20px; }
+.coach button { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; color: #60646C; flex: none; }
+.coach button:hover { background: rgba(15,23,42,.045); }
+
+/* ============ shared bits ============ */
+/* keys: quiet mono text in a soft pill. No border, no shadow. */
+.kbd { display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 6px; background: var(--well-2); font: 500 11.5px/1 var(--mono); color: var(--text); white-space: nowrap; word-spacing: -.1em; vertical-align: 1px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; }
+.lic { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); line-height: var(--lh-xs); font-weight: var(--w-bold); white-space: nowrap; }
+.lic.free { color: var(--free); } .lic.free .dot { background: var(--free-dot); }
+.lic.paid { color: var(--paid); } .lic.paid .dot { background: var(--paid-dot); }
+.hc .lic.free { color: #0b7a37; } .hc .lic.paid { color: #8a5a00; }
+.count { font: 500 var(--fs-xs)/1 var(--mono); color: var(--text-2); }
+
+.btn { height: var(--ctl); padding: 0 12px; border-radius: var(--r8); background: var(--well); font-weight: var(--w-bold); display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; transition: background 150ms, transform 140ms var(--ease); }
+.btn:hover { background: var(--well-2); }
+.btn:active { transform: scale(.97); }
+.btn svg { width: 16px; height: 16px; }
+.btn.pri { background: var(--p); color: var(--on-p); }
+.btn.pri:hover { background: var(--p-hover); }
+.btn.quiet { background: none; color: var(--text-2); padding: 0 8px; }
+.btn.quiet:hover { background: var(--well); color: var(--text); }
+.btn.danger { color: var(--red); }
+html[data-theme="dark"] .btn.danger { color: #ff6b61; }
+.btn.dangerfill { background: var(--red); color: #fff; }
+.btn.wide { width: 100%; }
+.btn .badge { height: 18px; min-width: 18px; padding: 0 5px; border-radius: 999px; background: rgba(255,255,255,.24); font: 600 11px/18px var(--mono); text-align: center; }
+html[data-theme="dark"][data-primary="ink"] .btn .badge { background: rgba(0,0,0,.12); }
+.link { color: var(--p-text); font-weight: var(--w-bold); display: inline-flex; align-items: center; gap: 4px; border-radius: 4px; }
+.link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.link svg { width: 14px; height: 14px; }
+.ib { width: var(--ib); height: var(--ib); border-radius: var(--r8); display: grid; place-items: center; color: var(--text-2); transition: background 120ms, color 120ms; flex: none; }
+.ib:hover { background: var(--well); color: var(--text); }
+.ib svg { width: 16px; height: 16px; }
+.ib[aria-pressed="true"] { background: var(--p-soft); color: var(--p-text); }
+.switch { width: 36px; height: 22px; border-radius: 999px; background: var(--well-2); position: relative; flex: none; transition: background 180ms var(--ease); }
+.switch::after { content: ""; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(15,23,42,.25); transition: transform 220ms var(--ease); }
+.switch[aria-checked="true"] { background: var(--p); }
+.switch[aria-checked="true"]::after { transform: translateX(14px); }
+html[data-theme="dark"][data-primary="ink"] .switch[aria-checked="true"]::after { background: #111113; }
+@media (pointer: coarse) { .switch { width: 44px; height: 26px; } .switch::after { width: 20px; height: 20px; } .switch[aria-checked="true"]::after { transform: translateX(18px); } }
+
+/* well fields: grey, no border, a leading icon, small grey label 6px above */
+.fld { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.fld > label, .fld > .fl { font-size: var(--fs-xs); line-height: var(--lh-xs); color: var(--text-2); }
+.well { height: var(--ctl); display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: var(--r8); background: var(--well); min-width: 0; text-align: left; }
+.well.inp { height: var(--inp); }
+.well > svg { width: 16px; height: 16px; color: var(--text-2); }
+.well input { flex: 1; min-width: 0; height: 100%; outline: none; }
+.well input::placeholder { color: var(--text-2); opacity: .85; }
+.well .v { flex: 1; min-width: 0; font: 500 var(--fs-xs)/1 var(--mono); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.well .u { font: 500 11px/1 var(--mono); color: var(--text-2); }
+.well input[type="range"] { accent-color: var(--p); height: auto; }
+button.well:hover { background: var(--well-2); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 8px; }
+
+/* ============ the side panel ============ */
+.sp { width: 380px; flex: none; display: flex; flex-direction: column; border-left: 1px solid rgba(15,23,42,.08); background: var(--panel); color: var(--text); position: relative; }
+.sp-chrome { height: 44px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; font-weight: var(--w-bold); border-bottom: 1px solid var(--chrome-line); background: var(--chrome); }
+.sp-chrome .x { margin-left: auto; display: flex; gap: 2px; color: var(--text-2); }
+.sp-chrome .x button { width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; }
+.sp-chrome .x svg { width: 15px; height: 15px; }
+.app { flex: 1; overflow: auto; overflow-x: hidden; position: relative; }
+.head { position: sticky; top: 0; z-index: 10; background: var(--panel); padding: 8px 16px 12px; display: flex; flex-direction: column; gap: 8px; transition: box-shadow 150ms; }
+.app.scrolled .head { box-shadow: 0 1px 0 var(--line); }
+.row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.row .grow { flex: 1; min-width: 0; }
+.toprow { display: flex; align-items: center; gap: 2px; margin: 0 -6px; }
+.toprow .grow { flex: 1; }
+.select { flex: 1; min-width: 0; height: var(--ctl); display: flex; align-items: center; gap: 8px; padding: 0 10px; border-radius: var(--r8); background: var(--well); text-align: left; }
+.select:hover { background: var(--well-2); }
+.select .t { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.select .t em { font-style: normal; color: var(--text-2); }
+.select > svg { width: 14px; height: 14px; color: var(--text-2); }
+.select .st { width: 7px; height: 7px; border-radius: 50%; background: var(--p); flex: none; }
+.select .st.off { background: var(--text-3); }
+.sqw { width: var(--ctl); height: var(--ctl); border-radius: var(--r8); background: var(--well); display: grid; place-items: center; color: var(--text-2); flex: none; }
+.sqw:hover { background: var(--well-2); color: var(--text); }
+.sqw svg { width: 16px; height: 16px; }
+.tabs { display: flex; padding: 2px; gap: 2px; border-radius: 10px; background: var(--well); }
+.tabs button { flex: 0 0 44px; height: 34px; border-radius: var(--r8); display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-2); font-weight: var(--w-bold); overflow: hidden; white-space: nowrap; transition: flex-grow 240ms var(--ease), background 150ms; }
+.tabs button:hover { color: var(--text); }
+.tabs button span { display: none; }
+.tabs button[aria-selected="true"] { flex: 1 1 auto; background: var(--btn-on); color: var(--text); box-shadow: var(--lift); }
+.tabs button[aria-selected="true"] span { display: inline; }
+.tabs button[aria-selected="true"] svg { color: var(--p-text); }
+.tabs svg { width: 16px; height: 16px; }
+@media (pointer: coarse) { .tabs button { height: 40px; } }
+
+.pop { position: absolute; z-index: 20; min-width: 220px; padding: 4px; border-radius: var(--r12); background: var(--panel); box-shadow: var(--pop); display: flex; flex-direction: column; }
+html[data-theme="dark"] .pop { background: #1D1E21; }
+.pop button { min-height: 36px; padding: 8px 10px; border-radius: var(--r8); display: flex; align-items: center; gap: 10px; text-align: left; }
+.pop button:hover { background: var(--well); }
+.pop button svg { width: 16px; height: 16px; color: var(--text-2); }
+.pop .kbd { margin-left: auto; }
+.pop .gap { height: 4px; }
+.pop .ph { padding: 8px 10px 4px; font-size: var(--fs-xs); line-height: var(--lh-xs); color: var(--text-2); }
+.pop .keyrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; padding: 0 10px; }
+
+/* sections: no boxes and no lines. Spacing and the heading carry the structure. */
+.sec { padding: 16px 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.ht { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ht h3 { margin: 0; font-size: var(--fs-lg); line-height: var(--lh-lg); font-weight: var(--w-bold); letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
+.ht h3 .count { margin-left: 2px; }
+.ht p, .sub { margin: 0; color: var(--text-2); }
+.hrow { display: flex; align-items: flex-start; gap: 8px; }
+.hrow > .ht { flex: 1; }
+.hrow > .ib { margin-top: -5px; margin-right: -8px; }
+.hrow > .switch { margin-top: 1px; }
+.list { display: flex; flex-direction: column; gap: 2px; margin: 0 -8px; }
+.setrow { display: flex; align-items: flex-start; gap: 16px; }
+.setrow > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.setrow span.s { color: var(--text-2); }
+
+/* page tab */
+.statusrow { display: flex; align-items: flex-start; gap: 12px; }
+.statusrow .dotwrap { height: 24px; display: grid; place-items: center; }
+.statusrow .st { width: 8px; height: 8px; border-radius: 50%; background: var(--p); }
+.statusrow .st.off { background: var(--text-3); }
+.statusrow .switch { margin-top: 1px; }
+.steps3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.step { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.step .art { height: 64px; border-radius: var(--r12); background: var(--panel-2); display: grid; place-items: center; color: var(--text-3); }
+html[data-theme="dark"] .step .art { background: var(--well); }
+.step .art .acc, .drop .ill .acc { stroke: var(--p-text); } .step .art .accf, .drop .ill .accf { fill: var(--p-text); } .step .art .ink, .drop .ill .ink { fill: var(--text); }
+.step .ht span { font-size: var(--fs-xs); line-height: var(--lh-xs); color: var(--text-2); }
+.keystrip { display: flex; flex-wrap: wrap; gap: 8px 16px; color: var(--text-2); font-size: var(--fs-xs); line-height: var(--lh-xs); }
+.keystrip span { display: inline-flex; align-items: center; gap: 6px; }
+.swap { display: grid; grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr); align-items: center; gap: 8px; }
+.swap > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.swap > div:last-child { align-items: flex-end; text-align: right; }
+.swap b { font-size: var(--fs-md); line-height: var(--lh-md); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100%; }
+.swap .mt { display: inline-flex; gap: 8px; align-items: center; }
+.swap > svg { justify-self: center; width: 16px; height: 16px; color: var(--text-2); }
+.notice { display: flex; align-items: flex-start; gap: 12px; padding: 12px; margin: 0 -12px; border-radius: var(--r12); text-align: left; width: calc(100% + 24px); transition: background 120ms; }
+.notice:hover { background: var(--hover); }
+.notice > svg:first-child { margin-top: 2px; width: 16px; height: 16px; color: var(--text); }
+.notice > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.notice span.s { font-size: var(--fs-xs); line-height: var(--lh-xs); color: var(--text-2); }
+.notice > svg:last-child { margin-top: 2px; width: 16px; height: 16px; color: var(--text-3); transition: transform 200ms var(--ease); }
+.notice[aria-expanded="true"] > svg:last-child { transform: rotate(90deg); }
+.expand { padding: 0 0 4px 28px; display: flex; flex-direction: column; gap: 8px; color: var(--text-2); }
+.expand p { margin: 0; }
+.fr { position: relative; padding: 12px; display: flex; flex-direction: column; gap: 8px; border-radius: var(--r12); transition: background 120ms; }
+.fr:hover { background: var(--hover); }
+.fr.sel { background: var(--p-soft); }
+.fr-t { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 20px; }
+.fr-t .n { font: 500 11px/1 var(--mono); color: var(--text-3); }
+.fr-t b { font-size: var(--fs-md); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
+.fr-t .acts { display: flex; margin: -8px -8px -8px auto; }
+.fr .smp { font-size: 28px; line-height: 1.15; letter-spacing: -.01em; overflow-wrap: anywhere; color: var(--text); }
+.fr-b { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fr-b span { flex: 1; min-width: 0; font-size: var(--fs-xs); line-height: var(--lh-xs); color: var(--text-2); }
+.fr-b .link { height: var(--ib); padding: 0 8px; margin: -6px -8px -6px 0; border-radius: var(--r8); }
+.tester { display: grid; grid-template-columns: 1fr 128px; gap: 8px; }
+
+/* details */
+.crumb { flex: 1; min-width: 0; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crumb b { color: var(--text); }
+.hero .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--fs-xs); line-height: var(--lh-xs); color: var(--text-2); }
+.hero .nm { font-size: 32px; line-height: 1.1; letter-spacing: -.015em; }
+.hero .acts3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chips button { height: 32px; padding: 0 12px; border-radius: 999px; font-weight: var(--w-bold); color: var(--text-2); }
+.chips button:hover { color: var(--text); background: var(--well); }
+.chips button[aria-pressed="true"] { background: var(--p-soft-2); color: var(--p-text); }
+@media (pointer: coarse) { .chips button { height: 40px; } }
+.yes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.yes > div { display: flex; align-items: flex-start; gap: 8px; }
+.yes svg { width: 16px; height: 16px; color: var(--text-2); margin-top: 2px; }
+.simrow { display: flex; flex-direction: column; gap: 8px; padding: 12px; margin: 0 -12px; border-radius: var(--r12); }
+.simrow:hover { background: var(--hover); }
+.simrow .t { display: flex; align-items: center; gap: 8px; } .simrow .t b { font-size: var(--fs-md); } .simrow .t em { margin-left: auto; font: normal 500 var(--fs-xs)/1 var(--mono); color: var(--text-2); }
+.simrow .s { font-size: 22px; line-height: 1.2; }
+.simrow .a { display: flex; gap: 8px; }
+.glyphs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.glyphs span { aspect-ratio: 1; border-radius: var(--r8); background: var(--well); display: grid; place-items: center; font-size: 20px; }
+.files { display: flex; flex-direction: column; gap: 4px; }
+.files > div { display: flex; align-items: center; gap: 12px; min-height: 40px; }
+.files b { font: 500 var(--fs-xs)/1.4 var(--mono); flex: 1; min-width: 0; overflow-wrap: anywhere; } .files span { font-size: var(--fs-xs); color: var(--text-2); }
+
+/* image: drop area without a boxed icon */
+.drop { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; padding: 24px 16px; border-radius: var(--r16); background: var(--panel-2); }
+html[data-theme="dark"] .drop { background: var(--well); }
+.drop .ill { color: var(--text-3); }
+.drop .ht { align-items: center; }
+.drop .ht p { max-width: 260px; }
+.drop .acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.drop .keystrip { justify-content: center; }
+.thumbs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.thumbs button { display: flex; flex-direction: column; gap: 8px; text-align: left; min-width: 0; border-radius: var(--r8); }
+.thumbs .th { width: 100%; aspect-ratio: 4/3; border-radius: var(--r8); display: grid; place-items: end start; padding: 8px; color: rgba(255,255,255,.9); font: 600 15px/1 var(--ui); transition: transform 160ms var(--ease); }
+.thumbs button:hover .th { transform: scale(.98); }
+.thumbs .cap { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.thumbs .cap b, .thumbs .cap span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.thumbs .cap span { font-size: var(--fs-xs); line-height: var(--lh-xs); color: var(--text-2); }
+
+/* system */
+.ratio { display: flex; flex-direction: column; gap: 6px; }
+.ratio .rl { font-size: var(--fs-xs); line-height: var(--lh-xs); color: var(--text-2); }
+.rseg { display: grid; grid-template-columns: repeat(5, 1fr); padding: 2px; gap: 2px; border-radius: 10px; background: var(--well); }
+.rseg button { height: 32px; border-radius: var(--r8); font: 500 var(--fs-xs)/1 var(--mono); color: var(--text-2); }
+.rseg button[aria-pressed="true"] { background: var(--btn-on); color: var(--p-text); box-shadow: var(--lift); }
+@media (pointer: coarse) { .rseg button { height: 40px; } }
+table.scale { width: 100%; border-collapse: collapse; }
+.scale th { font-size: var(--fs-xs); font-weight: var(--w-reg); color: var(--text-2); text-align: right; padding: 0 0 4px; white-space: nowrap; }
+.scale th:first-child { text-align: left; }
+.scale td { padding: 8px 0; font: 500 var(--fs-xs)/1 var(--mono); text-align: right; color: var(--text-2); white-space: nowrap; vertical-align: middle; }
+.scale td:first-child { text-align: left; font-family: inherit; color: var(--text); white-space: nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis; padding-right: 8px; }
+.scale td.ideal { color: var(--text); padding-left: 12px; }
+.scale td .fd { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--text); margin-right: 6px; vertical-align: middle; }
+.entry { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border-radius: var(--r12); background: var(--panel-2); text-align: left; width: 100%; transition: background 120ms; }
+html[data-theme="dark"] .entry { background: var(--well); }
+.entry:hover { background: var(--well-2); }
+.entry > svg:first-child { width: 18px; height: 18px; color: var(--p-text); margin-top: 1px; }
+.entry > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.entry span { font-size: var(--fs-xs); line-height: var(--lh-xs); color: var(--text-2); }
+.entry > svg:last-child { width: 16px; height: 16px; color: var(--text-3); margin-top: 2px; }
+.score { display: flex; align-items: baseline; gap: 8px; }
+.score b { font-size: var(--fs-xl); line-height: var(--lh-xl); } .score span { color: var(--text-2); }
+.bar { height: 6px; border-radius: 999px; background: var(--well-2); overflow: hidden; } .bar i { display: block; height: 100%; width: 86%; background: var(--text); border-radius: inherit; }
+.checks { display: flex; flex-direction: column; gap: 12px; }
+.checks > div { display: flex; align-items: flex-start; gap: 12px; }
+.checks .ci { width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; background: var(--well); color: var(--text-2); flex: none; }
+.checks .ci.no { background: var(--text); color: var(--panel); }
+.checks .ci svg { width: 13px; height: 13px; }
+.checks .t { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.checks .t span { font-size: var(--fs-xs); line-height: var(--lh-xs); color: var(--text-2); }
+.checks .t span.l { font-size: var(--fs-sm); line-height: var(--lh-sm); color: var(--text); }
+pre.code { margin: 0; padding: 12px; border-radius: var(--r8); background: var(--well); font: 400 var(--fs-xs)/1.6 var(--mono); color: var(--text); overflow: auto; white-space: pre; }
+.viewtitle { padding: 4px 16px 0; display: flex; flex-direction: column; gap: 6px; }
+.viewtitle h2, .viewtitle p { margin: 0; } .viewtitle p { color: var(--text-2); }
+.num { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--p-soft-2); color: var(--p-text); font-size: var(--fs-xs); font-weight: var(--w-bold); }
+.slots { display: flex; flex-direction: column; gap: 12px; }
+.slot .well { height: auto; min-height: var(--ctl); padding: 8px 10px; }
+.slot .well .nm { flex: 1; min-width: 0; font-size: 15px; line-height: 20px; }
+.slot .well .src { font-size: var(--fs-xs); color: var(--text-2); }
+.opts { display: flex; flex-direction: column; padding: 4px; border-radius: var(--r12); background: var(--panel); box-shadow: var(--pop); }
+html[data-theme="dark"] .opts { background: #1D1E21; }
+.opts button { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 8px 10px; border-radius: var(--r8); }
+.opts button:hover { background: var(--well); }
+.opts button .nm { flex: 1; font-size: 15px; }
+.opts button .src { font-size: var(--fs-xs); color: var(--text-2); }
+.opts button[aria-pressed="true"] { background: var(--p-soft); }
+.opts button[aria-pressed="true"] .src { color: var(--p-text); }
+
+/* library */
+.colrow { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 12px; width: 100%; text-align: left; border-radius: var(--r12); }
+.colrow:hover { background: var(--hover); }
+.colrow[aria-pressed="true"] { background: var(--p-soft); }
+.colrow[aria-pressed="true"] b { color: var(--p-text); }
+.colrow .sw { display: flex; gap: 2px; } .colrow .sw i { width: 10px; height: 16px; border-radius: 3px; }
+.colrow b { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.colrow > svg { width: 16px; height: 16px; color: var(--text-3); }
+.colrow > svg:first-child { color: var(--text-2); }
+
+/* settings dialog */
+.scrim { position: fixed; inset: 0; z-index: 90; background: rgba(15,23,42,.28); display: grid; place-items: center; padding: 16px; }
+.dlg { width: min(720px, 100%); height: min(540px, calc(100vh - 32px)); border-radius: var(--r16); background: var(--panel); color: var(--text); box-shadow: var(--pop); display: grid; grid-template-columns: 200px 1fr; overflow: hidden; position: relative; }
+.dnav { background: var(--panel-2); padding: 16px 8px 8px; display: flex; flex-direction: column; gap: 2px; }
+.dnav .ov { font-size: var(--fs-xs); line-height: var(--lh-xs); font-weight: var(--w-bold); color: var(--text-2); padding: 0 8px 10px; }
+.dnav button { height: 36px; padding: 0 8px; border-radius: var(--r8); display: flex; align-items: center; gap: 10px; color: var(--text-2); font-weight: var(--w-bold); }
+.dnav button svg { width: 16px; height: 16px; }
+.dnav button:hover { color: var(--text); background: var(--well); }
+.dnav button[aria-current="true"] { background: var(--btn-on); color: var(--text); box-shadow: var(--lift); }
+.dnav button[aria-current="true"] svg { color: var(--p-text); }
+.dnav .bottom { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: 8px; }
+.dnav .bottom button { font-weight: var(--w-reg); }
+.dbody { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.dscroll { flex: 1; overflow: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 24px; }
+.dfoot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 24px 16px; }
+.dclose { position: absolute; top: 12px; right: 12px; }
+.dhead { display: flex; flex-direction: column; gap: 6px; padding-right: 32px; }
+.dhead h2 { margin: 0; }
+.dhead p { margin: 0; color: var(--text-2); }
+.themes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.themes button { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; font-weight: var(--w-bold); color: var(--text-2); }
+.themes button[aria-pressed="true"] { color: var(--text); }
+.thumb { width: 100%; aspect-ratio: 16/10; border-radius: var(--r8); position: relative; overflow: hidden; }
+.themes button[aria-pressed="true"] .thumb { box-shadow: 0 0 0 2px var(--p-text); }
+.thumb.light { background: #EEF0F3; } .thumb.dark { background: #18191B; } .thumb.system { background: linear-gradient(90deg, #EEF0F3 50%, #18191B 50%); }
+.thumb i { position: absolute; left: 12%; right: 12%; height: 10%; border-radius: 3px; background: rgba(127,127,140,.4); }
+.thumb i:nth-child(1) { top: 16%; } .thumb i:nth-child(2) { top: 36%; right: 40%; } .thumb i:nth-child(3) { top: 56%; height: 22%; background: var(--p); opacity: .9; right: 52%; }
+.confirm { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: var(--r12); background: rgba(212,51,42,.07); }
+.confirm b { color: var(--red); } html[data-theme="dark"] .confirm b { color: #ff6b61; }
+.confirm p { margin: 0; color: var(--text-2); }
+.confirm .crow { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.pill { height: 20px; padding: 0 8px; border-radius: 999px; background: var(--well); font-size: var(--fs-xs); font-weight: var(--w-reg); color: var(--text-2); display: inline-flex; align-items: center; vertical-align: 2px; letter-spacing: 0; }
+.about { display: flex; align-items: flex-start; gap: 12px; }
+.about .logo { width: 40px; height: 40px; border-radius: 10px; font-size: 22px; }
+.about > div { display: flex; flex-direction: column; gap: 6px; }
+.links { display: flex; flex-direction: column; gap: 2px; margin: 0 -12px; }
+.links > a, .links > button { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 12px; border-radius: var(--r12); color: var(--text); text-decoration: none; }
+.links > a:hover, .links > button:hover { background: var(--hover); }
+.links svg { width: 16px; height: 16px; color: var(--text-2); }
+.links .link { margin-left: auto; }
+
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: calc(100% - 32px); padding: 10px 14px; border-radius: var(--r12); background: #1a1b1e; color: #fff; z-index: 200; box-shadow: 0 8px 24px rgba(0,0,0,.2); }
+.view { display: flex; flex-direction: column; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ============ responsive ============ */
+.dfoot .mobq { display: none !important; }
+@media (max-width: 1100px) { .prims { grid-template-columns: repeat(2, minmax(0, 1fr)); } .desk { height: calc(100vh - 120px); } }
+@media (max-width: 900px) { .s-art { padding: 28px 24px 0; } .s-art h1 { font-size: 38px; } .s-nav { padding: 16px 24px; } .s-nav nav { display: none; } .sp { width: 340px; } }
+@media (max-width: 720px) {
+  .strip { padding: 16px; }
+  .prim { padding: 10px; gap: 10px; flex-wrap: wrap; } .prim .sw { width: 28px; height: 28px; }
+  .prim .rec { top: auto; bottom: auto; right: 8px; top: 8px; height: 18px; padding: 0 6px; font-size: 11px; }
+  .prim .rec + * {}
+  #stage { padding: 8px 0 20px; }
+  .desk { flex-direction: column; height: auto; border-radius: 0; }
+  .vp { height: 600px; flex: none; }
+  .sp { width: 100%; height: 820px; border-left: 0; border-top: 1px solid rgba(15,23,42,.1); }
+  .hc.is-pinned .hc-m { display: none; }
+  .dlg { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: calc(100vh - 32px); }
+  .dnav { flex-direction: row; flex-wrap: wrap; padding: 12px 52px 8px 12px; }
+  .dnav .ov { width: 100%; padding-bottom: 6px; }
+  .dnav .bottom { display: none; }
+  .dscroll { padding: 16px; }
+  .dfoot { padding: 12px 16px; justify-content: space-between; }
+  .dfoot .mobq { display: inline-flex !important; }
+  .themes { gap: 8px; }
+}
+@media (pointer: coarse) { .dnav button { height: 44px; } }
+</style>
+</head>
+<body>
+<div class="strip" id="strip">
+  <div class="top">
+    <h1 class="t-md"><span class="logo">F</span>Font Finder Plus <span class="v">· Nudge direction, v1</span></h1>
+    <div class="seg" role="group" aria-label="Theme"><button data-theme-set="light" aria-pressed="true">Light</button><button data-theme-set="dark" aria-pressed="false">Dark</button></div>
+  </div>
+  <div class="prims" role="group" aria-label="Primary colour" id="prims"></div>
+  <p class="note" id="pnote"></p>
+</div>
+<main id="stage"></main>
+<script>
+const IC = {"CursorPointer01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M12.0033 19.4056L9.88486 13.3197L9.88485 13.3197C9.08816 11.031 8.68981 9.88664 9.28857 9.28834C9.88733 8.69005 11.0326 9.08809 13.3231 9.88417L19.401 11.9966C20.6716 12.4382 21.3069 12.659 21.4441 13.0867C21.4819 13.2045 21.4949 13.329 21.4824 13.4521C21.4369 13.8989 20.8612 14.2464 19.7097 14.9415C18.9714 15.3872 18.6023 15.61 18.5039 15.9462C18.476 16.0414 18.4641 16.1405 18.4686 16.2396C18.4845 16.5896 18.7902 16.8935 19.4018 17.5012L21.4116 19.4988L21.4117 19.4988C21.7125 19.7979 21.863 19.9474 21.932 20.1147C22.0223 20.3335 22.0227 20.5792 21.9329 20.7983C21.8644 20.9657 21.7143 21.1157 21.4142 21.4155L21.4142 21.4156C21.1148 21.7147 20.9652 21.8642 20.7979 21.9328C20.5791 22.0224 20.3337 22.0224 20.1149 21.9328C19.9476 21.8642 19.7979 21.7147 19.4986 21.4156L19.4986 21.4155L17.4812 19.3998L17.4812 19.3998C16.8797 18.7987 16.5789 18.4982 16.2338 18.4802C16.1293 18.4747 16.0247 18.4875 15.9246 18.5179C15.594 18.6185 15.3745 18.9825 14.9355 19.7106L14.9355 19.7106C14.2491 20.8492 13.9059 21.4185 13.4653 21.4686C13.3353 21.4833 13.2037 21.4696 13.0796 21.4284C12.6588 21.2887 12.4403 20.661 12.0033 19.4056Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M10.8576 7.08329C11.0714 7.43808 11.5323 7.55239 11.8871 7.33861C12.2419 7.12483 12.3562 6.66392 12.1424 6.30913L10.8576 7.08329ZM6.30914 12.1424C6.66392 12.3562 7.12483 12.2419 7.33861 11.8871C7.55239 11.5323 7.43808 11.0714 7.08329 10.8576L6.30914 12.1424ZM5.75 8.5C5.75 6.98122 6.98123 5.75 8.5 5.75V4.25C6.15281 4.25 4.25 6.15279 4.25 8.5H5.75ZM8.5 5.75C9.49944 5.75 10.3752 6.28272 10.8576 7.08329L12.1424 6.30913C11.3999 5.07687 10.0469 4.25 8.5 4.25V5.75ZM7.08329 10.8576C6.28272 10.3752 5.75 9.49945 5.75 8.5H4.25C4.25 10.0469 5.07688 11.3999 6.30914 12.1424L7.08329 10.8576Z\" fill=\"currentColor\"/><path d=\"M14.2515 8.13498C14.2778 8.54836 14.6342 8.86216 15.0476 8.83587C15.461 8.80958 15.7748 8.45316 15.7485 8.03979L14.2515 8.13498ZM8.04118 15.7485C8.45457 15.7747 8.81093 15.4608 8.83714 15.0475C8.86335 14.6341 8.54948 14.2777 8.1361 14.2515L8.04118 15.7485ZM2.75 8.50661C2.75 5.32733 5.32736 2.75 8.50664 2.75V1.25C4.49895 1.25 1.25 4.49889 1.25 8.50661H2.75ZM8.50664 2.75C11.561 2.75 14.0604 5.12926 14.2515 8.13498L15.7485 8.03979C15.5074 4.24925 12.3576 1.25 8.50664 1.25V2.75ZM8.1361 14.2515C5.12986 14.0609 2.75 11.5614 2.75 8.50661H1.25C1.25 12.358 4.25002 15.5081 8.04118 15.7485L8.1361 14.2515Z\" fill=\"currentColor\"/></svg>", "ScanImage": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M6.5 21.5C6.03563 21.5 5.80344 21.5 5.60812 21.478C3.98545 21.2952 2.70484 20.0145 2.52201 18.3919C2.5 18.1966 2.5 17.9644 2.5 17.5M17.5 21.5C17.9644 21.5 18.1966 21.5 18.3919 21.478C20.0145 21.2952 21.2952 20.0145 21.478 18.3919C21.5 18.1966 21.5 17.9644 21.5 17.5M6.5 2.5C6.03563 2.5 5.80344 2.5 5.60812 2.52201C3.98545 2.70484 2.70484 3.98545 2.52201 5.60812C2.5 5.80344 2.5 6.03563 2.5 6.5M17.5 2.5C17.9644 2.5 18.1966 2.5 18.3919 2.52201C20.0145 2.70484 21.2952 3.98545 21.478 5.60812C21.5 5.80344 21.5 6.03563 21.5 6.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M6.87868 6.87868C7.75736 6 9.17157 6 12 6C14.8284 6 16.2426 6 17.1213 6.87868C18 7.75736 18 9.17157 18 12C18 14.8284 18 16.2426 17.1213 17.1213C16.2426 18 14.8284 18 12 18C9.17157 18 7.75736 18 6.87868 17.1213C6 16.2426 6 14.8284 6 12C6 9.17157 6 7.75736 6.87868 6.87868Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M6.5 15.5L8.0333 13.8522C8.56719 13.2785 9.43281 13.2785 9.9667 13.8522C10.5259 14.4532 11.4415 14.4204 11.9623 13.7808L13.3711 12.0505C13.9688 11.3165 15.0312 11.3165 15.6289 12.0505L17.7603 14.6678\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M10.375 9.75H10.25M10.5 9.75C10.5 9.88807 10.3881 10 10.25 10C10.1119 10 10 9.88807 10 9.75C10 9.61193 10.1119 9.5 10.25 9.5C10.3881 9.5 10.5 9.61193 10.5 9.75Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Ruler": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17.5 10.5L19.5 12.5M14 14L16 16M10.5 17.5L12.5 19.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M10.5355 4.67767C11.9002 3.31296 12.5826 2.6306 13.3438 2.3153C14.3587 1.8949 15.4991 1.8949 16.5141 2.3153C17.2753 2.6306 17.9576 3.31296 19.3223 4.67767C20.687 6.04238 21.3694 6.72474 21.6847 7.48594C22.1051 8.50088 22.1051 9.64126 21.6847 10.6562C21.3694 11.4174 20.687 12.0998 19.3223 13.4645L13.4645 19.3223C12.0998 20.687 11.4174 21.3694 10.6562 21.6847C9.64126 22.1051 8.50088 22.1051 7.48594 21.6847C6.72474 21.3694 6.04238 20.687 4.67767 19.3223C3.31296 17.9576 2.6306 17.2753 2.3153 16.5141C1.8949 15.4991 1.8949 14.3587 2.3153 13.3438C2.6306 12.5826 3.31296 11.9002 4.67767 10.5355L10.5355 4.67767Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "BookmarkAdd02": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M11 2C7.22876 2 5.34315 2 4.17157 3.12874C3 4.25748 3 6.07416 3 9.70753V17.9808C3 20.2867 3 21.4396 3.77285 21.8523C5.26947 22.6514 8.0768 19.9852 9.41 19.1824C10.1832 18.7168 10.5698 18.484 11 18.484C11.4302 18.484 11.8168 18.7168 12.59 19.1824C13.9232 19.9852 16.7305 22.6514 18.2272 21.8523C19 21.4396 19 20.2867 19 17.9808V13\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M17 10L17 2M13 6H21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>", "Bookmark02": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M4 17.9808V9.70753C4 6.07416 4 4.25748 5.17157 3.12874C6.34315 2 8.22876 2 12 2C15.7712 2 17.6569 2 18.8284 3.12874C20 4.25748 20 6.07416 20 9.70753V17.9808C20 20.2867 20 21.4396 19.2272 21.8523C17.7305 22.6514 14.9232 19.9852 13.59 19.1824C12.8168 18.7168 12.4302 18.484 12 18.484C11.5698 18.484 11.1832 18.7168 10.41 19.1824C9.0768 19.9852 6.26947 22.6514 4.77285 21.8523C4 21.4396 4 20.2867 4 17.9808Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "SidebarRight": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2 12C2 8.3109 2 6.46633 2.81382 5.1588C3.1149 4.67505 3.48891 4.2543 3.91891 3.91557C5.08116 3.00003 6.72077 3.00003 10 3.00003H14C17.2792 3.00003 18.9188 3.00003 20.0811 3.91557C20.5111 4.2543 20.8851 4.67505 21.1862 5.1588C22 6.46633 22 8.3109 22 12C22 15.6892 22 17.5337 21.1862 18.8413C20.8851 19.325 20.5111 19.7458 20.0811 20.0845C18.9188 21 17.2792 21 14 21H10C6.72077 21 5.08116 21 3.91891 20.0845C3.48891 19.7458 3.1149 19.325 2.81382 18.8413C2 17.5337 2 15.6892 2 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M14.5 3.00003L14.5 21\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M18 7.00006H19M18 10.0001H19\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Cancel01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 6L6.00081 17.9992M17.9992 18L6 6.00085\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Copy01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M7.5 14.5C7.5 11.2002 7.5 9.55025 8.52513 8.52513C9.55025 7.5 11.2002 7.5 14.5 7.5C17.7998 7.5 19.4497 7.5 20.4749 8.52513C21.5 9.55025 21.5 11.2002 21.5 14.5C21.5 17.7998 21.5 19.4497 20.4749 20.4749C19.4497 21.5 17.7998 21.5 14.5 21.5C11.2002 21.5 9.55025 21.5 8.52513 20.4749C7.5 19.4497 7.5 17.7998 7.5 14.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M7.5 16.5C6.10355 16.5 5.40533 16.5 4.84402 16.3036C3.83866 15.9518 3.0482 15.1613 2.69641 14.156C2.5 13.5947 2.5 12.8964 2.5 11.5V9.5C2.5 6.20017 2.5 4.55025 3.52513 3.52513C4.55025 2.5 6.20017 2.5 9.5 2.5H11.5C12.8964 2.5 13.5947 2.5 14.156 2.69641C15.1613 3.0482 15.9518 3.83866 16.3036 4.84402C16.5 5.40533 16.5 6.10355 16.5 7.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Settings02": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15.5 12C15.5 13.933 13.933 15.5 12 15.5C10.067 15.5 8.5 13.933 8.5 12C8.5 10.067 10.067 8.5 12 8.5C13.933 8.5 15.5 10.067 15.5 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M21.011 14.0965C21.5329 13.9558 21.7939 13.8854 21.8969 13.7508C22 13.6163 22 13.3998 22 12.9669V11.0332C22 10.6003 22 10.3838 21.8969 10.2493C21.7938 10.1147 21.5329 10.0443 21.011 9.90358C19.0606 9.37759 17.8399 7.33851 18.3433 5.40087C18.4817 4.86799 18.5509 4.60156 18.4848 4.44529C18.4187 4.28902 18.2291 4.18134 17.8497 3.96596L16.125 2.98673C15.7528 2.77539 15.5667 2.66972 15.3997 2.69222C15.2326 2.71472 15.0442 2.90273 14.6672 3.27873C13.208 4.73448 10.7936 4.73442 9.33434 3.27864C8.95743 2.90263 8.76898 2.71463 8.60193 2.69212C8.43489 2.66962 8.24877 2.77529 7.87653 2.98663L6.15184 3.96587C5.77253 4.18123 5.58287 4.28891 5.51678 4.44515C5.45068 4.6014 5.51987 4.86787 5.65825 5.4008C6.16137 7.3385 4.93972 9.37763 2.98902 9.9036C2.46712 10.0443 2.20617 10.1147 2.10308 10.2492C2 10.3838 2 10.6003 2 11.0332V12.9669C2 13.3998 2 13.6163 2.10308 13.7508C2.20615 13.8854 2.46711 13.9558 2.98902 14.0965C4.9394 14.6225 6.16008 16.6616 5.65672 18.5992C5.51829 19.1321 5.44907 19.3985 5.51516 19.5548C5.58126 19.7111 5.77092 19.8188 6.15025 20.0341L7.87495 21.0134C8.24721 21.2247 8.43334 21.3304 8.6004 21.3079C8.76746 21.2854 8.95588 21.0973 9.33271 20.7213C10.7927 19.2644 13.2088 19.2643 14.6689 20.7212C15.0457 21.0973 15.2341 21.2853 15.4012 21.3078C15.5682 21.3303 15.7544 21.2246 16.1266 21.0133L17.8513 20.034C18.2307 19.8187 18.4204 19.711 18.4864 19.5547C18.5525 19.3984 18.4833 19.132 18.3448 18.5991C17.8412 16.6616 19.0609 14.6226 21.011 14.0965Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>", "ArrowRight01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9.00005 6C9.00005 6 15 10.4189 15 12C15 13.5812 9 18 9 18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "ArrowLeft01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15 6C15 6 9.00001 10.4189 9 12C8.99999 13.5812 15 18 15 18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "ArrowDown01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18 9.00005C18 9.00005 13.5811 15 12 15C10.4188 15 6 9 6 9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Figma": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"15\" cy=\"12\" r=\"3\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M9 21C10.6569 21 12 19.6569 12 18V15H9C7.34315 15 6 16.3431 6 18C6 19.6569 7.34315 21 9 21Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 9V15H9C7.34315 15 6 13.6569 6 12C6 10.3431 7.34315 9 9 9H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 3V9H9C7.34315 9 6 7.65685 6 6C6 4.34315 7.34315 3 9 3H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 3V9H15C16.6569 9 18 7.65685 18 6C18 4.34315 16.6569 3 15 3H12Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "SourceCode": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 8L18.8398 9.85008C19.6133 10.6279 20 11.0168 20 11.5C20 11.9832 19.6133 12.3721 18.8398 13.1499L17 15\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M7 8L5.16019 9.85008C4.38673 10.6279 4 11.0168 4 11.5C4 11.9832 4.38673 12.3721 5.16019 13.1499L7 15\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M14.5 4L9.5 20\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Share08": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M21 6.5C21 8.15685 19.6569 9.5 18 9.5C16.3431 9.5 15 8.15685 15 6.5C15 4.84315 16.3431 3.5 18 3.5C19.6569 3.5 21 4.84315 21 6.5Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M9 12C9 13.6569 7.65685 15 6 15C4.34315 15 3 13.6569 3 12C3 10.3431 4.34315 9 6 9C7.65685 9 9 10.3431 9 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M21 17.5C21 19.1569 19.6569 20.5 18 20.5C16.3431 20.5 15 19.1569 15 17.5C15 15.8431 16.3431 14.5 18 14.5C19.6569 14.5 21 15.8431 21 17.5Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M8.72852 10.7495L15.2285 7.75M8.72852 13.25L15.2285 16.2495\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg>", "ArrowReloadHorizontal": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M20.5 5.5H9.5C5.78672 5.5 3 8.18503 3 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M3.5 18.5H14.5C18.2133 18.5 21 15.815 21 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M18.5 3C18.5 3 21 4.84122 21 5.50002C21 6.15882 18.5 8 18.5 8\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M5.49998 16C5.49998 16 3.00001 17.8412 3 18.5C2.99999 19.1588 5.5 21 5.5 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Target02": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M14 2.20004C13.3538 2.06886 12.6849 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 11.3151 21.9311 10.6462 21.8 10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M12.0303 11.9625L16.5832 7.4096M19.7404 4.34462L19.1872 2.35748C19.0853 2.03011 18.6914 1.89965 18.4259 2.11662C16.9898 3.29018 15.4254 4.87091 16.703 7.36419C19.2771 8.56455 20.7466 6.94584 21.8733 5.5853C22.0975 5.3146 21.9623 4.90767 21.6247 4.81005L19.7404 4.34462Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "PencilEdit01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15.2141 5.98239L16.6158 4.58063C17.39 3.80646 18.6452 3.80646 19.4194 4.58063C20.1935 5.3548 20.1935 6.60998 19.4194 7.38415L18.0176 8.78591M15.2141 5.98239L6.98023 14.2163C5.93493 15.2616 5.41226 15.7842 5.05637 16.4211C4.70047 17.058 4.3424 18.5619 4 20C5.43809 19.6576 6.94199 19.2995 7.57889 18.9436C8.21579 18.5877 8.73844 18.0651 9.78375 17.0198L18.0176 8.78591M15.2141 5.98239L18.0176 8.78591\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M11 20H17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>", "Alert02": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13.9248 21H10.0752C5.44476 21 3.12955 21 2.27636 19.4939C1.42317 17.9879 2.60736 15.9914 4.97574 11.9985L6.90057 8.75333C9.17559 4.91778 10.3131 3 12 3C13.6869 3 14.8244 4.91777 17.0994 8.75332L19.0243 11.9985C21.3926 15.9914 22.5768 17.9879 21.7236 19.4939C20.8704 21 18.5552 21 13.9248 21Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 9V13\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12.125 16.75H12M12.25 16.75C12.25 16.8881 12.1381 17 12 17C11.8619 17 11.75 16.8881 11.75 16.75C11.75 16.6119 11.8619 16.5 12 16.5C12.1381 16.5 12.25 16.6119 12.25 16.75Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "ImageUpload": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 16L7.46967 11.5303C7.80923 11.1908 8.26978 11 8.75 11C9.23022 11 9.69077 11.1908 10.0303 11.5303L14 15.5M15.5 17L14 15.5M21 16L18.5303 13.5303C18.1908 13.1908 17.7302 13 17.25 13C16.7698 13 16.3092 13.1908 15.9697 13.5303L14 15.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 2.5C7.77027 2.5 5.6554 2.5 4.25276 3.69797C4.05358 3.86808 3.86808 4.05358 3.69797 4.25276C2.5 5.6554 2.5 7.77027 2.5 12C2.5 16.2297 2.5 18.3446 3.69797 19.7472C3.86808 19.9464 4.05358 20.1319 4.25276 20.302C5.6554 21.5 7.77027 21.5 12 21.5C16.2297 21.5 18.3446 21.5 19.7472 20.302C19.9464 20.1319 20.1319 19.9464 20.302 19.7472C21.5 18.3446 21.5 16.2297 21.5 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M15.5 5.5C16.0898 4.89316 17.6597 2.5 18.5 2.5C19.3403 2.5 20.9102 4.89316 21.5 5.5M18.5 3V9.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Search": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 17L21 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19C15.4183 19 19 15.4183 19 11Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Search01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 17L21 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19C15.4183 19 19 15.4183 19 11Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Folder01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M8 7H16.75C18.8567 7 19.91 7 20.6667 7.50559C20.9943 7.72447 21.2755 8.00572 21.4944 8.33329C22 9.08996 22 10.1433 22 12.25C22 15.7612 22 17.5167 21.1573 18.7779C20.7926 19.3238 20.3238 19.7926 19.7779 20.1573C18.5167 21 16.7612 21 13.25 21H12C7.28595 21 4.92893 21 3.46447 19.5355C2 18.0711 2 15.714 2 11V7.94427C2 6.1278 2 5.21956 2.38032 4.53806C2.65142 4.05227 3.05227 3.65142 3.53806 3.38032C4.21956 3 5.1278 3 6.94427 3C8.10802 3 8.6899 3 9.19926 3.19101C10.3622 3.62712 10.8418 4.68358 11.3666 5.73313L12 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>", "PlusSign": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M12 4V20M20 12H4\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Tick02": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M5 14L8.5 17.5L19 6.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Pin": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 21L8 16\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M13.2585 18.8714C9.51516 18.0215 5.97844 14.4848 5.12853 10.7415C4.99399 10.1489 4.92672 9.85266 5.12161 9.37197C5.3165 8.89129 5.55457 8.74255 6.03071 8.44509C7.10705 7.77265 8.27254 7.55888 9.48209 7.66586C11.1793 7.81598 12.0279 7.89104 12.4512 7.67048C12.8746 7.44991 13.1622 6.93417 13.7376 5.90269L14.4664 4.59604C14.9465 3.73528 15.1866 3.3049 15.7513 3.10202C16.316 2.89913 16.6558 3.02199 17.3355 3.26771C18.9249 3.84236 20.1576 5.07505 20.7323 6.66449C20.978 7.34417 21.1009 7.68401 20.898 8.2487C20.6951 8.8134 20.2647 9.05346 19.4039 9.53358L18.0672 10.2792C17.0376 10.8534 16.5229 11.1406 16.3024 11.568C16.0819 11.9955 16.162 12.8256 16.3221 14.4859C16.4399 15.7068 16.2369 16.88 15.5555 17.9697C15.2577 18.4458 15.1088 18.6839 14.6283 18.8786C14.1477 19.0733 13.8513 19.006 13.2585 18.8714Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "TextFont": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M14 19L11.1069 10.7479C9.76348 6.91597 9.09177 5 8 5C6.90823 5 6.23652 6.91597 4.89309 10.7479L2 19M4.5 12H11.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M21.9692 13.9392V18.4392M21.9692 13.9392C22.0164 13.1161 22.0182 12.4891 21.9194 11.9773C21.6864 10.7709 20.4258 10.0439 19.206 9.89599C18.0385 9.75447 17.1015 10.055 16.1535 11.4363M21.9692 13.9392L19.1256 13.9392C18.6887 13.9392 18.2481 13.9603 17.8272 14.0773C15.2545 14.7925 15.4431 18.4003 18.0233 18.845C18.3099 18.8944 18.6025 18.9156 18.8927 18.9026C19.5703 18.8724 20.1955 18.545 20.7321 18.1301C21.3605 17.644 21.9692 16.9655 21.9692 15.9392V13.9392Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "ArrowUpRight01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M9 6.65032C9 6.65032 15.9383 6.10759 16.9154 7.08463C17.8924 8.06167 17.3496 15 17.3496 15M16.5 7.5L6.5 17.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "MoreHorizontal": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M6.00449 12.5V12M18.0045 12.5V12M12.0045 12.5V12M7.00449 12.5C7.00449 11.9477 6.55677 11.5 6.00449 11.5C5.4522 11.5 5.00449 11.9477 5.00449 12.5C5.00449 13.0523 5.4522 13.5 6.00449 13.5C6.55677 13.5 7.00449 13.0523 7.00449 12.5ZM19.0045 12.5C19.0045 11.9477 18.5568 11.5 18.0045 11.5C17.4522 11.5 17.0045 11.9477 17.0045 12.5C17.0045 13.0523 17.4522 13.5 18.0045 13.5C18.5568 13.5 19.0045 13.0523 19.0045 12.5ZM13.0045 12.5C13.0045 11.9477 12.5568 11.5 12.0045 11.5C11.4522 11.5 11.0045 11.9477 11.0045 12.5C11.0045 13.0523 11.4522 13.5 12.0045 13.5C12.5568 13.5 13.0045 13.0523 13.0045 12.5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Clock01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M12 8V12L14 14\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Keyboard": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M14.5 7H9.5C6.21252 7 4.56878 7 3.46243 7.90796C3.25989 8.07418 3.07418 8.25989 2.90796 8.46243C2 9.56878 2 11.2125 2 14.5C2 17.7875 2 19.4312 2.90796 20.5376C3.07418 20.7401 3.25989 20.9258 3.46243 21.092C4.56878 22 6.21252 22 9.5 22H14.5C17.7875 22 19.4312 22 20.5376 21.092C20.7401 20.9258 20.9258 20.7401 21.092 20.5376C22 19.4312 22 17.7875 22 14.5C22 11.2125 22 9.56878 21.092 8.46243C20.9258 8.25989 20.7401 8.07418 20.5376 7.90796C19.4312 7 17.7875 7 14.5 7Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M12 7V5C12 4.44772 12.4477 4 13 4C13.5523 4 14 3.55228 14 3V2\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M7 12L8 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M11.5 12L12.5 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M16 12L17 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M7 17L17 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Download01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2.99969 17.0002C2.99969 17.9302 2.99969 18.3952 3.10192 18.7767C3.37932 19.8119 4.18796 20.6206 5.22324 20.898C5.60474 21.0002 6.06972 21.0002 6.99969 21.0002L16.9997 21.0002C17.9297 21.0002 18.3947 21.0002 18.7762 20.898C19.8114 20.6206 20.6201 19.8119 20.8975 18.7767C20.9997 18.3952 20.9997 17.9302 20.9997 17.0002\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M16.4998 11.5002C16.4998 11.5002 13.1856 16.0002 11.9997 16.0002C10.8139 16.0002 7.49976 11.5002 7.49976 11.5002M11.9997 15.0002V3.00016\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Upload01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2.99994 17C2.99994 17.93 2.99994 18.395 3.10216 18.7765C3.37956 19.8117 4.18821 20.6204 5.22348 20.8978C5.60498 21 6.06997 21 6.99994 21L16.9999 21C17.9299 21 18.3949 21 18.7764 20.8978C19.8117 20.6204 20.6203 19.8117 20.8977 18.7765C20.9999 18.395 20.9999 17.93 20.9999 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M16.5 7.49993C16.5 7.49993 13.1858 2.99997 12 2.99996C10.8141 2.99995 7.50002 7.49996 7.50002 7.49996M12 3.99996V16\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Delete02": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M19.5 5.5L18.8803 15.5251C18.7219 18.0864 18.6428 19.3671 18.0008 20.2879C17.6833 20.7431 17.2747 21.1273 16.8007 21.416C15.8421 22 14.559 22 11.9927 22C9.42312 22 8.1383 22 7.17905 21.4149C6.7048 21.1257 6.296 20.7408 5.97868 20.2848C5.33688 19.3626 5.25945 18.0801 5.10461 15.5152L4.5 5.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M3 5.5H21M16.0557 5.5L15.3731 4.09173C14.9196 3.15626 14.6928 2.68852 14.3017 2.39681C14.215 2.3321 14.1231 2.27454 14.027 2.2247C13.5939 2 13.0741 2 12.0345 2C10.9688 2 10.436 2 9.99568 2.23412C9.8981 2.28601 9.80498 2.3459 9.71729 2.41317C9.32164 2.7167 9.10063 3.20155 8.65861 4.17126L8.05292 5.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M9.5 16.5L9.5 10.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M14.5 16.5L14.5 10.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>", "View": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M21.544 11.045C21.848 11.4713 22 11.6845 22 12C22 12.3155 21.848 12.5287 21.544 12.955C20.1779 14.8706 16.6892 19 12 19C7.31078 19 3.8221 14.8706 2.45604 12.955C2.15201 12.5287 2 12.3155 2 12C2 11.6845 2.15201 11.4713 2.45604 11.045C3.8221 9.12944 7.31078 5 12 5C16.6892 5 20.1779 9.12944 21.544 11.045Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg>", "ViewOff": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M22 8C22 8 18 14 12 14C6 14 2 8 2 8\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M15 13.5L16.5 16\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M20 11L22 13\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M2 13L4 11\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M9 13.5L7.5 16\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "MagicWand01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13.9258 12.7775L11.7775 10.6292C11.4847 10.3364 11.3383 10.19 11.1803 10.1117C10.8798 9.96277 10.527 9.96277 10.2264 10.1117C10.0685 10.19 9.92207 10.3364 9.62923 10.6292C9.33638 10.9221 9.18996 11.0685 9.11169 11.2264C8.96277 11.527 8.96277 11.8798 9.11169 12.1803C9.18996 12.3383 9.33638 12.4847 9.62923 12.7775L11.7775 14.9258M13.9258 12.7775L20.3708 19.2225C20.6636 19.5153 20.81 19.6617 20.8883 19.8197C21.0372 20.1202 21.0372 20.473 20.8883 20.7736C20.81 20.9315 20.6636 21.0779 20.3708 21.3708C20.0779 21.6636 19.9315 21.81 19.7736 21.8883C19.473 22.0372 19.1202 22.0372 18.8197 21.8883C18.6617 21.81 18.5153 21.6636 18.2225 21.3708L11.7775 14.9258M13.9258 12.7775L11.7775 14.9258\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M17 2L17.2948 2.7966C17.6813 3.84117 17.8746 4.36345 18.2556 4.74445C18.6366 5.12545 19.1588 5.31871 20.2034 5.70523L21 6L20.2034 6.29477C19.1588 6.68129 18.6366 6.87456 18.2556 7.25555C17.8746 7.63655 17.6813 8.15883 17.2948 9.2034L17 10L16.7052 9.2034C16.3187 8.15884 16.1254 7.63655 15.7444 7.25555C15.3634 6.87455 14.8412 6.68129 13.7966 6.29477L13 6L13.7966 5.70523C14.8412 5.31871 15.3634 5.12545 15.7444 4.74445C16.1254 4.36345 16.3187 3.84117 16.7052 2.7966L17 2Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M6 4L6.22108 4.59745C6.51097 5.38087 6.65592 5.77259 6.94167 6.05834C7.22741 6.34408 7.61913 6.48903 8.40255 6.77892L9 7L8.40255 7.22108C7.61913 7.51097 7.22741 7.65592 6.94166 7.94167C6.65592 8.22741 6.51097 8.61913 6.22108 9.40255L6 10L5.77892 9.40255C5.48903 8.61913 5.34408 8.22741 5.05833 7.94167C4.77259 7.65592 4.38087 7.51097 3.59745 7.22108L3 7L3.59745 6.77892C4.38087 6.48903 4.77259 6.34408 5.05833 6.05833C5.34408 5.77259 5.48903 5.38087 5.77892 4.59745L6 4Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Refresh": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M20.0092 2V5.13219C20.0092 5.42605 19.6418 5.55908 19.4537 5.33333C17.6226 3.2875 14.9617 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "ClipboardPaste": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M19.502 13.0005H10.502\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M17.502 10.0005C17.502 10.0005 20.5019 12.21 20.502 13.0005C20.502 13.7911 17.502 16.0005 17.502 16.0005\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M13.998 2.00049H8.99805C8.16962 2.00049 7.49805 2.67206 7.49805 3.50049C7.49805 4.32892 8.16962 5.00049 8.99805 5.00049H13.998C14.8265 5.00049 15.498 4.32892 15.498 3.50049C15.498 2.67206 14.8265 2.00049 13.998 2.00049Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M15.4981 3.50049C17.0515 3.5473 17.9781 3.72056 18.6194 4.36185C19.1913 4.93377 19.391 5.73255 19.4607 7.00049M7.49795 3.50049C5.94456 3.5473 5.01802 3.72056 4.37673 4.36184C3.49805 5.24053 3.49805 6.65474 3.49806 9.48318L3.49805 16C3.49805 18.8284 3.49806 20.2426 4.37674 21.1213C5.25541 22 6.66963 22 9.49805 22L13.498 22C16.3265 22 17.7407 22 18.6194 21.1213C19.1092 20.6315 19.3259 19.9753 19.4219 19.0005\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Computer": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M14 21H16M14 21C13.1716 21 12.5 20.3284 12.5 19.5V17L12 17M14 21H10M10 21H8M10 21C10.8284 21 11.5 20.3284 11.5 19.5V17L12 17M12 17V21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M16 3H8C5.17157 3 3.75736 3 2.87868 3.87868C2 4.75736 2 6.17157 2 9V11C2 13.8284 2 15.2426 2.87868 16.1213C3.75736 17 5.17157 17 8 17H16C18.8284 17 20.2426 17 21.1213 16.1213C22 15.2426 22 13.8284 22 11V9C22 6.17157 22 4.75736 21.1213 3.87868C20.2426 3 18.8284 3 16 3Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "TextBold": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M5 6C5 4.58579 5 3.87868 5.43934 3.43934C5.87868 3 6.58579 3 8 3H12.5789C15.0206 3 17 5.01472 17 7.5C17 9.98528 15.0206 12 12.5789 12H5V6Z\" stroke=\"currentColor\" fill-rule=\"evenodd\" clip-rule=\"evenodd\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12.4286 12H13.6667C16.0599 12 18 14.0147 18 16.5C18 18.9853 16.0599 21 13.6667 21H8C6.58579 21 5.87868 21 5.43934 20.5607C5 20.1213 5 19.4142 5 18V12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Text": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M15 21.001H9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 3.00001V21.0008M12 3.00001C13.3874 3.00001 15.1695 3.03055 16.5884 3.17649C17.1885 3.2382 17.4886 3.26906 17.7541 3.37791C18.3066 3.60429 18.7518 4.10063 18.9194 4.67681C19 4.95382 19 5.26992 19 5.90215M12 3.00001C10.6126 3.00001 8.83047 3.03055 7.41161 3.17649C6.8115 3.2382 6.51144 3.26906 6.24586 3.37791C5.69344 3.60429 5.24816 4.10063 5.08057 4.67681C5 4.95382 5 5.26992 5 5.90215\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>", "TextKerning": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M22 13.5L20.2857 9M20.2857 9L18.7816 5.0518C18.7399 4.9422 18.719 4.8874 18.6926 4.84085C18.5914 4.66247 18.4186 4.5405 18.2216 4.50838C18.1702 4.5 18.1135 4.5 18 4.5C17.8865 4.5 17.8298 4.5 17.7784 4.50838C17.5814 4.5405 17.4086 4.66247 17.3074 4.84085C17.281 4.8874 17.2601 4.9422 17.2184 5.0518L15.7143 9M20.2857 9L15.7143 9M15.7143 9L14 13.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M2 4.5L5.21836 12.9482C5.26012 13.0578 5.28099 13.1126 5.3074 13.1591C5.40861 13.3375 5.5814 13.4595 5.77836 13.4916C5.82975 13.5 5.8865 13.5 6 13.5C6.1135 13.5 6.17025 13.5 6.22164 13.4916C6.4186 13.4595 6.59138 13.3375 6.6926 13.1591C6.71901 13.1126 6.73988 13.0578 6.78164 12.9482L10 4.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 19.5H22M22 19.5C22 19.8314 21.6667 20.098 21 20.6314L19.9142 21.5M22 19.5C22 19.1686 21.6667 18.902 21 18.3686L19.9142 17.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M14.5 2.5L9.5 15.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "TextWrap": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 3H21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M3 15H9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M3 21H9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M3 9H16.5C18.9853 9 21 11.0147 21 13.5C21 15.9853 18.9853 18 16.5 18H12M12 18C12 17.1597 14.3932 15.5898 15 15M12 18C12 18.8403 14.3932 20.4102 15 21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "TextColor": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 21H21\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M19 18L15.6247 9.15847C14.0574 5.05282 13.2737 3 12 3C10.7263 3 9.94261 5.05282 8.37527 9.15847L5 18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M8 11H16\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>", "LetterSpacing": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2 22V2\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M22 22V2\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M7 18L10.6534 7.48635C10.9447 6.81279 11.4878 5.99657 11.9467 6.00001C12.6263 6.00511 12.9827 6.70758 13.3774 7.48635C13.7721 8.26513 17 18 17 18M9.01312 12.9912L14.8945 12.9293\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Palette": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M21.8205 10.4127C22.062 11.8519 22.1827 12.5715 21.2423 13.9326C21.1459 14.0722 20.8966 14.3713 20.777 14.4911C19.6103 15.6586 18.4308 15.6586 16.0716 15.6586H14.1392C13.5085 15.6586 13.1931 15.6586 12.9639 15.7142C11.9586 15.9581 11.3031 16.9391 11.453 17.9755C11.4872 18.2118 11.6043 18.5085 11.8386 19.102C11.9345 19.3449 11.9824 19.4664 12.0136 19.7304C12.1292 20.7084 11.0869 21.9508 10.1158 21.9926C9.85358 22.0039 9.83681 22.0002 9.80326 21.9926C7.66174 21.51 5.66204 20.3123 4.18389 18.4421C0.736789 14.0808 1.43146 7.71364 5.73548 4.22064C10.0395 0.727643 16.323 1.43156 19.7701 5.79289C20.868 7.1819 21.5457 8.77438 21.8205 10.4127Z\" stroke=\"currentColor\" fill-rule=\"evenodd\" clip-rule=\"evenodd\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M7.36719 7.74976H7.24219M7.49219 7.74976C7.49219 7.88783 7.38026 7.99976 7.24219 7.99976C7.10412 7.99976 6.99219 7.88783 6.99219 7.74976C6.99219 7.61169 7.10412 7.49976 7.24219 7.49976C7.38026 7.49976 7.49219 7.61169 7.49219 7.74976Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M7.36719 15.7498H7.24219M7.49219 15.7498C7.49219 15.8878 7.38026 15.9998 7.24219 15.9998C7.10412 15.9998 6.99219 15.8878 6.99219 15.7498C6.99219 15.6117 7.10412 15.4998 7.24219 15.4998C7.38026 15.4998 7.49219 15.6117 7.49219 15.7498Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M11.8672 5.74976H11.7422M11.9922 5.74976C11.9922 5.88783 11.8803 5.99976 11.7422 5.99976C11.6041 5.99976 11.4922 5.88783 11.4922 5.74976C11.4922 5.61169 11.6041 5.49976 11.7422 5.49976C11.8803 5.49976 11.9922 5.61169 11.9922 5.74976Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M16.3672 7.74976H16.2422M16.4922 7.74976C16.4922 7.88783 16.3803 7.99976 16.2422 7.99976C16.1041 7.99976 15.9922 7.88783 15.9922 7.74976C15.9922 7.61169 16.1041 7.49976 16.2422 7.49976C16.3803 7.49976 16.4922 7.61169 16.4922 7.74976Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M18.3672 11.7498H18.2422M18.4922 11.7498C18.4922 11.8878 18.3803 11.9998 18.2422 11.9998C18.1041 11.9998 17.9922 11.8878 17.9922 11.7498C17.9922 11.6117 18.1041 11.4998 18.2422 11.4998C18.3803 11.4998 18.4922 11.6117 18.4922 11.7498Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M5.86719 11.7498H5.74219M5.99219 11.7498C5.99219 11.8878 5.88026 11.9998 5.74219 11.9998C5.60412 11.9998 5.49219 11.8878 5.49219 11.7498C5.49219 11.6117 5.60412 11.4998 5.74219 11.4998C5.88026 11.4998 5.99219 11.6117 5.99219 11.7498Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "InformationCircle": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 16V12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12.125 8.25H12M12.25 8.25C12.25 8.11193 12.1381 8 12 8C11.8619 8 11.75 8.11193 11.75 8.25C11.75 8.38807 11.8619 8.5 12 8.5C12.1381 8.5 12.25 8.38807 12.25 8.25Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Sun03": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7C14.7614 7 17 9.23858 17 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M12 2V3.5M12 20.5V22M19.0708 19.0713L18.0101 18.0106M5.98926 5.98926L4.9286 4.9286M22 12H20.5M3.5 12H2M19.0713 4.92871L18.0106 5.98937M5.98975 18.0107L4.92909 19.0714\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>", "Moon02": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M21.5 14.0784C20.3003 14.7189 18.9301 15.0821 17.4751 15.0821C12.7491 15.0821 8.91792 11.2509 8.91792 6.52485C8.91792 5.06986 9.28105 3.69968 9.92163 2.5C5.66765 3.49698 2.5 7.31513 2.5 11.8731C2.5 17.1899 6.8101 21.5 12.1269 21.5C16.6849 21.5 20.503 18.3324 21.5 14.0784Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Power": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M18.7083 6C20.1334 7.59227 21 9.69494 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 9.69494 3.86656 7.59227 5.29168 6\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 3V12\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "FilterHorizontal": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M3 7H6\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M3 17H9\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M18 17L21 17\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M15 7L21 7\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M6 7C6 6.06812 6 5.60218 6.15224 5.23463C6.35523 4.74458 6.74458 4.35523 7.23463 4.15224C7.60218 4 8.06812 4 9 4C9.93188 4 10.3978 4 10.7654 4.15224C11.2554 4.35523 11.6448 4.74458 11.8478 5.23463C12 5.60218 12 6.06812 12 7C12 7.93188 12 8.39782 11.8478 8.76537C11.6448 9.25542 11.2554 9.64477 10.7654 9.84776C10.3978 10 9.93188 10 9 10C8.06812 10 7.60218 10 7.23463 9.84776C6.74458 9.64477 6.35523 9.25542 6.15224 8.76537C6 8.39782 6 7.93188 6 7Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M12 17C12 16.0681 12 15.6022 12.1522 15.2346C12.3552 14.7446 12.7446 14.3552 13.2346 14.1522C13.6022 14 14.0681 14 15 14C15.9319 14 16.3978 14 16.7654 14.1522C17.2554 14.3552 17.6448 14.7446 17.8478 15.2346C18 15.6022 18 16.0681 18 17C18 17.9319 18 18.3978 17.8478 18.7654C17.6448 19.2554 17.2554 19.6448 16.7654 19.8478C16.3978 20 15.9319 20 15 20C14.0681 20 13.6022 20 13.2346 19.8478C12.7446 19.6448 12.3552 19.2554 12.1522 18.7654C12 18.3978 12 17.9319 12 17Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg>", "LanguageSquare": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M7 8.37931H11.5M17 8.37931H14.5M11.5 8.37931H14.5M11.5 8.37931V7M14.5 8.37931C13.9725 10.2656 12.8679 12.0487 11.6071 13.6158M8.39286 17C9.41205 16.0628 10.5631 14.9134 11.6071 13.6158M11.6071 13.6158C10.9643 12.8621 10.0643 11.6426 9.80714 11.0909M11.6071 13.6158L13.5357 15.6207\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M2.5 12C2.5 7.52166 2.5 5.28249 3.89124 3.89124C5.28249 2.5 7.52166 2.5 12 2.5C16.4783 2.5 18.7175 2.5 20.1088 3.89124C21.5 5.28249 21.5 7.52166 21.5 12C21.5 16.4783 21.5 18.7175 20.1088 20.1088C18.7175 21.5 16.4783 21.5 12 21.5C7.52166 21.5 5.28249 21.5 3.89124 20.1088C2.5 18.7175 2.5 16.4783 2.5 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg>", "DashboardSquare01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13.6903 19.4567C13.5 18.9973 13.5 18.4149 13.5 17.25C13.5 16.0851 13.5 15.5027 13.6903 15.0433C13.944 14.4307 14.4307 13.944 15.0433 13.6903C15.5027 13.5 16.0851 13.5 17.25 13.5C18.4149 13.5 18.9973 13.5 19.4567 13.6903C20.0693 13.944 20.556 14.4307 20.8097 15.0433C21 15.5027 21 16.0851 21 17.25C21 18.4149 21 18.9973 20.8097 19.4567C20.556 20.0693 20.0693 20.556 19.4567 20.8097C18.9973 21 18.4149 21 17.25 21C16.0851 21 15.5027 21 15.0433 20.8097C14.4307 20.556 13.944 20.0693 13.6903 19.4567Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M13.6903 8.95671C13.5 8.49728 13.5 7.91485 13.5 6.75C13.5 5.58515 13.5 5.00272 13.6903 4.54329C13.944 3.93072 14.4307 3.44404 15.0433 3.1903C15.5027 3 16.0851 3 17.25 3C18.4149 3 18.9973 3 19.4567 3.1903C20.0693 3.44404 20.556 3.93072 20.8097 4.54329C21 5.00272 21 5.58515 21 6.75C21 7.91485 21 8.49728 20.8097 8.95671C20.556 9.56928 20.0693 10.056 19.4567 10.3097C18.9973 10.5 18.4149 10.5 17.25 10.5C16.0851 10.5 15.5027 10.5 15.0433 10.3097C14.4307 10.056 13.944 9.56928 13.6903 8.95671Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M3.1903 19.4567C3 18.9973 3 18.4149 3 17.25C3 16.0851 3 15.5027 3.1903 15.0433C3.44404 14.4307 3.93072 13.944 4.54329 13.6903C5.00272 13.5 5.58515 13.5 6.75 13.5C7.91485 13.5 8.49728 13.5 8.95671 13.6903C9.56928 13.944 10.056 14.4307 10.3097 15.0433C10.5 15.5027 10.5 16.0851 10.5 17.25C10.5 18.4149 10.5 18.9973 10.3097 19.4567C10.056 20.0693 9.56928 20.556 8.95671 20.8097C8.49728 21 7.91485 21 6.75 21C5.58515 21 5.00272 21 4.54329 20.8097C3.93072 20.556 3.44404 20.0693 3.1903 19.4567Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M3.1903 8.95671C3 8.49728 3 7.91485 3 6.75C3 5.58515 3 5.00272 3.1903 4.54329C3.44404 3.93072 3.93072 3.44404 4.54329 3.1903C5.00272 3 5.58515 3 6.75 3C7.91485 3 8.49728 3 8.95671 3.1903C9.56928 3.44404 10.056 3.93072 10.3097 4.54329C10.5 5.00272 10.5 5.58515 10.5 6.75C10.5 7.91485 10.5 8.49728 10.3097 8.95671C10.056 9.56928 9.56928 10.056 8.95671 10.3097C8.49728 10.5 7.91485 10.5 6.75 10.5C5.58515 10.5 5.00272 10.5 4.54329 10.3097C3.93072 10.056 3.44404 9.56928 3.1903 8.95671Z\" stroke=\"currentColor\" stroke-linecap=\"square\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Image01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"7.5\" cy=\"7.5\" r=\"1.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M2.5 12C2.5 7.52166 2.5 5.28249 3.89124 3.89124C5.28249 2.5 7.52166 2.5 12 2.5C16.4783 2.5 18.7175 2.5 20.1088 3.89124C21.5 5.28249 21.5 7.52166 21.5 12C21.5 16.4783 21.5 18.7175 20.1088 20.1088C18.7175 21.5 16.4783 21.5 12 21.5C7.52166 21.5 5.28249 21.5 3.89124 20.1088C2.5 18.7175 2.5 16.4783 2.5 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M5 21C9.37246 15.775 14.2741 8.88406 21.4975 13.5424\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg>", "Undo02": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C8.66873 3 5.76018 4.80989 4.20404 7.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M3 3V4.27816C3 6.47004 3 7.56599 3.70725 8.16512C4.4145 8.76425 5.49553 8.58408 7.6576 8.22373L9 8\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Edit02": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M14.0737 3.88545C14.8189 3.07808 15.1915 2.6744 15.5874 2.43893C16.5427 1.87076 17.7191 1.85309 18.6904 2.39232C19.0929 2.6158 19.4769 3.00812 20.245 3.79276C21.0131 4.5774 21.3972 4.96972 21.6159 5.38093C22.1438 6.37312 22.1265 7.57479 21.5703 8.5507C21.3398 8.95516 20.9446 9.33578 20.1543 10.097L10.7506 19.1543C9.25288 20.5969 8.504 21.3182 7.56806 21.6837C6.63212 22.0493 5.6032 22.0224 3.54536 21.9686L3.26538 21.9613C2.63891 21.9449 2.32567 21.9367 2.14359 21.73C1.9615 21.5234 1.98636 21.2043 2.03608 20.5662L2.06308 20.2197C2.20301 18.4235 2.27297 17.5255 2.62371 16.7182C2.97444 15.9109 3.57944 15.2555 4.78943 13.9445L14.0737 3.88545Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M13 4L20 11\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M14 22L22 22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Layers01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M8.64298 3.14559L6.93816 3.93362C4.31272 5.14719 3 5.75397 3 6.75C3 7.74603 4.31272 8.35281 6.93817 9.56638L8.64298 10.3544C10.2952 11.1181 11.1214 11.5 12 11.5C12.8786 11.5 13.7048 11.1181 15.357 10.3544L17.0618 9.56638C19.6873 8.35281 21 7.74603 21 6.75C21 5.75397 19.6873 5.14719 17.0618 3.93362L15.357 3.14559C13.7048 2.38186 12.8786 2 12 2C11.1214 2 10.2952 2.38186 8.64298 3.14559Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M20.788 11.0972C20.9293 11.2959 21 11.5031 21 11.7309C21 12.7127 19.6873 13.3109 17.0618 14.5072L15.357 15.284C13.7048 16.0368 12.8786 16.4133 12 16.4133C11.1214 16.4133 10.2952 16.0368 8.64298 15.284L6.93817 14.5072C4.31272 13.3109 3 12.7127 3 11.7309C3 11.5031 3.07067 11.2959 3.212 11.0972\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M20.3767 16.2661C20.7922 16.5971 21 16.927 21 17.3176C21 18.2995 19.6873 18.8976 17.0618 20.0939L15.357 20.8707C13.7048 21.6236 12.8786 22 12 22C11.1214 22 10.2952 21.6236 8.64298 20.8707L6.93817 20.0939C4.31272 18.8976 3 18.2995 3 17.3176C3 16.927 3.20778 16.5971 3.62334 16.2661\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "TextVerticalAlignment": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13 4L22 4\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M13 8L22 8\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M2 12H22\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M13 20L22 20\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M13 16L22 16\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M8 8.5L6.71429 5.5M6.71429 5.5L5.58623 2.86786C5.55491 2.7948 5.53926 2.75827 5.51945 2.72724C5.44354 2.60832 5.31395 2.527 5.16623 2.50559C5.12769 2.5 5.08512 2.5 5 2.5C4.91488 2.5 4.87231 2.5 4.83377 2.50559C4.68605 2.527 4.55646 2.60831 4.48055 2.72724C4.46074 2.75826 4.44509 2.7948 4.41377 2.86786L3.28571 5.5M6.71429 5.5L3.28571 5.5M3.28571 5.5L2 8.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M8 21.5L6.71429 18.5M6.71429 18.5L5.58623 15.8679C5.55491 15.7948 5.53926 15.7583 5.51945 15.7272C5.44354 15.6083 5.31395 15.527 5.16623 15.5056C5.12769 15.5 5.08512 15.5 5 15.5C4.91488 15.5 4.87231 15.5 4.83377 15.5056C4.68605 15.527 4.55646 15.6083 4.48055 15.7272C4.46074 15.7583 4.44509 15.7948 4.41377 15.8679L3.28571 18.5M6.71429 18.5L3.28571 18.5M3.28571 18.5L2 21.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "TextAllCaps": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M10.5714 21H5.42857M8 3V21M8 3C6.81082 3 5.28326 3.12265 4.06709 3.24346C3.55271 3.29456 3.29552 3.32011 3.06788 3.41021C2.59438 3.59763 2.21271 4.00855 2.06906 4.48556C2 4.71489 2 4.97659 2 5.5M8 3C8.60727 3 9.30278 3.03198 10 3.07938\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/><path d=\"M18.5706 21H13.4277M15.9992 3V21M15.9992 3C17.1883 3 18.7159 3.12265 19.9321 3.24346C20.4465 3.29456 20.7036 3.32011 20.9313 3.41021C21.4048 3.59763 21.7865 4.00855 21.9301 4.48556C21.9992 4.71489 21.9992 4.97659 21.9992 5.5M15.9992 3C15.3921 3 14.6968 3.03196 13.9999 3.07933\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>", "HelpCircle": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M9.5 9.5C9.5 8.11929 10.6193 7 12 7C13.3807 7 14.5 8.11929 14.5 9.5C14.5 10.3569 14.0689 11.1131 13.4117 11.5636C12.7283 12.0319 12 12.6716 12 13.5\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12.125 16.75H12M12.25 16.75C12.25 16.8881 12.1381 17 12 17C11.8619 17 11.75 16.8881 11.75 16.75C11.75 16.6119 11.8619 16.5 12 16.5C12.1381 16.5 12.25 16.6119 12.25 16.75Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Mail01": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2 6L8.91302 9.91697C11.4616 11.361 12.5384 11.361 15.087 9.91697L22 6\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M2.01577 13.4756C2.08114 16.5412 2.11383 18.0739 3.24496 19.2094C4.37608 20.3448 5.95033 20.3843 9.09883 20.4634C11.0393 20.5122 12.9607 20.5122 14.9012 20.4634C18.0497 20.3843 19.6239 20.3448 20.7551 19.2094C21.8862 18.0739 21.9189 16.5412 21.9842 13.4756C22.0053 12.4899 22.0053 11.5101 21.9842 10.5244C21.9189 7.45886 21.8862 5.92609 20.7551 4.79066C19.6239 3.65523 18.0497 3.61568 14.9012 3.53657C12.9607 3.48781 11.0393 3.48781 9.09882 3.53656C5.95033 3.61566 4.37608 3.65521 3.24495 4.79065C2.11382 5.92608 2.08114 7.45885 2.01576 10.5244C1.99474 11.5101 1.99475 12.4899 2.01577 13.4756Z\" stroke=\"currentColor\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Star": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M13.7276 3.44418L15.4874 6.99288C15.7274 7.48687 16.3673 7.9607 16.9073 8.05143L20.0969 8.58575C22.1367 8.92853 22.6167 10.4206 21.1468 11.8925L18.6671 14.3927C18.2471 14.8161 18.0172 15.6327 18.1471 16.2175L18.8571 19.3125C19.417 21.7623 18.1271 22.71 15.9774 21.4296L12.9877 19.6452C12.4478 19.3226 11.5579 19.3226 11.0079 19.6452L8.01827 21.4296C5.8785 22.71 4.57865 21.7522 5.13859 19.3125L5.84851 16.2175C5.97849 15.6327 5.74852 14.8161 5.32856 14.3927L2.84884 11.8925C1.389 10.4206 1.85895 8.92853 3.89872 8.58575L7.08837 8.05143C7.61831 7.9607 8.25824 7.48687 8.49821 6.99288L10.258 3.44418C11.2179 1.51861 12.7777 1.51861 13.7276 3.44418Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Lock": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z\" stroke=\"currentColor\" stroke-width=\"1.5\"/><path d=\"M12 13C13.1046 13 14 12.1046 14 11C14 9.89543 13.1046 9 12 9C10.8954 9 10 9.89543 10 11C10 12.1046 10.8954 13 12 13ZM12 13L12 16\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-width=\"1.5\"/></svg>", "DragDrop": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M6 5C6.55228 5 7 5.44772 7 6C7 6.55228 6.55228 7 6 7C5.44772 7 5 6.55228 5 6C5 5.44772 5.44772 5 6 5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M6 11C6.55228 11 7 11.4477 7 12C7 12.5523 6.55228 13 6 13C5.44772 13 5 12.5523 5 12C5 11.4477 5.44772 11 6 11Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M6 17C6.55228 17 7 17.4477 7 18C7 18.5523 6.55228 19 6 19C5.44772 19 5 18.5523 5 18C5 17.4477 5.44772 17 6 17Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M18 5C18.5523 5 19 5.44772 19 6C19 6.55228 18.5523 7 18 7C17.4477 7 17 6.55228 17 6C17 5.44772 17.4477 5 18 5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M18 11C18.5523 11 19 11.4477 19 12C19 12.5523 18.5523 13 18 13C17.4477 13 17 12.5523 17 12C17 11.4477 17.4477 11 18 11Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 11C12.5523 11 13 11.4477 13 12C13 12.5523 12.5523 13 12 13C11.4477 13 11 12.5523 11 12C11 11.4477 11.4477 11 12 11Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 5C12.5523 5 13 5.44772 13 6C13 6.55228 12.5523 7 12 7C11.4477 7 11 6.55228 11 6C11 5.44772 11.4477 5 12 5Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M18 17C18.5523 17 19 17.4477 19 18C19 18.5523 18.5523 19 18 19C17.4477 19 17 18.5523 17 18C17 17.4477 17.4477 17 18 17Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M12 17C12.5523 17 13 17.4477 13 18C13 18.5523 12.5523 19 12 19C11.4477 19 11 18.5523 11 18C11 17.4477 11.4477 17 12 17Z\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>", "Heading": "<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" aria-hidden=\"true\"><path d=\"M6 4V20\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M18 4V20\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/><path d=\"M6 12H18\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.5\"/></svg>"};
+const ic = (n, s) => { const v = IC[n]; if (!v) { console.warn("icon", n); return ""; } return s ? v.replace('width="18" height="18"', `width="${s}" height="${s}"`) : v; };
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const kbd = (...k) => `<span class="kbd">${k.join(" ")}</span>`;
+const lic = (l) => `<span class="lic ${l}"><i class="dot"></i>${l === "free" ? "Free" : "Paid"}</span>`;
+const GRIP = `<svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true"><circle cx="2.5" cy="3" r="1.4"/><circle cx="7.5" cy="3" r="1.4"/><circle cx="2.5" cy="8" r="1.4"/><circle cx="7.5" cy="8" r="1.4"/><circle cx="2.5" cy="13" r="1.4"/><circle cx="7.5" cy="13" r="1.4"/></svg>`;
+
+/* ---------- primary colours ---------- */
+const PRIMS = {
+  orange: { name: "Signal orange-red", hex: "#C9480E", cr: "4.75", note: "Darkened from #FF4F1F, which only reaches 3.3:1 with white text. #C9480E passes at 4.75:1 and keeps an orange hue (19°), so it stays clearly apart from delete red #D4332A (hue 3°). But it sits between delete red and Paid amber, the two colours it must not be mistaken for.", tip: "Darkened from #FF4F1F to pass 4.5:1. Must stay clearly different from delete red, which is #D4332A." },
+  cobalt: { name: "Cobalt", hex: "#2B63F5", cr: "4.99", note: "Nudged from #2F6BFF, which lands exactly on 4.50:1, to #2B63F5 at 4.99:1 for headroom. Far from green, amber and red, sits well on the cool greys, and it is the same blue that outlines text on the page.", tip: "Cobalt #2B63F5, white text 4.99:1" },
+  violet: { name: "Violet", hex: "#6E56CF", cr: "5.39", note: "#6E56CF passes as is at 5.39:1. The most distinctive of the four, and no other colour in our rules is near it.", tip: "Violet #6E56CF, white text 5.39:1" },
+  ink: { name: "Ink", hex: "#1C2024", cr: "16.4", note: "The current black (now the cool #1C2024), for comparison. In dark mode it flips to near-white with dark text.", tip: "The current black" },
+};
+const DARKTXT = { orange: "#FF8257 (7.7:1)", cobalt: "#7B9DFF (7.3:1)", violet: "#A996F2 (7.5:1)", ink: "#EDEEF0 (16.3:1)" };
+const HOVER = { orange: "#B33C0B (5.9:1)", cobalt: "#2457E0 (6.0:1)", violet: "#5A43B8 (7.2:1)", ink: "#33383F" };
+
+const FONTS = {
+  fraunces: { name: "Fraunces", fam: "'Fraunces', serif", lic: "free", src: "Google Fonts", cls: "Serif", w: 600, wn: "600 Semibold", size: "50px", lh: "1.04", ls: "-0.02em", color: "#1B1A17", tag: "h1", used: "Headings", count: 14, by: "Undercase Type", file: "Fraunces[SOFT,WONK,opsz,wght].woff2", kb: "118 KB" },
+  serif: { name: "Source Serif 4", fam: "'Source Serif 4', serif", lic: "free", src: "Google Fonts", cls: "Serif", w: 400, wn: "400 Regular", size: "17px", lh: "1.65", ls: "0", color: "#3A3833", tag: "p", used: "Paragraphs", count: 38, by: "Frank Grießhammer", file: "SourceSerif4[opsz,wght].woff2", kb: "96 KB" },
+  haas: { name: "Neue Haas Unica", fam: "'Inter', sans-serif", lic: "paid", src: "Monotype", cls: "Sans", w: 500, wn: "500 Medium", size: "13.5px", lh: "1.4", ls: "0", color: "#3B3A36", tag: "nav", used: "Menu, labels, captions", count: 22, by: "Toshi Omagari", file: "NeueHaasUnica-Medium.woff2", kb: "42 KB", alike: [["Inter", "'Inter'", 93], ["Instrument Sans", "'Inter'", 88]] },
+};
+const ORDER = ["fraunces", "serif", "haas"];
+const SAMPLE = "The quick brown fox jumps over the lazy dog";
+const st = {
+  theme: "light", primary: "cobalt", tab: "page", view: null, sub: null, sec: "Licence", on: true, panel: true, guide: true, readAll: true, seen: true,
+  text: "", size: 28, exp: "CSS", ratio: 1.25, trying: false, menu: null, settings: null, wipe: false, coach: 0, hover: null, pinned: false, el: null, tag: null,
+  missing: false, dev: false, col: null, slots: { heading: "fraunces", body: "serif", mono: null }, slotOpen: null, mine: false, myFmt: "CSS", swapped: false, keyShow: false, figma: false, dock: null,
+};
+
+/* ---------- comparison strip ---------- */
+function strip() {
+  document.getElementById("prims").innerHTML = Object.entries(PRIMS).map(([k, p]) => `<button class="prim" data-prim="${k}" aria-pressed="${st.primary === k}" title="${p.tip}" style="--sw:${p.hex}"><span class="sw" style="background:${p.hex}">Aa</span><div><span class="n">${p.name}</span><span class="h">${p.hex} · white ${p.cr}:1</span></div>${k === "cobalt" ? `<span class="rec">Recommended</span>` : ""}</button>`).join("");
+  const p = PRIMS[st.primary];
+  document.getElementById("pnote").innerHTML = `<b>${p.name} ${p.hex}</b>. Hover ${HOVER[st.primary]}. In dark mode, links, rings and active text use ${DARKTXT[st.primary]}. ${p.note}`;
+  document.querySelectorAll("[data-theme-set]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.themeSet === st.theme));
+}
+
+/* ---------- website, dock, hover card ---------- */
+const site = () => `<div class="site${st.on ? " on" : ""}${st.mine ? " mine" : ""}${st.trying ? " scaled" : ""}" style="--my-h:${FONTS[st.slots.heading].fam};--my-b:${FONTS[st.slots.body].fam};${scaleVars()}">
+  <header class="s-nav"><b data-f="haas">Field Journal</b><nav data-f="haas"><span>Stories</span><span>Gear</span><span>Maps</span><span>Subscribe</span></nav></header>
+  <article class="s-art"><p class="s-kick" data-f="haas">ESSAY · 12 MIN READ</p>
+    <h1 data-f="fraunces">Walking the long way round the lake</h1>
+    <p class="s-lede" data-f="serif">Four days, sixty miles and one wrong turn that turned out to be the best part of the trip.</p>
+    <div class="s-fig"></div><p class="s-cap" data-f="haas">The north shore at first light, from the old ferry landing.</p>
+    <h2 data-f="fraunces">The first morning</h2>
+    <p class="b" data-f="serif">We left before the cafés opened, which meant breakfast was whatever survived the bottom of the pack. The path climbs gently for the first hour and then not gently at all.</p>
+    <p class="b" data-f="serif">By noon the lake had turned from grey to a green so deep it looked painted on. Nobody spoke much.</p></article></div>`;
+const DOCK = [["inspect", "CursorPointer01", "Inspect fonts", "I"], ["area", "ScanImage", "Read a picture or an area", "A"], ["fonts", "TextFont", "Every font on this page", "F"], ["system", "Ruler", "Type system", "T"], ["save", "BookmarkAdd02", "Save the font", "S"]];
+const dockPos = () => (st.dock ? `style="left:${st.dock.x}px;top:${st.dock.y}px;bottom:auto;transform:none"` : "");
+const dock = () => `<div class="dock" role="toolbar" aria-label="Font Finder Plus" ${dockPos()}><button class="grip" data-grip aria-label="Move the dock. Drag it, or use the arrow keys" title="Drag to move">${GRIP}</button>${DOCK.map(([k, i, t, key]) => `<button class="db" data-dock="${k}" aria-label="${t}" ${k === "inspect" ? `aria-pressed="${st.on}"` : ""}>${ic(i)}<span class="tip">${t}<span class="k">${key}</span></span></button>`).join("")}
+  <span class="sep"></span><button class="db soft" data-dock="panel" aria-label="${st.panel ? "Close the panel" : "Open the panel"}" aria-pressed="${st.panel}">${ic("SidebarRight")}<span class="tip">${st.panel ? "Close the panel" : "Open the panel"}</span></button>
+  <button class="db" data-dock="off" aria-label="Turn off">${ic("Cancel01")}<span class="tip">Turn off<span class="k">⌥⇧F</span></span></button></div>`;
+const hoverCard = () => {
+  const f = FONTS[st.hover];
+  if (!f) return `<div class="hc"></div>`;
+  const vals = [["Weight", "TextBold", f.wn, f.w], ["Size", "Text", f.size, f.size], ["Line height", "TextVerticalAlignment", f.lh, f.lh], ["Spacing", "LetterSpacing", f.ls, f.ls], ["Colour", null, f.color, f.color], ["Family", "TextFont", f.name, f.name]];
+  return `<div class="hc${st.pinned ? " is-pinned" : ""}" role="dialog" aria-label="${f.name}"><div class="hc-h"><div><b style="font-family:${f.fam}">${f.name}</b><small>${st.tag || f.tag} · ${f.src} · ${lic(f.lic)}</small></div>${st.pinned ? `<button class="pinchip" data-hc="pin" aria-label="Pinned. Click to unpin">${ic("Pin", 12)}Pinned${ic("Cancel01", 12)}</button>` : ""}</div>
+    <div class="hc-m"><i style="top:22px"><span>CAP</span></i><i style="top:37px"><span>X-HEIGHT</span></i><i style="top:70px;border-top-style:solid"><span>BASELINE</span></i><span class="g" style="font-family:${f.fam};font-weight:${f.w}">Hxg</span></div>
+    <div class="hc-g">${vals.map(([a, i, b, raw]) => `<div class="f"><span>${a}</span><button data-copy="${a}: ${raw}" aria-label="Copy ${a}, ${b}">${i ? ic(i, 14) : `<i class="dot" style="background:${f.color};border-radius:3px;width:12px;height:12px"></i>`}<em>${b}</em></button></div>`).join("")}</div>
+    ${st.pinned ? `<div class="hc-a"><button class="pri" data-copycss>${ic("Copy01")}Copy CSS</button><button data-toast="${f.name} saved to your library">${ic("Bookmark02")}Save</button><button class="sq" data-hc="details" aria-label="Open details in the panel">${ic("SidebarRight")}</button></div>
+      <p class="hc-hint">Click a value to copy just that. ${kbd("Esc")} unpins.</p>`
+    : `<p class="hc-hint">${ic("Pin", 14)}Click or press ${kbd("Space")} to pin it</p>`}</div>`;
+};
+const COACH = [
+  () => `Point at any text to see its font`,
+  () => `Click the text or press ${kbd("Space")} to pin the card`,
+  () => `Pinned. Click a value to copy it, or ${kbd("C")} for all the CSS`,
+];
+const coach = () => (st.coach < 3 && st.on && !(st.pinned && innerWidth < 720) ? `<div class="coach" role="status"><span class="step">${st.coach + 1}/3</span><span class="msg">${COACH[st.coach]()}</span><button data-act="coach" aria-label="Hide tips">${ic("Cancel01", 14)}</button></div>` : "");
+
+/* ---------- type scale maths ---------- */
+const SCALE = [["Heading 1", "fraunces", 50, 5], ["Heading 2", "fraunces", 26, 2], ["Lead", "serif", 20, 1], ["Body", "serif", 17, 0], ["Caption", "haas", 12.5, -1], ["Label", "haas", 11.5, -2]];
+const ideal = (step) => Math.round(17 * Math.pow(st.ratio, step) * 2) / 2;
+const isFar = (size, step) => Math.abs(size - ideal(step)) / ideal(step) > 0.08;
+function scaleVars() { return `--sc-h1:${ideal(5)}px;--sc-h2:${ideal(2)}px;--sc-lead:${ideal(1)}px;--sc-cap:${ideal(-1)}px`; }
+
+/* ---------- small line illustrations ---------- */
+const ART = {
+  point: `<svg width="88" height="48" viewBox="0 0 88 48" fill="none" aria-hidden="true"><text x="14" y="31" font-family="Fraunces, serif" font-size="22" font-weight="600" class="ink">Aa</text><rect x="10.5" y="10.5" width="34" height="27" rx="3" class="acc" stroke-width="1.25"/><path d="M54 16h22M54 23h16M54 30h19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M38 28v13l3.5-3.4 2.6 6 2.6-1.2-2.6-5.8 4.8-.4z" class="ink" stroke="var(--panel-2)" stroke-width="1.2" stroke-linejoin="round"/></svg>`,
+  pin: `<svg width="88" height="48" viewBox="0 0 88 48" fill="none" aria-hidden="true"><rect x="18.5" y="6.5" width="51" height="35" rx="5" class="acc" stroke-width="1.25"/><path d="M26 15h20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M26 23h12M26 30h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="59" cy="16" r="4" class="accf"/><path d="M59 20v6" class="acc" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+  copy: `<svg width="88" height="48" viewBox="0 0 88 48" fill="none" aria-hidden="true"><rect x="12" y="13" width="22" height="22" rx="6" class="accf" opacity=".16"/><text x="23" y="29" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" font-weight="500" class="accf">C</text><path d="M42 24h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M47 21l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M58 15h16M62 21h14M62 27h10M58 33h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+};
+
+/* ---------- panel parts ---------- */
+const TABS = [["page", "TextFont", "Page"], ["image", "ImageUpload", "Image"], ["system", "Ruler", "System"], ["library", "Bookmark02", "Library"]];
+const KEYS = [["Pin the card", kbd("Space")], ["Copy all as CSS", kbd("C")], ["Save the font", kbd("S")], ["Read an area", kbd("A")], ["Unpin, then turn off", kbd("Esc")], ["Turn on or off", kbd("⌥", "⇧", "F")]];
+const head = () => {
+  if (st.view) {
+    const f = FONTS[st.view];
+    return `<div class="head"><div class="row"><button class="sqw" data-back aria-label="Back">${ic("ArrowLeft01")}</button><span class="crumb">${st.tab === "library" ? "Library" : "Page"} / <b>${f.name}</b></span><button class="btn" data-toast="${f.name} saved to your library">${ic("Bookmark02")}Save</button></div></div>`;
+  }
+  if (st.sub === "myfonts") return `<div class="head"><div class="row"><button class="sqw" data-sub-back aria-label="Back to System">${ic("ArrowLeft01")}</button><span class="crumb">System / <b>Use with my fonts</b></span></div></div>`;
+  return `<div class="head">
+    <div class="toprow"><button class="ib" data-act="toggle" aria-pressed="${st.on}" aria-label="Inspect fonts" title="Inspect fonts (I)">${ic("CursorPointer01")}</button><span class="grow"></span>
+      <button class="ib" data-menu="keys" aria-expanded="${st.menu === "keys"}" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">${ic("Keyboard")}</button><button class="ib" data-settings="appearance" aria-label="Settings" title="Settings">${ic("Settings02")}</button></div>
+    <div class="row"><button class="select" data-menu="site" aria-expanded="${st.menu === "site"}" aria-label="This page: fieldjournal.example, 3 fonts. More actions"><i class="st${st.on ? "" : " off"}"></i><span class="t">fieldjournal.example <em>· 3 fonts</em></span>${ic("ArrowDown01")}</button>
+      <button class="sqw" data-act="again" aria-label="Read the page again" title="Read the page again">${ic("Refresh")}</button>
+      <button class="btn pri" data-toast="3 fonts copied. Paste them into the Figma plugin" aria-label="Copy 3 fonts for Figma" title="Copy 3 fonts for Figma">${ic("Figma")}Copy<span class="badge">3</span></button></div>
+    <div class="tabs" role="tablist" aria-label="Sections">${TABS.map(([k, i, t]) => `<button role="tab" data-tab="${k}" aria-selected="${st.tab === k}" aria-label="${t}" title="${t}">${ic(i)}<span>${t}</span></button>`).join("")}</div>
+    ${st.menu === "site" ? `<div class="pop" style="left:16px;right:16px;top:calc(14px + var(--ib) + var(--ctl))" role="menu"><div class="ph">fieldjournal.example</div>
+      <button role="menuitem" data-pop="CSS for 3 fonts copied">${ic("SourceCode")}Copy CSS${kbd("C")}</button>
+      <button role="menuitem" data-pop="3 fonts copied for Figma">${ic("Figma")}Copy for Figma</button>
+      <button role="menuitem" data-pop="Opens Share">${ic("Share08")}Share this page's fonts</button>
+      <button role="menuitem" data-pop="Pick another tab to compare">${ic("ArrowReloadHorizontal")}Compare with another tab</button><span class="gap"></span>
+      <button role="menuitem" data-act="toggle">${ic(st.on ? "Power" : "CursorPointer01")}${st.on ? "Turn off on this page" : "Turn on"}${kbd("⌥", "⇧", "F")}</button></div>` : ""}
+    ${st.menu === "keys" ? `<div class="pop" style="right:16px;top:calc(10px + var(--ib));width:min(300px,calc(100% - 32px))" role="dialog" aria-label="Keyboard shortcuts"><div class="ph">On the page</div>
+      ${KEYS.map(([a, b]) => `<div class="keyrow"><span>${a}</span>${b}</div>`).join("")}</div>` : ""}
+  </div>`;
+};
+
+const fontRow = (k, i, lib) => {
+  const f = FONTS[k];
+  const sel = st.pinned && st.hover === k && !lib;
+  return `<article class="fr${sel ? " sel" : ""}" data-key="${k}"><div class="fr-t">${lib ? "" : `<span class="n">${String(i + 1).padStart(2, "0")}</span>`}<b>${f.name}</b>${lic(f.lic)}<span class="acts">${lib ? "" : `<button class="ib" data-show="${k}" aria-label="Show ${f.name} on the page" title="Show on the page">${ic("Target02")}</button>`}<button class="ib" data-toast="CSS for ${f.name} copied" aria-label="Copy CSS for ${f.name}" title="Copy CSS">${ic("SourceCode")}</button><button class="ib" data-toast="${f.name} ${lib ? "is already saved" : "saved to your library"}" aria-label="Save ${f.name}" title="Save">${ic("Bookmark02")}</button></span></div>
+    <div class="smp" style="font-family:${f.fam};font-weight:${f.w};font-size:${st.size}px">${esc(st.text || SAMPLE)}</div>
+    <div class="fr-b"><span>${lib ? `${f.cls} · from fieldjournal.example` : `${f.cls} · ${f.used} · ${f.count} places`}</span><button class="link" data-detail="${k}">Details${ic("ArrowRight01")}</button></div></article>`;
+};
+
+const V = {
+  page: () => `
+    <section class="sec" style="padding-top:12px"><div class="statusrow"><span class="dotwrap"><i class="st${st.on ? "" : " off"}"></i></span><div class="ht" style="flex:1"><h3>${st.on ? "Inspecting this page" : "Paused"}</h3><p>${st.on ? "Point at any text on the page to see its font." : "Turn it on to see fonts as you point at text."}</p></div><button class="switch" role="switch" aria-checked="${st.on}" aria-label="Inspect fonts" data-act="toggle"></button></div></section>
+    ${st.guide ? `<section class="sec"><div class="hrow"><div class="ht"><h3>How it works</h3><p>Three steps, all on the page.</p></div><button class="ib" data-act="guide" aria-label="Hide the guide" title="Hide the guide">${ic("Cancel01")}</button></div>
+      <div class="steps3">${[["point", "Point", "at any text"], ["pin", "Click to pin", `or press ${kbd("Space")}`], ["copy", "Copy", `a value, or ${kbd("C")} for CSS`]].map(([a, b, c]) => `<div class="step"><div class="art">${ART[a]}</div><div class="ht"><b>${b}</b><span>${c}</span></div></div>`).join("")}</div>
+      <div class="keystrip"><span>${kbd("Esc")}unpins, then turns off</span><span>${kbd("⌥", "⇧", "F")}turns on or off</span></div>
+      <button class="link" data-act="replay" style="align-self:flex-start">Show the tips on the page again</button></section>` : ""}
+    <section class="sec"><div class="setrow"><div><b>Read every page by itself</b><span class="s">Lets the panel read each page you open, without clicking.</span></div><button class="switch" role="switch" aria-checked="${st.readAll}" aria-label="Read every page by itself" data-act="readAll"></button></div></section>
+    <section class="sec"><div class="ht"><h3>Make it free</h3><p>1 font here is paid. Preview the page with the closest free font instead.</p></div>
+      <div class="swap"><div><b>Neue Haas Unica</b><span class="mt">${lic("paid")}</span></div>${ic("ArrowRight01")}<div><b>Inter</b><span class="mt">${lic("free")}<span class="count">93%</span></span></div></div>
+      <button class="btn" data-act="swap" style="align-self:flex-start">${st.swapped ? ic("Undo02") + "Put the page back" : ic("ArrowReloadHorizontal") + "Swap on the page"}</button>
+      <button class="notice" data-act="missing" aria-expanded="${st.missing}">${ic("Alert02")}<div><b>1 font did not load</b><span class="s">Another font shows instead</span></div>${ic("ArrowRight01")}</button>
+      ${st.missing ? `<div class="expand"><p><b style="color:var(--text)">Neue Haas Unica Bold</b> was blocked by the site, so Arial shows in the menu instead.</p><button class="link" data-show="haas" style="align-self:flex-start">Show where${ic("ArrowRight01")}</button></div>` : ""}</section>
+    <section class="sec"><div class="ht"><h3>Fonts on this page <span class="count">${ORDER.length}</span></h3></div>
+      <div class="tester"><div class="fld"><label for="tt">Preview text</label><div class="well inp">${ic("PencilEdit01")}<input id="tt" placeholder="Type your own text" value="${esc(st.text)}"></div></div>
+      <div class="fld"><label for="sz">Size</label><div class="well inp">${ic("Text")}<input type="range" min="18" max="44" value="${st.size}" id="sz" aria-label="Preview size"><span class="u" id="szv">${st.size}</span></div></div></div>
+      <div class="list">${ORDER.map((k, i) => fontRow(k, i)).join("")}</div></section>`,
+
+  detail: (k) => {
+    const f = FONTS[k];
+    const secs = ["Licence", "Similar", "Pairs", "On this page", "Letters", "Files"];
+    const body = {
+      Licence: f.lic === "free" ? `<div class="ht"><h3>SIL Open Font Licence</h3><p>Free for personal and commercial use.</p></div><div class="yes">${["Websites", "Print and images", "Apps and games", "Logos and branding"].map((x) => `<div>${ic("Tick02")}<span>${x}</span></div>`).join("")}</div><p class="t-xs" style="margin:0">A summary, not legal advice.</p>`
+        : `<div class="ht"><h3>Sold by Monotype</h3><p>You need a licence for each use. Check their terms before using it.</p></div><button class="btn" data-toast="Opens Monotype" style="align-self:flex-start">See the licence${ic("ArrowUpRight01")}</button>`,
+      Similar: `<div class="ht"><h3>Similar free fonts</h3><p>Closest by letter shape, from Google Fonts.</p></div><div>${(f.alike || [["Newsreader", "'Source Serif 4'", 84], ["Literata", "'Source Serif 4'", 80]]).map(([n, fam, m]) => `<div class="simrow"><div class="t"><b>${n}</b>${lic("free")}<em>${m}%</em></div><div class="s" style="font-family:${fam}">The quick brown fox jumps</div><div class="a"><button class="btn" data-toast="Showing ${n} on the page">Try on the page</button><button class="btn quiet" data-toast="Opens Google Fonts">Google Fonts${ic("ArrowUpRight01")}</button></div></div>`).join("")}</div>`,
+      Pairs: `<div class="ht"><h3>Goes well with</h3><p>Pairs that work for headings and body text.</p></div><div>${[["Inter", "'Inter'", "Clean sans for body and labels"], ["Source Serif 4", "'Source Serif 4'", "Already on this page, for long reading"]].map(([n, fam, r]) => `<div class="simrow"><div class="t"><b style="font-family:${f.fam};font-weight:${f.w};font-size:18px">${f.name}</b><em>+ ${n}</em></div><div style="font-family:${fam};color:var(--text-2)">${r}. The path climbs gently for the first hour.</div></div>`).join("")}</div>`,
+      "On this page": `<div class="ht"><h3>On this page</h3><p>${f.used} · ${f.count} places</p></div><div class="grid2">${[["Weight", "TextBold", f.wn], ["Size", "Text", f.size], ["Line height", "TextVerticalAlignment", f.lh], ["Spacing", "LetterSpacing", f.ls], ["Colour", null, f.color], ["Places", "Target02", String(f.count)]].map(([a, i, b]) => `<div class="fld"><span class="fl">${a}</span><button class="well" data-toast="${a} copied" aria-label="Copy ${a}, ${b}">${i ? ic(i) : `<i class="dot" style="background:${f.color};width:14px;height:14px;border-radius:4px"></i>`}<span class="v">${b}</span></button></div>`).join("")}</div><button class="btn" data-show="${k}" style="align-self:flex-start">${ic("Target02")}Show on the page</button>`,
+      Letters: `<div class="ht"><h3>Letters</h3><p>24 of 35 languages · 1,216 characters</p></div><div class="glyphs" style="font-family:${f.fam}">${"AaBbGgQq&?ß€".match(/./gu).map((c) => `<span>${c}</span>`).join("")}</div>`,
+      Files: `<div class="ht"><h3>Files</h3><p>${f.lic === "free" ? "Loaded by this page. Free to download." : "Loaded by this page. You need a licence to use them."}</p></div><div class="files">${[[f.file, f.kb], [f.file.replace(/\.woff2$/, "-Italic.woff2"), "104 KB"]].map(([n, s]) => `<div><b>${n}</b><span>${s}</span>${f.lic === "free" ? `<button class="ib" data-toast="Downloading ${n}" aria-label="Download ${n}">${ic("Download01")}</button>` : ""}</div>`).join("")}</div>`,
+    };
+    return `<section class="sec hero" style="padding-top:8px"><div class="meta">${lic(f.lic)}<span>${f.cls} · ${f.src}</span></div><div class="ht"><div class="nm" style="font-family:${f.fam};font-weight:${f.w}">${f.name}</div><p>by ${f.by}</p></div>
+      <div class="acts3"><button class="btn" data-toast="Name copied">${ic("Copy01")}Name</button><button class="btn" data-toast="CSS copied">${ic("SourceCode")}CSS</button><button class="btn" data-toast="Opens Share">${ic("Share08")}Share</button></div>
+      <button class="btn pri wide" data-toast="Opens ${f.src}">Open on ${f.src}${ic("ArrowUpRight01")}</button></section>
+    <section class="sec" style="padding-bottom:8px"><div class="chips" role="group" aria-label="Sections">${secs.map((s) => `<button data-sec="${s}" aria-pressed="${st.sec === s}">${s}</button>`).join("")}</div></section>
+    <section class="sec">${body[st.sec]}</section>`;
+  },
+
+  image: () => `<section class="sec" style="padding-top:12px"><div class="drop">
+      <svg class="ill" width="168" height="96" viewBox="0 0 168 96" fill="none" aria-hidden="true">
+        <rect x="20.5" y="10.5" width="127" height="75" rx="8" stroke="currentColor"/>
+        <path d="M20.5 70.5l30-26 22 18 18-12 30 20" stroke="currentColor" stroke-linejoin="round"/>
+        <circle cx="122" cy="28" r="6" stroke="currentColor"/>
+        <rect x="44.5" y="28.5" width="60" height="30" rx="2" class="acc" stroke-width="1.25"/>
+        <text x="74.5" y="49" text-anchor="middle" font-family="Fraunces, serif" font-size="17" font-weight="600" class="ink">Aa</text>
+        <circle cx="44.5" cy="28.5" r="2.5" class="accf"/><circle cx="104.5" cy="28.5" r="2.5" class="accf"/><circle cx="44.5" cy="58.5" r="2.5" class="accf"/><circle cx="104.5" cy="58.5" r="2.5" class="accf"/>
+        <path d="M100 60v15l4-4 3 7 3-1.4-3-6.6 5.5-.4z" class="ink" stroke="var(--panel-2)" stroke-width="1.2" stroke-linejoin="round"/>
+      </svg>
+      <div class="ht"><h3 style="justify-content:center">Find the font in a picture</h3><p>Paste, drop or choose a screenshot, photo or poster. It's read on this computer, nothing is uploaded.</p></div>
+      <div class="acts"><button class="btn pri" data-toast="Pick a picture">Choose a picture</button><button class="btn" data-dock="area">${ic("ScanImage")}Select an area</button></div>
+      <div class="keystrip"><span>${kbd("⌘", "V")}paste</span><span>${kbd("A")}select an area</span><span>${kbd("Esc")}cancel</span></div>
+    </div></section>
+    <section class="sec"><div class="ht"><h3>Recent <span class="count">3</span></h3></div>
+    <div class="thumbs">${[["linear-gradient(135deg,#f3d9b1,#c98b5b)", "Coffee shop menu", "Playfair Display", "2 days ago", "'Fraunces'"], ["linear-gradient(135deg,#1f2a44,#4d6a9a)", "Conference poster", "Space Grotesk", "Last week", "'Inter'"], ["linear-gradient(135deg,#d9dce2,#9aa0aa)", "Screenshot 14:02", "Inter", "Last week", "'Inter'"]].map(([g, a, b, c, fam]) => `<button data-toast="Opens ${a}"><span class="th" style="background:${g};font-family:${fam}">Aa</span><span class="cap"><b>${a}</b><span>${b} · ${c}</span></span></button>`).join("")}</div></section>`,
+
+  system: () => {
+    const codes = { CSS: ":root {\n  --font-heading: 'Fraunces', serif;\n  --font-body: 'Source Serif 4', serif;\n  --text-h1: 50px/1.04;\n  --text-body: 17px/1.65;\n}", Tailwind: "@theme {\n  --font-heading: 'Fraunces', serif;\n  --font-body: 'Source Serif 4', serif;\n  --text-h1: 50px;\n}", Tokens: '{\n  "font": {\n    "heading": { "$value": "Fraunces" },\n    "body": { "$value": "Source Serif 4" }\n  }\n}', Figma: "6 text styles, ready to paste\ninto Figma with the plugin." };
+    const far = SCALE.filter(([, , s, step]) => isFar(s, step)).length;
+    return `<section class="sec" style="padding-top:12px"><div class="hrow"><div class="ht"><h3>Type scale <span class="count">6 styles</span></h3><p>The sizes this website uses, next to a tidy scale built from its body size (17px). Each step is ${st.ratio}× the one before.</p></div><button class="ib" data-act="again" aria-label="Check the page again" title="Check the page again">${ic("Refresh")}</button></div>
+      <div class="ratio"><span class="rl" id="rl">How much bigger each step is</span><div class="rseg" role="group" aria-labelledby="rl">${[1.125, 1.2, 1.25, 1.333, 1.5].map((r) => `<button data-ratio="${r}" aria-pressed="${st.ratio === r}">${r}</button>`).join("")}</div></div>
+      <table class="scale"><thead><tr><th scope="col">Style</th><th scope="col">This site</th><th scope="col">Clean scale</th></tr></thead><tbody>${SCALE.map(([n, k, s, step]) => `<tr><td style="font-family:${FONTS[k].fam};font-weight:${FONTS[k].w};font-size:${Math.min(s, 24)}px;line-height:1.2">${n}</td><td>${isFar(s, step) ? '<i class="fd" title="Far from the scale"></i>' : ""}${s}px</td><td class="ideal">${ideal(step)}px</td></tr>`).join("")}</tbody></table>
+      <p class="t-xs" style="margin:0">${far ? `${far} ${far === 1 ? "size is" : "sizes are"} far from the scale, marked with a dot. ${far === 1 ? "It" : "They"} would change the most.` : "Every size is close to this scale."}</p>
+      <div class="row"><button class="btn" data-act="try">${st.trying ? ic("Undo02") + "Put page back" : ic("View") + "Try on the page"}</button><button class="btn quiet" data-toast="Scale copied as CSS">${ic("Copy01")}Copy CSS</button></div></section>
+    <section class="sec"><button class="entry" data-sub="myfonts">${ic("MagicWand01")}<div><b>Use with my fonts</b><span>Pick a heading and body font. Sizes and spacing are adjusted to fit them.</span></div>${ic("ArrowRight01")}</button>
+      <button class="entry" data-act="figma" aria-expanded="${st.figma}">${ic("ClipboardPaste")}<div><b>Paste type from Figma</b><span>${st.figma ? `In the Font Finder Plus Figma plugin, choose See it on the web. Then press ${kbd("⌘", "V")} here.` : "Try text styles from the Figma plugin on this page."}</span></div>${ic("ArrowRight01")}</button></section>
+    <section class="sec"><div class="ht"><h3>Readability</h3><p>Checked against WCAG 2.1 AA contrast and common reading guidelines.</p></div>
+      <div class="score"><b>86</b><span>out of 100 · 3 of 4 passed</span></div><div class="bar"><i></i></div>
+      <div class="checks">${[[0, "Two heading sizes are very close", "Lead (20px) and Heading 2 (26px) read alike on phones."], [1, "Body text is 16px or bigger", "Body is 17px."], [1, "Contrast passes AA", "Lowest is 7.9:1, the captions."], [1, "Lines are 45 to 80 characters", "About 68 in the article."]].map(([o, t, s]) => `<div><span class="ci ${o ? "ok" : "no"}">${ic(o ? "Tick02" : "Alert02")}</span><div class="t"><span class="l">${t}</span><span>${s}</span></div>${o ? "" : `<button class="link" data-show="serif">Show</button>`}</div>`).join("")}</div>
+      <p class="t-xs" style="margin:0">Text on images or gradients is not checked for contrast.</p>
+      <button class="notice" data-act="dev" aria-expanded="${st.dev}">${ic("SourceCode")}<div><b>Developer checks</b><span class="s">Fonts, files, formats and loading</span></div>${ic("ArrowRight01")}</button>
+      ${st.dev ? `<div class="expand"><div class="files">${[["Families", "3"], ["Files", "5 · 412 KB"], ["Formats", "WOFF2"], ["font-display", "swap"], ["Not found", "1, a stand-in shows"]].map(([a, b]) => `<div style="min-height:28px"><span style="flex:1;color:var(--text);font-size:var(--fs-sm)">${a}</span><span>${b}</span></div>`).join("")}</div></div>` : ""}</section>
+    <section class="sec"><div class="ht"><h3>Export</h3><p>Copy it as code, or paste it into a design tool.</p></div><div class="seg" role="group" aria-label="Export format" style="display:grid;grid-template-columns:repeat(4,1fr)">${Object.keys(codes).map((x) => `<button data-exp="${x}" aria-pressed="${st.exp === x}">${x}</button>`).join("")}</div><pre class="code">${codes[st.exp]}</pre>
+      <div class="row"><button class="btn" data-toast="${st.exp} copied">${st.exp === "Figma" ? ic("Figma") + "Copy for Figma" : ic("Copy01") + "Copy " + st.exp}</button><button class="btn quiet" data-toast="Downloading">${ic("Download01")}Download</button></div></section>
+    <section class="sec"><button class="notice" data-toast="Open another site in a new tab and click the Font Finder Plus icon there">${ic("ArrowReloadHorizontal")}<div><b>Compare with another tab</b><span class="s">See this page's type next to another site.</span></div>${ic("ArrowRight01")}</button></section>`;
+  },
+
+  myfonts: () => {
+    const OPTS = { fraunces: "Your Library", serif: "Google Fonts", haas: "This computer" };
+    const slot = (key, label, icon) => {
+      const cur = st.slots[key];
+      return `<div class="fld slot"><span class="fl">${label}</span><button class="well" data-slot="${key}" aria-expanded="${st.slotOpen === key}">${ic(icon)}${cur ? `<span class="nm" style="font-family:${FONTS[cur].fam};font-weight:${FONTS[cur].w}">${FONTS[cur].name}</span><span class="src">${OPTS[cur]}</span>` : `<span class="nm" style="color:var(--text-2);font-size:13px">No mono font</span>`}<span class="link">Change</span></button>
+        ${st.slotOpen === key ? `<div class="opts" role="listbox" aria-label="${label}">${[...ORDER, ...(key === "mono" ? [null] : [])].map((k) => `<button role="option" data-pick="${key}:${k}" aria-pressed="${cur === k}" aria-selected="${cur === k}">${k ? `<span class="nm" style="font-family:${FONTS[k].fam};font-weight:${FONTS[k].w}">${FONTS[k].name}</span><span class="src">${OPTS[k]}</span>` : `<span class="nm" style="font-size:13px">No mono font</span><span class="src">Labels use your body font</span>`}</button>`).join("")}</div>` : ""}</div>`;
+    };
+    return `<div class="viewtitle"><h2 class="t-xl">Use with my fonts</h2><p>This site's type system, redone in your fonts.</p></div>
+    <section class="sec"><div class="ht"><h3><span class="num">1</span>Pick your fonts</h3><p>Tap a slot to choose from your Library, Google Fonts or this computer.</p></div>
+      <div class="slots">${slot("heading", "Headings", "Heading")}${slot("body", "Body text", "Text")}${slot("mono", "Code and labels", "SourceCode")}</div></section>
+    <section class="sec"><div class="hrow"><div class="ht"><h3><span class="num">2</span>See it on this page</h3><p>Shows your fonts and sizes on the website in this tab. Turn it off to put the page back.</p></div><button class="switch" role="switch" aria-checked="${st.mine}" aria-label="See it on this page" data-act="mine"></button></div>
+      <div class="grid2">${[["Heading 1", "50 → 48px"], ["Body", "17 → 17px"], ["Line height", "1.65 → 1.6"], ["Spacing", "-0.02 → -0.015em"]].map(([a, b]) => `<div class="fld"><span class="fl">${a}</span><div class="well"><span class="v">${b}</span></div></div>`).join("")}</div>
+      <p class="t-xs" style="margin:0">Each value is worked out from the fonts' real proportions.</p></section>
+    <section class="sec"><div class="ht"><h3><span class="num">3</span>Export these styles</h3></div>
+      <div class="fld"><span class="fl">Format</span><div class="seg" style="display:grid;grid-template-columns:repeat(3,1fr)">${["CSS", "Tailwind", "Figma"].map((x) => `<button data-myfmt="${x}" aria-pressed="${st.myFmt === x}">${x}</button>`).join("")}</div></div>
+      <div class="row"><button class="btn pri" data-toast="${st.myFmt} copied">${ic("Copy01")}Copy ${st.myFmt}</button><button class="btn" data-toast="Downloading">${ic("Download01")}Download</button></div></section>`;
+  },
+
+  library: () => `<section class="sec" style="padding-top:12px;padding-bottom:8px"><div class="row"><label class="well inp grow">${ic("Search01")}<input placeholder="Search your library" aria-label="Search your library"></label><button class="sqw" style="width:var(--inp);height:var(--inp)" data-toast="Filters: licence, style, where it comes from" aria-label="Filters" title="Filters">${ic("FilterHorizontal")}</button></div></section>
+    <section class="sec"><div class="hrow"><div class="ht"><h3>Collections</h3></div><button class="ib" data-toast="New collection" aria-label="New collection" title="New collection">${ic("PlusSign")}</button></div>
+      <div class="list">${[["Editorial", ["#e86f4a", "#f2c14e"], 6], ["Client: Ledgerly", ["#4a7ee8", "#9ab8f2"], 4], ["Display", ["#5a5f6a", "#a3a8b2"], 9]].map(([n, c, k]) => `<button class="colrow" data-col="${n}" aria-pressed="${st.col === n}"><span class="sw">${c.map((x) => `<i style="background:${x}"></i>`).join("")}</span><b>${n}</b><span class="count">${k}</span></button>`).join("")}</div></section>
+    <section class="sec"><div class="hrow"><div class="ht"><h3>${st.col ? esc(st.col) : "Saved"} <span class="count">${st.col ? 2 : 12}</span></h3></div>${st.col ? `<button class="btn quiet" data-col="${st.col}" style="margin:-6px -8px 0 0">Show all</button>` : ""}</div>
+      <div class="list">${["fraunces", "serif"].map((k, i) => fontRow(k, i, true)).join("")}</div></section>
+    <section class="sec"><div class="list"><button class="colrow" data-toast="Opens the history">${ic("Clock01")}<b>Fonts I've seen</b>${ic("ArrowRight01")}</button><button class="colrow" data-toast="Opens Boards">${ic("DashboardSquare01")}<b>Boards</b>${ic("ArrowRight01")}</button></div>
+      <div class="row"><button class="btn quiet" data-toast="Library saved as a file" style="margin-left:-8px">${ic("Download01")}Export library</button><button class="btn quiet" data-toast="Pick a library file">${ic("Upload01")}Import</button></div></section>`,
+};
+
+/* ---------- settings dialog ---------- */
+const SNAV = [["appearance", "Palette", "Appearance"], ["inspecting", "CursorPointer01", "Inspecting"], ["google", "Lock", "Google Fonts key"], ["data", "Folder01", "Your data"], ["about", "InformationCircle", "About"]];
+const SBODY = {
+  appearance: () => `<div class="dhead"><h2 class="t-xl">Appearance</h2><p>How the panel looks. The page you are reading is never changed.</p></div>
+    <div class="themes" role="group" aria-label="Theme">${[["system", "System"], ["light", "Light"], ["dark", "Dark"]].map(([k, n]) => `<button data-theme-set="${k}" aria-pressed="${st.theme === k}"><span class="thumb ${k}"><i></i><i></i><i></i></span>${n}</button>`).join("")}</div>
+    <div class="setrow"><div><b>“How it works” guide</b><span class="s">A short guide at the top of the Page tab, for when you're new.</span></div><button class="switch" role="switch" aria-checked="${st.guide}" aria-label="How it works guide" data-act="guideSet"></button></div>`,
+  inspecting: () => `<div class="dhead"><h2 class="t-xl">Inspecting</h2><p>What Font Finder Plus reads, and when.</p></div>
+    <div class="setrow"><div><b>Read fonts on every site</b><span class="s">${st.readAll ? "On. Font Finder Plus can open font files on any site, so it can show the foundry, format and metrics." : "Off. Sites that block their font files will be missing the foundry, format and metrics."}</span></div><button class="switch" role="switch" aria-checked="${st.readAll}" aria-label="Read fonts on every site" data-act="readAll"></button></div>
+    <div class="setrow"><div><b>Fonts I've seen</b><span class="s">${st.seen ? "On. The fonts on pages you read are kept in a history on this computer, so you can find them later." : "Off. Turn it on to keep a history of the fonts on pages you read."}</span>${st.seen ? `<button class="btn" style="align-self:flex-start;margin-top:6px" data-toast="Opens the history">${ic("Clock01")}Open the history</button>` : ""}</div><button class="switch" role="switch" aria-checked="${st.seen}" aria-label="Fonts I've seen" data-act="seen"></button></div>`,
+  google: () => `<div class="dhead"><h2 class="t-xl">Google Fonts key <span class="pill">Optional</span></h2><p>Font Finder Plus has a built-in list of 1,950 Google Fonts. Add a key to use the live list instead, with fonts added since 26 October 2026. The key stays on this computer.</p></div>
+    <div class="fld"><label for="gk">API key</label><div class="well inp">${ic("Lock")}<input id="gk" type="${st.keyShow ? "text" : "password"}" placeholder="Paste your key" autocomplete="off" spellcheck="false"><button class="ib" data-act="keyShow" aria-label="${st.keyShow ? "Hide key" : "Show key"}" style="margin-right:-8px">${ic(st.keyShow ? "ViewOff" : "View")}</button></div></div>
+    <div class="row" style="margin-top:-12px"><button class="btn" data-toast="Key saved">Save key</button><button class="btn quiet" data-toast="Testing the key">Test key</button><span class="grow"></span><a class="link" href="#" data-toast="Opens Google's guide">Get a key${ic("ArrowUpRight01")}</a></div>`,
+  data: () => `<div class="dhead"><h2 class="t-xl">Your data</h2><p>Your library and history stay on this computer, and nothing about your browsing is sent anywhere. Font files only come from the sites that already use them, and free look-alikes from Google Fonts and Fontshare.</p></div>
+    <div class="setrow"><div><b>Library file</b><span class="s">Save your library as a file, to back it up or move it to another computer.</span><div class="row" style="margin-top:6px;flex-wrap:wrap"><button class="btn" data-toast="Library saved as a file">${ic("Download01")}Export library</button><button class="btn" data-toast="Pick a library file">${ic("Upload01")}Import library</button></div></div></div>
+    <div class="setrow"><div>${st.wipe ? `<div class="confirm" role="alert"><b>Delete all your data?</b><p>This removes your saved fonts, collections, boards, history and screenshots from this computer. It can't be undone. Export your library first if you want a copy.</p><div class="crow"><button class="btn dangerfill" data-act="wipeYes">Delete everything</button><button class="btn" data-act="wipe">Cancel</button></div></div>`
+      : `<b>Delete all my data</b><span class="s">Removes everything Font Finder Plus keeps on this computer.</span><button class="btn danger" data-act="wipe" style="align-self:flex-start;margin-top:6px">${ic("Delete02")}Delete all my data</button>`}</div></div>`,
+  about: () => `<div class="about"><span class="logo">F</span><div><h2 class="t-xl" style="margin:0">Font Finder Plus 0.1.0</h2><span class="t-xs">Built-in list of 1,950 Google Fonts, updated 26 October 2026.</span></div></div>
+    <div class="links"><button data-toast="Opens the shortcuts">${ic("Keyboard")}Keyboard shortcuts<span class="link">See all${ic("ArrowRight01")}</span></button><a href="#" data-toast="Opens the privacy page">${ic("Lock")}Privacy<span class="link">Read${ic("ArrowUpRight01")}</span></a><a href="#" data-toast="Opens your email">${ic("Mail01")}Send feedback<span class="link">Email us${ic("ArrowUpRight01")}</span></a><a href="#" data-toast="Opens the Chrome Web Store">${ic("Star")}Rate it<span class="link">Web Store${ic("ArrowUpRight01")}</span></a></div>`,
+};
+const settings = () => !st.settings ? "" : `<div class="scrim" data-scrim><div class="dlg" role="dialog" aria-modal="true" aria-label="Settings">
+  <nav class="dnav" aria-label="Settings sections"><span class="ov">Settings</span>${SNAV.map(([k, i, n]) => `<button data-settings="${k}" aria-current="${st.settings === k}">${ic(i)}${n}</button>`).join("")}
+    <div class="bottom"><button class="btn quiet" data-act="offAll" style="justify-content:flex-start">${ic("Power")}Turn off on this page</button><button class="btn quiet" data-act="resetTips" style="justify-content:flex-start">${ic("Undo02")}Reset tips</button></div></nav>
+  <div class="dbody"><div class="dscroll">${SBODY[st.settings]()}</div><div class="dfoot"><button class="btn quiet mobq" data-act="resetTips">${ic("Undo02")}Reset tips</button><button class="btn pri" data-act="closeSettings">Done</button></div></div>
+  <button class="ib dclose" data-act="closeSettings" aria-label="Close settings">${ic("Cancel01")}</button></div></div>`;
+
+const panel = () => `<aside class="sp" aria-label="Chrome side panel"><div class="sp-chrome"><span class="logo">F</span>Font Finder Plus<span class="x"><button aria-label="Pin the panel" data-toast="Pinned to the toolbar">${ic("Pin", 15)}</button><button data-dock="panel" aria-label="Close the panel">${ic("Cancel01", 15)}</button></span></div>
+  <div class="app" id="app">${head()}<div class="view">${st.view ? V.detail(st.view) : st.sub ? V[st.sub]() : V[st.tab]()}</div></div></aside>`;
+
+/* ---------- render and behaviour ---------- */
+const stage = document.getElementById("stage");
+let lastEl = null;
+function render(keepScroll = true) {
+  const sc = document.querySelector(".site")?.scrollTop || 0, ap = keepScroll ? document.getElementById("app")?.scrollTop || 0 : 0;
+  const ds = document.querySelector(".dscroll")?.scrollTop || 0;
+  stage.innerHTML = `<div class="desk"><div class="win"><div class="chrome"><span class="lights"><i></i><i></i><i></i></span><span class="url">fieldjournal.example/essays/the-lake</span><button class="ext" aria-label="Font Finder Plus" data-act="ext"><span class="logo">F</span></button></div>
+    <div class="vp" id="vp">${site()}${st.on ? coach() + dock() + hoverCard() : ""}</div></div>${st.panel ? panel() : ""}</div>${settings()}`;
+  const s = document.querySelector(".site"); if (s) s.scrollTop = sc;
+  const a = document.getElementById("app"); if (a) { a.scrollTop = ap; a.classList.toggle("scrolled", ap > 0); a.addEventListener("scroll", () => a.classList.toggle("scrolled", a.scrollTop > 0), { passive: true }); }
+  const d = document.querySelector(".dscroll"); if (d) d.scrollTop = ds;
+  if (st.pinned && st.el != null) { const el = document.querySelectorAll(".site [data-f]")[st.el]; el?.classList.add("sel"); place(el); }
+  clampDock();
+  strip();
+}
+let toastT;
+function toast(m) { document.querySelector(".toast")?.remove(); const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = m; document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 2200); }
+function pin(el) { const all = [...document.querySelectorAll(".site [data-f]")]; st.pinned = true; st.el = all.indexOf(el); st.hover = el.dataset.f; st.tag = el.tagName.toLowerCase(); if (st.coach < 2) st.coach = 2; }
+function place(el) {
+  const vp = document.getElementById("vp"), hc = vp?.querySelector(".hc");
+  if (!hc || !el) return;
+  const rg = document.createRange(); rg.selectNodeContents(el); const r = rg.getClientRects()[0] || el.getBoundingClientRect(); const v = vp.getBoundingClientRect();
+  const er = el.getBoundingClientRect(); let top = er.bottom - v.top + 12; if (top + hc.offsetHeight > v.height - 12) top = Math.max(8, er.top - v.top - hc.offsetHeight - 12);
+  top = Math.min(top, Math.max(8, v.height - hc.offsetHeight - 8));
+  const left = Math.min(Math.max(12, r.left - v.left), v.width - hc.offsetWidth - 12);
+  hc.style.top = top + "px"; hc.style.left = Math.max(12, left) + "px"; hc.classList.add("show"); hc.classList.toggle("pinned", st.pinned);
+}
+function showOnPage(key) {
+  const s = document.querySelector(".site"); const els = [...document.querySelectorAll(`.site [data-f="${key}"]`)];
+  if (!s || !els[0]) return;
+  s.scrollTop = Math.max(0, els[0].offsetTop - s.clientHeight / 3);
+  els.forEach((x) => x.classList.add("flash")); setTimeout(() => els.forEach((x) => x.classList.remove("flash")), 2200);
+  const vp = document.getElementById("vp").getBoundingClientRect(); if (vp.bottom < 0 || vp.top > innerHeight) toast(`${FONTS[key].name} is outlined on the page above`);
+}
+const panelVisible = () => { const a = document.getElementById("app"); if (!a) return false; const r = a.getBoundingClientRect(); return r.top < innerHeight - 80 && r.bottom > 80; };
+
+/* dock dragging: pointer (mouse and touch) on the grip, arrow keys when the grip has focus */
+function clampDock() {
+  const dk = document.querySelector(".dock"), vp = document.getElementById("vp");
+  if (!dk || !vp || !st.dock) return;
+  st.dock.x = Math.max(8, Math.min(st.dock.x, vp.clientWidth - dk.offsetWidth - 8));
+  st.dock.y = Math.max(8, Math.min(st.dock.y, vp.clientHeight - dk.offsetHeight - 8));
+  dk.style.left = st.dock.x + "px"; dk.style.top = st.dock.y + "px"; dk.style.transform = "none"; dk.style.bottom = "auto";
+}
+function dockStart() { const dk = document.querySelector(".dock"), vp = document.getElementById("vp"); const a = dk.getBoundingClientRect(), v = vp.getBoundingClientRect(); st.dock = { x: a.left - v.left, y: a.top - v.top }; clampDock(); return { dk, a }; }
+document.addEventListener("pointerdown", (e) => {
+  const g = e.target.closest("[data-grip]"); if (!g) return;
+  e.preventDefault();
+  const { dk, a } = dockStart(); const ox = e.clientX - a.left, oy = e.clientY - a.top;
+  dk.classList.add("dragging"); try { g.setPointerCapture(e.pointerId); } catch {}
+  const mv = (ev) => { const v = document.getElementById("vp").getBoundingClientRect(); st.dock.x = ev.clientX - v.left - ox; st.dock.y = ev.clientY - v.top - oy; clampDock(); };
+  const up = () => { dk.classList.remove("dragging"); g.removeEventListener("pointermove", mv); g.removeEventListener("pointerup", up); g.removeEventListener("pointercancel", up); };
+  g.addEventListener("pointermove", mv); g.addEventListener("pointerup", up); g.addEventListener("pointercancel", up);
+});
+
+document.addEventListener("mouseover", (e) => {
+  if (!st.on || st.pinned) return;
+  const el = e.target.closest(".site [data-f]"); if (!el) return;
+  lastEl = el; st.tag = el.tagName.toLowerCase(); if (st.coach === 0) { st.coach = 1; const c = document.querySelector(".coach .msg"); if (c) { c.innerHTML = COACH[1](); document.querySelector(".coach .step").textContent = "2/3"; } }
+  st.hover = el.dataset.f; const hc = document.querySelector("#vp .hc"); if (hc) hc.outerHTML = hoverCard();
+  place(el);
+});
+document.addEventListener("mouseout", (e) => { if (!st.pinned && e.target.closest?.(".site [data-f]") && !e.relatedTarget?.closest?.(".site [data-f]")) document.querySelector("#vp .hc")?.classList.remove("show"); });
+document.addEventListener("input", (e) => {
+  if (e.target.id === "tt") { st.text = e.target.value; document.querySelectorAll(".fr .smp").forEach((s) => (s.textContent = st.text || SAMPLE)); }
+  if (e.target.id === "sz") { st.size = +e.target.value; document.getElementById("szv").textContent = st.size; document.querySelectorAll(".fr .smp").forEach((s) => (s.style.fontSize = st.size + "px")); }
+});
+document.addEventListener("click", (e) => {
+  const t = e.target;
+  if (t.closest('a[href="#"]')) e.preventDefault();
+  if (t.closest("[data-grip]")) return;
+  const pr = t.closest("[data-prim]"); if (pr) { st.primary = pr.dataset.prim; document.documentElement.dataset.primary = st.primary; return strip(); }
+  const th = t.closest("[data-theme-set]"); if (th) { st.theme = th.dataset.themeSet; document.documentElement.dataset.theme = st.theme === "system" ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : st.theme; return render(); }
+  if (st.menu && !t.closest(".pop") && !t.closest("[data-menu]")) { st.menu = null; render(); if (!t.closest("[data-tab],[data-settings],[data-act]")) return; }
+  const pop = t.closest("[data-pop]"); if (pop) { st.menu = null; toast(pop.dataset.pop); return render(); }
+  const mn = t.closest("[data-menu]"); if (mn) { st.menu = st.menu === mn.dataset.menu ? null : mn.dataset.menu; return render(); }
+  if (t.matches("[data-scrim]")) { st.settings = null; st.wipe = false; return render(); }
+  const se = t.closest("[data-settings]"); if (se) { st.settings = se.dataset.settings; st.wipe = false; st.menu = null; return render(); }
+  const tst = t.closest("[data-toast]"); if (tst) toast(tst.dataset.toast);
+  const tab = t.closest("[data-tab]"); if (tab) { st.tab = tab.dataset.tab; st.view = null; st.sub = null; return render(false); }
+  const det = t.closest("[data-detail]"); if (det) { st.view = det.dataset.detail; st.sec = "Licence"; return render(false); }
+  if (t.closest("[data-back]")) { st.view = null; return render(false); }
+  const sb = t.closest("[data-sub]"); if (sb) { st.sub = sb.dataset.sub; return render(false); }
+  if (t.closest("[data-sub-back]")) { st.sub = null; st.slotOpen = null; return render(false); }
+  const sec = t.closest("[data-sec]"); if (sec) { st.sec = sec.dataset.sec; return render(); }
+  const ex = t.closest("[data-exp]"); if (ex) { st.exp = ex.dataset.exp; return render(); }
+  const mf = t.closest("[data-myfmt]"); if (mf) { st.myFmt = mf.dataset.myfmt; return render(); }
+  const ra = t.closest("[data-ratio]"); if (ra) { st.ratio = +ra.dataset.ratio; return render(); }
+  const co = t.closest("[data-col]"); if (co) { st.col = st.col === co.dataset.col ? null : co.dataset.col; return render(); }
+  const sl = t.closest("[data-slot]"); if (sl) { st.slotOpen = st.slotOpen === sl.dataset.slot ? null : sl.dataset.slot; return render(); }
+  const pk = t.closest("[data-pick]"); if (pk) { const [k, v] = pk.dataset.pick.split(":"); st.slots[k] = v === "null" ? null : v; st.slotOpen = null; return render(); }
+  const sh = t.closest("[data-show]"); if (sh) { showOnPage(sh.dataset.show); return; }
+  const act = t.closest("[data-act]")?.dataset.act;
+  const flips = { guide: () => { st.guide = false; }, guideSet: () => { st.guide = !st.guide; }, readAll: () => { st.readAll = !st.readAll; }, seen: () => { st.seen = !st.seen; }, missing: () => { st.missing = !st.missing; }, dev: () => { st.dev = !st.dev; }, figma: () => { st.figma = !st.figma; }, keyShow: () => { st.keyShow = !st.keyShow; }, wipe: () => { st.wipe = !st.wipe; },
+    mine: () => { st.mine = !st.mine; toast(st.mine ? "Your fonts are showing on the page" : "The page is back as it was"); },
+    try: () => { st.trying = !st.trying; toast(st.trying ? `Showing the ×${st.ratio} scale on the page` : "The page is back as it was"); },
+    swap: () => { st.swapped = !st.swapped; toast(st.swapped ? "Showing free fonts on the page" : "The page is back as it was"); },
+    wipeYes: () => { st.wipe = false; toast("All your data was deleted"); },
+    closeSettings: () => { st.settings = null; st.wipe = false; },
+    offAll: () => { st.settings = null; st.on = false; st.pinned = false; toast("Turned off. Press ⌥⇧F or click the icon to start again"); },
+    resetTips: () => { st.coach = 0; st.guide = true; st.on = true; toast("The tips will show again"); },
+    again: () => { toast("Read the page again. Nothing changed"); },
+    toggle: () => { st.on = !st.on; st.pinned = false; st.menu = null; },
+    coach: () => { st.coach = 3; }, replay: () => { st.coach = 0; st.on = true; },
+    ext: () => { if (!st.on) st.on = true; else st.panel = true; } };
+  if (act && flips[act]) { flips[act](); return render(); }
+  const cp = t.closest("[data-copy]"); if (cp) { const b = cp.querySelector("em"), old = b.innerHTML; b.textContent = "Copied"; setTimeout(() => { b.innerHTML = old; }, 1100); if (st.coach === 2) { st.coach = 3; document.querySelector(".coach")?.remove(); } return; }
+  if (t.closest("[data-copycss]")) { toast("CSS copied: font, size, weight, line height, spacing, colour"); if (st.coach === 2) { st.coach = 3; document.querySelector(".coach")?.remove(); } return; }
+  const hcb = t.closest("[data-hc]"); if (hcb) {
+    if (hcb.dataset.hc === "details") { st.panel = true; st.view = st.hover; st.sub = null; st.sec = "Licence"; render(false); if (!panelVisible()) toast("Details opened in the panel below"); return; }
+    st.pinned = false; st.el = null; return render();
+  }
+  const d = t.closest("[data-dock]");
+  if (d) {
+    const k = d.dataset.dock;
+    if (k === "panel") st.panel = !st.panel;
+    if (k === "inspect") { st.on = true; st.pinned = false; }
+    if (k === "fonts") { st.panel = true; st.tab = "page"; st.view = null; st.sub = null; }
+    if (k === "system") { st.panel = true; st.tab = "system"; st.view = null; st.sub = null; }
+    if (k === "area") { st.panel = true; st.tab = "image"; st.view = null; st.sub = null; toast("Drag over any part of the page"); }
+    if (k === "save") toast(st.hover ? `${FONTS[st.hover].name} saved to your library` : "Point at some text first");
+    if (k === "off") { st.on = false; st.pinned = false; toast("Turned off. Press ⌥⇧F or click the icon to start again"); }
+    return render(k !== "panel");
+  }
+  const el = t.closest(".site [data-f]");
+  if (el && st.on) {
+    const all = [...document.querySelectorAll(".site [data-f]")];
+    if (st.pinned && all.indexOf(el) === st.el) { st.pinned = false; st.el = null; return render(); }
+    lastEl = el; pin(el); return render();
+  }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT") { if (e.key === "Escape") e.target.blur(); return; }
+  if (e.target.closest?.("[data-grip]") && e.key.startsWith("Arrow")) { e.preventDefault(); if (!st.dock) dockStart(); const n = e.shiftKey ? 40 : 10; if (e.key === "ArrowLeft") st.dock.x -= n; if (e.key === "ArrowRight") st.dock.x += n; if (e.key === "ArrowUp") st.dock.y -= n; if (e.key === "ArrowDown") st.dock.y += n; return clampDock(); }
+  if (e.key === "Escape") { if (st.settings) st.settings = null; else if (st.menu) st.menu = null; else if (st.pinned) { st.pinned = false; st.el = null; } else if (st.view) st.view = null; else if (st.sub) st.sub = null; else st.on = false; return render(); }
+  if (st.settings) return;
+  if (e.altKey && e.shiftKey && e.code === "KeyF") { st.on = !st.on; render(); }
+  if (e.code === "Space" && st.on && document.querySelector("#vp .hc.show") && !e.target.closest("button")) { e.preventDefault(); if (st.pinned) { st.pinned = false; st.el = null; } else if (lastEl) pin(lastEl); render(); }
+  if ((e.key === "c" || e.key === "C") && !e.metaKey && !e.ctrlKey && st.on && st.hover && document.querySelector("#vp .hc.show")) { toast(`CSS for ${FONTS[st.hover].name} copied`); if (st.coach === 2) { st.coach = 3; render(); } }
+});
+document.addEventListener("scroll", (e) => { if (e.target.classList?.contains("site") && st.pinned) place(document.querySelectorAll(".site [data-f]")[st.el]); }, true);
+addEventListener("resize", () => clampDock());
+render();
+</script>
+</body>
+</html>
