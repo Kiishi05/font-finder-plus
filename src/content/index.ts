@@ -3,7 +3,7 @@ import { FINE_CHARS } from '../shared/finematch';
 import type { FetchFontReply, PingReply, ScanReply, ToContent } from '../shared/messages';
 import { arrayBufferToBase64 } from '../shared/messages';
 import { clearRenderCache } from './detect';
-import { hideUi, refreshCard, highlightElements, highlightKey, isInspecting, setPanelOpen, setStateListener, start, stop } from './inspector';
+import { hideUi, refreshCard, highlightElements, highlightKey, isInspecting, isPaused, pause, setPanelOpen, setStateListener, start, stop } from './inspector';
 import { fontsInRect, scanPage, watchNewFonts } from './scan';
 import { afterPaint, imageRect, selectArea } from './select';
 import { contextForSrc } from './context';
@@ -37,7 +37,7 @@ if (!window.__ffpLoaded) {
   chrome.runtime.onMessage.addListener((msg: ToContent, _sender, reply) => {
     switch (msg.type) {
       case 'ffp:ping': {
-        const r: PingReply = { ok: true, inspecting: isInspecting(), url: location.href, host: location.hostname, title: document.title, pdf: isPdf() };
+        const r: PingReply = { ok: true, inspecting: isInspecting() && !isPaused(), url: location.href, host: location.hostname, title: document.title, pdf: isPdf() };
         reply(r);
         return false;
       }
@@ -45,9 +45,16 @@ if (!window.__ffpLoaded) {
         setPanelOpen(msg.open);
         reply({ ok: true });
         return false;
+      case 'ffp:pause':
+        pause(msg.paused);
+        reply({ ok: true });
+        return false;
       case 'ffp:inspect':
-        if (msg.on && !isPdf()) start();
-        else stop();
+        // Turning on while the dock is paused resumes it.
+        if (msg.on && !isPdf()) {
+          if (isPaused()) pause(false);
+          else start();
+        } else stop();
         reply({ ok: true });
         return false;
       case 'ffp:scan':

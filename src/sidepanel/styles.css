@@ -179,7 +179,7 @@ button { cursor: pointer; }
 .iconbtn:active, .btn:active, .chip:active, .tabs button:active { transform: scale(0.97); }
 /* Sub pages: back button in its own white square, then where you are */
 .subtop { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.backbtn { width: 42px; height: 42px; border-radius: 14px; border: none; background: var(--card); box-shadow: 0 0 0 1px var(--line); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; flex: none; transition: background-color 150ms ease, transform 160ms var(--ease-out); }
+.backbtn { width: 42px; height: 42px; border-radius: 14px; border: none; background: var(--card); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; flex: none; transition: background-color 150ms ease, transform 160ms var(--ease-out); }
 @media (hover: hover) and (pointer: fine) { .backbtn:hover { background: var(--hover); } }
 .backbtn:active { transform: scale(0.97); }
 .crumb { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; }

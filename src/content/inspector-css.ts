@@ -82,6 +82,11 @@ svg { display: block; flex: none; }
   animation: ffp-dock 320ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 @keyframes ffp-dock { from { opacity: 0; transform: translate(-50%, 12px); } }
+.grip { display: grid; grid-template-columns: repeat(2, 3px); gap: 3px; padding: 0 6px 0 4px; height: 42px; align-content: center; cursor: grab; touch-action: none; }
+.grip i { width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,0.35); }
+.grip:hover i { background: rgba(255,255,255,0.7); }
+.grip:active { cursor: grabbing; }
+.dock.moved { animation: none; }
 .db { position: relative; width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; transition: background 150ms, color 150ms, transform 140ms cubic-bezier(0.23, 1, 0.32, 1); }
 .db:hover { background: rgba(255,255,255,0.08); color: #FFFFFF; }
 .db:active { transform: scale(0.94); }

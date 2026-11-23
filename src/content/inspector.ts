@@ -65,6 +65,17 @@ export function isInspecting() {
   return active;
 }
 
+/** The dock is on the page but pointing at text does nothing. */
+export function isPaused() {
+  return active && paused;
+}
+
+/** From the side panel's switch: pause or resume, keeping the dock. */
+export function pause(on: boolean) {
+  if (!active || !root) return;
+  if (paused !== on) setPaused(on);
+}
+
 async function loadUiFonts() {
   if (uiFontsLoaded) return;
   uiFontsLoaded = true;
@@ -119,6 +130,7 @@ function ensureUi() {
     </div>
     <div class="coach" role="status" hidden><span class="step"></span><span class="ctext"></span><button class="cx" aria-label="Hide the tips">${iconSvg(Cancel01Icon, 13)}</button></div>
     <div class="dock" role="toolbar" aria-label="Font Finder Plus" hidden>
+      <span class="grip" title="Drag to move" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>
       <button class="db" data-dock="inspect" aria-label="Inspect fonts" aria-pressed="true">${iconSvg(CursorPointer01Icon, 20)}<span class="tip">Inspect fonts<span class="k">${isMac ? '⌥⇧F' : 'Alt+Shift+F'}</span></span></button>
       <button class="db" data-dock="area" aria-label="Read a picture or an area">${iconSvg(ScanImageIcon, 20)}<span class="tip">Read a picture or an area</span></button>
       <button class="db" data-dock="fonts" aria-label="Every font on this page">${iconSvg(TextFontIcon, 20)}<span class="tip">Every font on this page</span></button>
@@ -205,12 +217,84 @@ function ensureUi() {
         break;
     }
   });
+  initDockDrag();
   chrome.storage?.onChanged?.addListener((changes, area) => {
     if (area === 'local' && COACH_KEY in changes) {
       coachStep = Number(changes[COACH_KEY].newValue ?? 0);
       renderCoach();
     }
   });
+}
+
+// ------------------------------------------------------------------ moving the dock
+
+const DOCK_KEY = 'ffp:dockPos';
+
+/** Keep the dock fully on screen. */
+function placeDock(x: number, y: number) {
+  const d = $<HTMLElement>('.dock');
+  const w = d.offsetWidth || 360;
+  const h = d.offsetHeight || 54;
+  const nx = Math.min(Math.max(8, x), innerWidth - w - 8);
+  const ny = Math.min(Math.max(8, y), innerHeight - h - 8);
+  d.style.left = `${nx}px`;
+  d.style.top = `${ny}px`;
+  d.style.bottom = 'auto';
+  d.style.transform = 'none';
+  d.classList.add('moved');
+  return { x: nx, y: ny };
+}
+
+/** Drag the dock by its grip. Where you leave it is remembered for every site. */
+function initDockDrag() {
+  const grip = $<HTMLElement>('.grip');
+  let start: { px: number; py: number; x: number; y: number } | null = null;
+  grip.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const r = $<HTMLElement>('.dock').getBoundingClientRect();
+    start = { px: e.clientX, py: e.clientY, x: r.left, y: r.top };
+    grip.setPointerCapture(e.pointerId);
+  });
+  grip.addEventListener('pointermove', (e) => {
+    if (!start) return;
+    placeDock(start.x + e.clientX - start.px, start.y + e.clientY - start.py);
+  });
+  const end = () => {
+    if (!start) return;
+    start = null;
+    const r = $<HTMLElement>('.dock').getBoundingClientRect();
+    try {
+      chrome.storage.local.set({ [DOCK_KEY]: { x: r.left / innerWidth, y: r.top / innerHeight } });
+    } catch {
+      /* not available in tests */
+    }
+  };
+  grip.addEventListener('pointerup', end);
+  grip.addEventListener('pointercancel', end);
+  // Double-click the grip to put the dock back in the middle.
+  grip.addEventListener('dblclick', (e) => {
+    e.stopPropagation();
+    const d = $<HTMLElement>('.dock');
+    d.removeAttribute('style');
+    d.classList.remove('moved');
+    try {
+      chrome.storage.local.remove(DOCK_KEY);
+    } catch {
+      /* not available in tests */
+    }
+  });
+}
+
+function restoreDock() {
+  try {
+    chrome.storage.local.get(DOCK_KEY, (v) => {
+      const pos = v?.[DOCK_KEY] as { x: number; y: number } | undefined;
+      if (pos) requestAnimationFrame(() => placeDock(pos.x * innerWidth, pos.y * innerHeight));
+    });
+  } catch {
+    /* not available in tests */
+  }
 }
 
 /** Ask the background to open the side panel (it must do it at once, while the click still counts). */
@@ -311,6 +395,8 @@ function setPaused(on: boolean) {
     document.documentElement.style.setProperty('cursor', 'crosshair', 'important');
   }
   $('.db[data-dock="inspect"]').setAttribute('aria-pressed', String(!on));
+  // The panel's switch shows the same thing as the dock's Inspect button.
+  onStateChange(!on);
   ($('.db[data-dock="inspect"] .tip') as HTMLElement).firstChild!.textContent = on ? 'Paused. Click to inspect again' : 'Inspect fonts';
   renderCoach();
 }
@@ -434,6 +520,28 @@ function infoFor(el: Element): Current {
     licenseType: facts.licenseType,
     classification: facts.classification,
   };
+  // "Use with my fonts" or "Paste type from Figma" put another font here: name that font.
+  const typedFamily = picture ? null : el.closest('[data-ffp-type-family]')?.getAttribute('data-ffp-type-family');
+  if (typedFamily) {
+    const gf = googleFamily(typedFamily);
+    const css = cs.fontFamily;
+    const tm = measureMetrics(css, cs.fontWeight, cs.fontStyle, size);
+    const typedInfo: ElementFontInfo = {
+      ...info,
+      family: gf?.family ?? typedFamily,
+      displayName: gf?.family ?? typedFamily,
+      catalogFamily: gf?.family ?? null,
+      kind: 'web',
+      source: gf ? 'google' : info.source,
+      declared: [gf?.family ?? typedFamily, rendered.genericName ?? 'sans-serif'],
+      fellBackFrom: [],
+      capHeight: tm.cap ? round(tm.cap, 1) : null,
+      xHeight: tm.x ? round(tm.x, 1) : null,
+      licenseType: gf?.l ?? 'unknown',
+      classification: gf?.c ?? info.classification,
+    };
+    return { el, info: typedInfo, rendered, fileUrl: null, css, swappedFrom: info.displayName ?? info.family };
+  }
   const swapped = el.getAttribute('data-ffp-swap');
   if (swapped && !picture) {
     // A trial font is showing here: describe that font, and say what it replaced.
@@ -763,6 +871,7 @@ export async function start() {
   paused = false;
   $<HTMLElement>('.dock').hidden = false;
   setPaused(false);
+  restoreDock();
   addEventListener('keydown', onKey, true);
   try {
     chrome.storage.local.get(COACH_KEY, (v) => {

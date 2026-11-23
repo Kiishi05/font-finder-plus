@@ -197,6 +197,7 @@ export function undoType(): void {
       else el.style.removeProperty(p);
     }
     el.removeAttribute('data-ffp-type');
+    el.removeAttribute('data-ffp-type-family');
     if (marked.has(el)) el.removeAttribute('data-ffp-orig');
   }
   saved.clear();
@@ -224,6 +225,7 @@ export async function applyType(styles: ApplyTypeStyle[], on: boolean): Promise<
       if (st.letterSpacing != null) el.style.setProperty('letter-spacing', `${st.letterSpacing}em`, 'important');
       if (st.textTransform) el.style.setProperty('text-transform', st.textTransform, 'important');
       el.setAttribute('data-ffp-type', st.name ?? String(st.selectorRole));
+      if (fam && st.family) el.setAttribute('data-ffp-type-family', st.family.trim());
     }
     applied.push({ name: st.name, role: String(st.selectorRole), count: els.length, fontLoaded: fam ? fam.loaded : true });
   });

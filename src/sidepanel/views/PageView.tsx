@@ -302,7 +302,9 @@ export function PageView({ tab, tester, onTester, onOpen, onShare, toast, openFa
 
   const toggle = async () => {
     if (tab.tabId == null) return;
-    await sendToTab(tab.tabId, { type: 'ffp:inspect', on: !tab.inspecting });
+    // Off pauses pointing and keeps the dock on the page; on resumes (or starts it).
+    if (tab.inspecting) await sendToTab(tab.tabId, { type: 'ffp:pause', paused: true });
+    else await sendToTab(tab.tabId, { type: 'ffp:inspect', on: true });
     tab.refresh();
   };
 

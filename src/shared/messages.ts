@@ -22,6 +22,8 @@ export type ToContent =
   | { type: 'ffp:specimen'; family: string; weight: string; style: string; text: string }
   | { type: 'ffp:highlight-issue'; id: string; label: string }
   | { type: 'ffp:panel-state'; open: boolean }
+  /** The panel's switch: pause or resume pointing, keeping the dock on the page. */
+  | { type: 'ffp:pause'; paused: boolean }
   /** Set type styles on the page (Use with my fonts, Paste type from Figma). `on: false` puts the page back. */
   | { type: 'ffp:apply-type'; styles: ApplyTypeStyle[]; on: boolean }
   /** Measure fonts the way this page draws them (x-height, cap height, extents, width). */

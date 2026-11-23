@@ -85,7 +85,7 @@
 .mflist .from { color: var(--muted); overflow-wrap: anywhere; }
 .mflist .to { color: var(--faint); display: inline-flex; justify-content: center; }
 .mflist .to svg { width: 14px; height: 14px; }
-.mflist .dest { justify-self: start; text-align: left; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.mflist .dest { justify-self: end; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .mflist b { font-weight: 500; }
 .mflist .pct { display: inline-block; font: 500 11.5px/1 var(--mono); color: var(--faint); margin-left: 6px; font-variant-numeric: tabular-nums; }
 .mflist .far { font-size: 12px; color: var(--faint); }
