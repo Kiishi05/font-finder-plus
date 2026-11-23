@@ -99,3 +99,13 @@ export {
 } from '@hugeicons/core-free-icons';
 // Dock and modern panel icons
 export { SidebarRightIcon, RulerIcon } from '@hugeicons/core-free-icons';
+// System tab redesign and Use with my fonts icons
+export {
+  MagicWand01Icon as SysMagicIcon,
+  ClipboardPasteIcon as SysClipboardIcon,
+  ArrowReloadHorizontalIcon as SysArrowReloadIcon,
+  Undo02Icon as SysUndoIcon,
+  Edit02Icon as SysEditIcon,
+  ComputerIcon as SysComputerIcon,
+} from '@hugeicons/core-free-icons';
+// end System tab redesign icons

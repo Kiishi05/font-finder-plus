@@ -1,147 +1,198 @@
-/* system view: redesign styles */
+/* system view: clean scale, readability tiles, folded developer checks */
 .sys { display: flex; flex-direction: column; gap: 8px; }
 .sys [id^='sys-'] { scroll-margin-top: 12px; }
 .sys .muted { color: var(--muted); }
+.sys .sub { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
 
-/* Section heading with the refresh button at the right */
-.sys .syshead { align-items: center; }
+/* Plain headings with 6px to their text */
+.sys .ht { display: flex; flex-direction: column; gap: 6px; }
+.sys .ht.row { flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.sys .ht.row > div:first-child { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sys .ht .hrow { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.sys .ht h2 .count { margin-left: 6px; }
+
+/* Refresh button at the right of the first heading */
 .sys .sysagain { margin: -6px -6px -6px 0; }
 .sys .sysagain .spin { display: inline-flex; }
 .sys .sysagain .spin svg { transform-origin: 50% 50%; }
 .sys .sysagain:disabled { opacity: 1; cursor: default; }
 
-/* Pills (shared by health findings, readability and loading tips) */
-.sys .pill { flex: none; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; line-height: 1.5; background: var(--field); color: var(--muted); }
-.sys .pill.bad { background: var(--red-soft); color: var(--red-text); }
-.sys .pill.warn { background: var(--field-2); color: var(--ink); }
-.sys .pill.good { background: var(--field); color: var(--muted); }
-.sys .on-grey .pill.neutral { background: var(--card); }
-.sys .find { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; }
-.sys .find > span:last-child { flex: 1; min-width: 0; padding-top: 1px; overflow-wrap: anywhere; }
+/* Buttons: 16-18px above */
+.sys .exacts { display: flex; gap: 8px; margin-top: 4px; }
+.sys .exacts .grow { flex: 1; }
+.sys .btn svg { flex: none; }
 
-/* Health: a big score, one bar, then each part */
-.sysscore { display: flex; flex-direction: column; gap: 10px; }
-.sysscore .num { display: flex; align-items: flex-end; gap: 10px; }
-.sysscore .num b { font: 600 44px/0.9 var(--ui); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--ink); }
-.sysscore .num small { font-size: 13px; color: var(--faint); padding-bottom: 4px; }
-.sysbar { display: block; height: 6px; border-radius: 999px; background: var(--field); overflow: hidden; }
-.sysbar i { display: block; height: 100%; border-radius: inherit; background: var(--ink); }
-.sysparts { display: flex; flex-direction: column; }
-.sysparts .part { all: unset; box-sizing: border-box; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 90px 30px 14px; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
-.sysparts .part:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 8px; }
-.sysparts .part .lbl { color: var(--ink); overflow-wrap: anywhere; }
-.sysparts .part .n { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12.5px; }
-.sysparts .part .chev, .sysdisc .chev, .famhead .chev, .sysdd .chev { display: inline-flex; color: var(--faint); transition: transform 200ms var(--ease-out); }
-.sysparts .part[aria-expanded='true'] .chev, .sysdisc[aria-expanded='true'] .chev, .famhead[aria-expanded='true'] .chev, .sysdd[data-open] .chev { transform: rotate(180deg); }
-.sysparts .bar { height: 6px; border-radius: 3px; background: var(--field); overflow: hidden; }
-.sysparts .bar i { display: block; height: 100%; border-radius: 3px; }
-.sysparts .bar i { background: var(--ink); }
-.sysparts .bar i.warn, .sysparts .bar i.bad { background: var(--faint); }
-.sysparts .finds { display: flex; flex-direction: column; gap: 12px; padding: 8px 0 14px; animation: sysfade 200ms var(--ease-out); }
-@keyframes sysfade { from { opacity: 0; transform: translateY(4px); } }
+/* Hint line with an icon level with the first line */
+.sys .hint { display: flex; align-items: flex-start; gap: 8px; margin: 0; font-size: 12.5px; color: var(--muted); }
+.sys .hint svg { flex: none; margin-top: 1px; color: var(--faint); }
+.sys .hint b { color: var(--ink); font-weight: 500; }
 
-/* Type styles */
-.sys .scalebox { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--r-inner); background: var(--inset); font-size: 12.5px; }
-.sys .scalebox b { font-weight: 500; }
-.sys .scalebox .sizes { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.sys .styles { display: flex; flex-direction: column; }
-.sys .stylerow { display: flex; flex-direction: column; gap: 6px; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 0; min-width: 0; }
-.sys .stylerow:first-child { border-top: 0; padding-top: 4px; }
-.sys .stylerow:last-child { padding-bottom: 0; }
-.sys .stylerow .top { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.sys .tagname { font: 500 11.5px var(--ui); padding: 3px 7px; border-radius: 8px; background: var(--field); color: var(--muted); flex: none; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sys .stylerow .who { flex: 1; min-width: 0; font-size: 12.5px; color: var(--muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.sys .stylerow .top .iconbtn.sm { margin: -4px -6px -4px 0; }
-.sys .stylerow .iconbtn.copied { color: var(--ink); }
-.sys .stylesample { line-height: 1.15; color: var(--ink); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
-.sys .stylerow .meta { font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+/* ---------- Type scale: this site next to a clean scale ---------- */
+.sys .ratio { display: flex; flex-direction: column; gap: 6px; }
+.sys .ratio .rl { font-size: 12px; color: var(--muted); }
+.sys .seg button { height: 32px; font-size: 13px; color: var(--on-track); }
+.sys .seg button[aria-pressed='true'] { color: var(--ink); }
+.sys .seg .n { margin-left: 5px; font-size: 11.5px; font-weight: 400; color: var(--muted); }
+.sys .ctbl { display: flex; flex-direction: column; }
+.sys .ch, .sys .cr { display: grid; grid-template-columns: minmax(0, 1fr) 58px 14px 76px; align-items: flex-start; gap: 10px; }
+.sys .ch { padding-bottom: 8px; font-size: 12px; color: var(--muted); }
+.sys .ch span:nth-child(2), .sys .ch span:nth-child(4) { text-align: right; white-space: nowrap; }
+.sys .cr { width: 100%; padding: 12px 0; border: 0; border-top: 1px solid var(--line); background: none; color: inherit; text-align: left; border-radius: 0; transition: background-color 150ms ease; }
+.sys .cr:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: 8px; }
+@media (hover: hover) and (pointer: fine) { .sys .cr:hover .cn { color: var(--muted); } }
+.sys .cr .cn { font-size: 15px; line-height: 20px; color: var(--ink); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
+.sys .cr .cy { font: 400 12.5px/20px var(--mono); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sys .cr .ar { display: inline-flex; margin-top: 3px; color: var(--faint); }
+.sys .cs { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; min-width: 0; }
+.sys .cs .cv { display: inline-flex; align-items: center; gap: 6px; }
+.sys .cs .cv b { font: 500 12.5px/20px var(--mono); color: var(--ink); white-space: nowrap; }
+.sys .cs small { font: 400 11px/1.2 var(--mono); color: var(--faint); white-space: nowrap; }
+/* Far from the scale: a dot and bold text (amber is only for Paid) */
+.sys .cs.far .cv b { font-weight: 700; }
+.sys .cs.far small { color: var(--muted); }
+.sys .fardot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink); flex: none; }
 .sysdisc { all: unset; display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-weight: 500; font-size: 12.5px; cursor: pointer; }
 @media (hover: hover) and (pointer: fine) { .sysdisc:hover { color: var(--ink); } }
 .sysdisc:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px; }
+.sysdisc .chev, .famhead .chev, .sysdd .chev, .sysparts .part .chev, .sys .fold .chev { display: inline-flex; color: var(--faint); transition: transform 200ms var(--ease-out); }
+.sysdisc[aria-expanded='true'] .chev, .famhead[aria-expanded='true'] .chev, .sysdd[data-open] .chev, .sysparts .part[aria-expanded='true'] .chev, .sys .fold[aria-expanded='true'] .chev { transform: rotate(180deg); }
 
-/* Readability: an inner grey card per issue */
-.sys .issues { display: flex; flex-direction: column; gap: 8px; }
-.sys .issue { display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: var(--r-inner); background: var(--inset); min-width: 0; }
-.sys .issue .top { display: flex; align-items: flex-start; gap: 8px; }
-.sys .issue .top b { flex: 1; min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
-.sys .issue .top b span { color: var(--faint); font-weight: 400; }
-.sys .issue p { margin: 0; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
-.sys .issue .quote { font-size: 12.5px; color: var(--faint); font-style: italic; overflow-wrap: anywhere; }
-.sys .issue .btn { align-self: flex-start; margin-top: 6px; }
-.sys .readnote { margin: 0; font-size: 12px; color: var(--faint); }
+/* ---------- White card buttons: Use with my fonts, Paste type from Figma ---------- */
+.mfentry { display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 16px; border: 0; border-radius: var(--r-card); background: var(--card); color: var(--ink); text-align: left; transition: background-color 150ms ease, transform 160ms var(--ease-out); }
+@media (hover: hover) and (pointer: fine) { .mfentry:hover { background: var(--inset); } }
+.mfentry:active { transform: scale(0.99); }
+.mfentry .ic { display: inline-flex; flex: none; margin-top: 1px; color: var(--ink); }
+.mfentry .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.mfentry .t b { font: 600 15px/1.3 var(--ui); letter-spacing: -0.01em; }
+.mfentry .t span { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.mfentry .chev { display: inline-flex; flex: none; margin-top: 2px; color: var(--faint); }
+.mfentry.small { padding: 14px 16px; }
+.mfentry.small .t { gap: 4px; }
+.mfentry.small .t b { font-size: 13.5px; font-weight: 500; }
 
-/* Fonts and loading */
-.sysload { display: flex; flex-direction: column; gap: 8px; }
-.sysload .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.sysload .stat { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: var(--r-inner); background: var(--inset); min-width: 0; }
-.sysload .stat span { font-size: 12px; color: var(--faint); }
-.sysload .stat b { font-weight: 500; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Paste type from Figma: where each style landed */
+.figpaste .landed { display: flex; flex-direction: column; }
+.figpaste .lrow2 { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.figpaste .lrow2:first-child { border-top: 0; padding-top: 0; }
+.figpaste .lrow2 .nm { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.figpaste .lrow2 .nm b { font-weight: 500; overflow-wrap: anywhere; }
+.figpaste .lrow2 .nm small { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.figpaste .lrow2 .where { font: 400 12px/20px var(--mono); color: var(--ink); text-align: right; white-space: nowrap; }
+.figpaste .lrow2 .warnnote { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.figpaste .field { width: 100%; }
+.figpaste .ht .hrow .iconbtn.sm { margin: -6px -6px -6px 0; }
+
+/* ---------- Readability: score, check tiles, the chosen tile's detail ---------- */
+.sys .bigscore { display: flex; align-items: baseline; gap: 6px; flex: none; }
+.sys .bigscore b { font: 600 44px/0.9 var(--ui); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--ink); }
+.sys .bigscore span { color: var(--muted); font-size: 13px; }
+.sys .st { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; background: var(--inset); flex: none; }
+.sys .st.pass { color: var(--green); }
+.sys .st.warn { color: var(--muted); }
+.sys .st.fail { color: var(--red); }
+.sys .tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.sys .tile { width: auto; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-height: 84px; padding: 12px; border: 0; border-radius: var(--r-inner); background: var(--inset); color: var(--ink); text-align: left; min-width: 0; transition: background-color 150ms ease, box-shadow 150ms ease; }
+@media (hover: hover) and (pointer: fine) { .sys button.tile:hover { background: var(--field); } }
+.sys .tile[aria-pressed='true'] { box-shadow: inset 0 0 0 1.5px var(--ink); background: var(--inset); }
+.sys .tile .tp { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; width: 100%; }
+.sys .tile .st { background: var(--card); }
+.sys .tile .v { font: 400 12px/24px var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.sys .tile b { font-weight: 500; font-size: 13px; line-height: 1.25; }
+.sys .tile.sum { background: transparent; box-shadow: inset 0 0 0 1.5px var(--field-2); }
+.sys .tile.sum b { color: var(--muted); font-weight: 400; }
+.sys .tdet { display: flex; flex-direction: column; gap: 10px; padding-top: 16px; border-top: 1px solid var(--line); }
+.sys .tdet .hrow { display: flex; align-items: flex-start; gap: 10px; }
+.sys .tdet .hrow b { flex: 1; min-width: 0; font-weight: 600; line-height: 24px; overflow-wrap: anywhere; }
+.sys .tdet .hrow .v { font: 400 12.5px/24px var(--mono); color: var(--muted); white-space: nowrap; }
+.sys .tdet p { margin: 0; color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.sys .tdet .quote { padding: 10px 12px; border-radius: 10px; background: var(--inset); font-size: 12.5px; color: var(--muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.sys .tdet > div:last-child { margin-top: 6px; }
+.sys .readnote { margin: 0; font-size: 12px; color: var(--muted); }
+
+/* ---------- Folded cards: Developer checks, Compare ---------- */
+.sys .fold { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+.sys .fold:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 10px; }
+.sys .fold .t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.sys .fold .h { font: 600 15px/1.3 var(--ui); letter-spacing: -0.01em; color: var(--ink); }
+.sys .fold .lead { display: inline-flex; flex: none; margin-top: 1px; color: var(--ink); }
+.sys .fold .chev { margin-top: 1px; }
+
+.sysload { display: flex; flex-direction: column; gap: 12px; }
+.sysload .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.sysload .stat { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--inset); min-width: 0; }
+.sysload .stat span { font-size: 12px; color: var(--muted); }
+.sysload .stat b { font: 500 13px/1.2 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sysload .stat b.wrap { white-space: normal; overflow-wrap: anywhere; }
-.sysload .sub { font-size: 12px; }
-.sysload .tips { display: flex; flex-direction: column; gap: 12px; }
+.sys .dlist { display: flex; flex-direction: column; }
+.sys .dlist > div { display: flex; align-items: flex-start; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); }
+.sys .dlist > div:first-child { border-top: 0; padding-top: 4px; }
+.sys .dlist p { margin: 2px 0 0; flex: 1; min-width: 0; color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.sys .dlist .st { margin-top: -1px; }
 .famsbox { background: var(--inset); border-radius: var(--r-inner); overflow: hidden; }
 .famhead { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 8px; padding: 12px 14px; cursor: pointer; font-weight: 500; }
-.famhead .count { color: var(--faint); font-weight: 400; font-size: 12px; }
+.famhead .count { color: var(--muted); font-weight: 400; font-size: 12px; }
 .famhead .grow { flex: 1; }
 .famhead:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: var(--r-inner); }
-.fams { display: flex; flex-direction: column; margin: 0 6px 6px; padding: 2px 12px; background: var(--card); border-radius: var(--r-ctl); animation: sysfade 200ms var(--ease-out); }
-.fam { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 12.5px; }
+.fams { display: flex; flex-direction: column; margin: 0 6px 6px; padding: 2px 12px; background: var(--card); border-radius: var(--r-ctl); }
+.fam { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 12.5px; }
 .fam:first-child { border-top: 0; }
 .fam b { font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.fam .r { color: var(--faint); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
-.fam .d { grid-column: 1 / -1; color: var(--faint); font-size: 12px; overflow-wrap: anywhere; }
+.fam .r { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.fam .d { grid-column: 1 / -1; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
 
-/* Use this type system: Figma and export */
-.sys .figrow { display: flex; flex-direction: column; gap: 12px; padding: 14px; border-radius: var(--r-inner); background: var(--inset); }
-.sys .figrow .t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.sys .figrow .t b { font-weight: 500; }
-.sys .figrow .t span { font-size: 12px; color: var(--faint); }
-.sys .hair { border-top: 1px solid var(--line); }
-.sysexport { display: flex; flex-direction: column; gap: 16px; }
-.sysexport h3 { margin: 0; font: 600 13.5px/1.3 var(--ui); color: var(--ink); }
-.sys .exnote { margin: 0; font-size: 12px; color: var(--faint); }
+/* Type system health, inside Developer checks */
+.syshealth { display: flex; flex-direction: column; gap: 6px; padding-top: 16px; border-top: 1px solid var(--line); }
+.syshealth .hh { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.syshealth h3 { margin: 0; font: 600 13.5px/1.3 var(--ui); color: var(--ink); }
+.syshealth .hh .n { font: 500 12.5px var(--mono); color: var(--ink); white-space: nowrap; }
+.sysparts { display: flex; flex-direction: column; margin-top: 6px; }
+.sysparts .part { all: unset; box-sizing: border-box; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 90px 30px 14px; align-items: center; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.sysparts .part:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 8px; }
+.sysparts .part .lbl { color: var(--ink); overflow-wrap: anywhere; }
+.sysparts .part .n { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12.5px; }
+.sysparts .bar { height: 6px; border-radius: 3px; background: var(--field); overflow: hidden; }
+.sysparts .bar i { display: block; height: 100%; border-radius: 3px; background: var(--ink); }
+.sysparts .bar i.warn, .sysparts .bar i.bad { background: var(--faint); }
+.sysparts .finds { display: flex; flex-direction: column; gap: 12px; padding: 4px 0 14px; }
+.sys .find { display: flex; align-items: flex-start; gap: 10px; font-size: 12.5px; }
+.sys .find > span:last-child { flex: 1; min-width: 0; padding-top: 3px; overflow-wrap: anywhere; }
+
+/* ---------- Use this type system ---------- */
+.sys .exnote { margin: 0; font-size: 12px; color: var(--muted); }
 .sys .code { margin: 0; max-height: 188px; overflow: auto; padding: 12px 14px; border-radius: var(--r-inner); background: var(--inset); color: var(--muted); font: 12px/1.6 var(--mono); white-space: pre; }
-.sys .exacts { display: flex; gap: 8px; }
+.sys .figsteps { padding: 14px; border-radius: var(--r-inner); background: var(--inset); color: var(--muted); font-size: 12.5px; }
+.sys .figsteps ol { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 
-/* Custom dropdown (listbox) */
+/* Custom dropdown (listbox): a 44px field with no stroke */
 .sysdd { position: relative; }
-.sysdd > button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: 38px; padding: 0 12px 0 14px; border: 0; border-radius: var(--r-ctl); background: var(--field); color: var(--ink); font: 500 13px var(--ui); cursor: pointer; transition: background-color 150ms ease, transform 160ms var(--ease-out); }
+.sysdd > button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: 44px; padding: 0 14px; border: 0; border-radius: var(--r-field); background: var(--field); color: var(--ink); font: 500 13.5px var(--ui); cursor: pointer; transition: background-color 150ms ease, transform 160ms var(--ease-out); }
 @media (hover: hover) and (pointer: fine) { .sysdd > button:hover { background: var(--field-2); } }
 .sysdd > button:active { transform: scale(0.99); }
 .sysdd > button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .sysdd .val { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.sysdd .val .pre { color: var(--faint); font-weight: 400; flex: none; }
+.sysdd .val .pre { color: var(--muted); font-weight: 400; flex: none; }
 .sysdd .txt { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.sysdd ul { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 25; margin: 0; padding: 4px; list-style: none; background: var(--card); border-radius: var(--r-inner); box-shadow: 0 0 0 1px var(--line), 0 8px 24px rgba(0, 0, 0, 0.12); transform-origin: top; animation: sysddin 160ms var(--ease-out); outline: none; max-height: 280px; overflow-y: auto; }
+.sysdd ul { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 25; margin: 0; padding: 4px; list-style: none; background: var(--card); border-radius: var(--r-inner); box-shadow: 0 0 0 1px var(--line), 0 8px 24px rgba(0, 0, 0, 0.12); transform-origin: top; animation: sysddin 160ms var(--ease-out); outline: none; max-height: 300px; overflow-y: auto; }
 @keyframes sysddin { from { opacity: 0; transform: scale(0.97); } }
-.sysdd li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 10px; cursor: pointer; min-width: 0; }
+.sysdd li { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 38px; padding: 8px 10px; border-radius: 10px; cursor: pointer; min-width: 0; }
 .sysdd li[data-active] { background: var(--field); }
-.sysdd li .hint { flex: none; max-width: 50%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12px; color: var(--faint); }
+.sysdd li .hint { flex: none; max-width: 50%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12px; color: var(--muted); }
 .sysdd li svg { flex: none; }
 
-/* Compare */
+/* ---------- Compare ---------- */
 .syscompare .cmp { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12.5px; }
 .syscompare .cmp th { text-align: left; padding: 0 8px 8px 0; border: 0; font: 500 12px var(--ui); color: var(--muted); text-transform: none; overflow-wrap: anywhere; }
-.syscompare .cmp td { padding: 8px 8px 8px 0; border-top: 1px solid var(--line); border-bottom: 0; vertical-align: top; overflow-wrap: anywhere; }
-.syscompare .cmp td:first-child { width: 30%; color: var(--faint); }
+.syscompare .cmp td { padding: 12px 8px 12px 0; border-top: 1px solid var(--line); border-bottom: 0; vertical-align: top; overflow-wrap: anywhere; }
+.syscompare .cmp td:first-child { width: 30%; color: var(--muted); }
 .syscompare .cmp td.fname { color: var(--ink); }
-.syscompare .cmp .yes { display: inline-flex; color: var(--ink); }
+.syscompare .cmp .yes { display: inline-flex; color: var(--green); }
 .syscompare .cmp .yes svg { vertical-align: -3px; }
-.syscompare .cmp .no { color: var(--faint); }
-
-/* Floating section tabs, fixed at the bottom */
-.sysnav { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 30; display: flex; padding: 5px; border-radius: 14px; background: var(--track); border: 1px solid var(--line); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.06); max-width: calc(100vw - 24px); overflow-x: auto; scrollbar-width: none; }
-.sysnav::-webkit-scrollbar { display: none; }
-.sysnav .hl { position: absolute; top: 5px; left: 0; height: 34px; width: 0; border-radius: 10px; background: var(--pill-on); box-shadow: var(--pill-shadow); transition: transform 250ms var(--ease-out), width 250ms var(--ease-out); }
-.sysnav button { position: relative; flex: none; height: 34px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font: 500 13px var(--ui); white-space: nowrap; cursor: pointer; transition: color 150ms ease, transform 160ms var(--ease-out); }
-.sysnav button[aria-current='true'] { color: var(--ink); }
-.sysnav button:active { transform: scale(0.97); }
-.sysnav button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-@media (hover: hover) and (pointer: fine) { .sysnav button:not([aria-current='true']):hover { color: var(--ink); } }
+.syscompare .cmp .no { color: var(--muted); }
 
 /* Tooltips on buttons at the right edge open leftwards, so they never overflow the panel */
-.sys .sysagain.tip::after, .sys .stylerow .tip::after { left: auto; right: 0; transform: translate(0, 2px); }
-.sys .sysagain.tip:hover::after, .sys .sysagain.tip:focus-visible::after, .sys .stylerow .tip:hover::after, .sys .stylerow .tip:focus-visible::after { transform: translate(0, 0); }
+.sys .sysagain.tip::after { left: auto; right: 0; transform: translate(0, 2px); }
+.sys .sysagain.tip:hover::after, .sys .sysagain.tip:focus-visible::after { transform: translate(0, 0); }
 
-/* The floating section tabs take the bottom of the panel (Health goes back to the top), so hide the back-to-top button here. */
-.app:has(.sysnav) .totop { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .sysdd ul { animation: none; }
+}

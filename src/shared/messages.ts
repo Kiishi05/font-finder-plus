@@ -21,7 +21,52 @@ export type ToContent =
   | { type: 'ffp:fine-prints'; family: string; weight: string; style: string }
   | { type: 'ffp:specimen'; family: string; weight: string; style: string; text: string }
   | { type: 'ffp:highlight-issue'; id: string; label: string }
-  | { type: 'ffp:panel-state'; open: boolean };
+  | { type: 'ffp:panel-state'; open: boolean }
+  /** Set type styles on the page (Use with my fonts, Paste type from Figma). `on: false` puts the page back. */
+  | { type: 'ffp:apply-type'; styles: ApplyTypeStyle[]; on: boolean }
+  /** Measure fonts the way this page draws them (x-height, cap height, extents, width). */
+  | { type: 'ffp:type-metrics'; fonts: { family: string; weight: string; style: string }[] };
+
+/** Where a style goes on the page: a heading level, body text, labels... `none` is not applied. */
+export type TypeRole = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'display' | 'lead' | 'body' | 'small' | 'label' | 'caption' | 'button' | 'link' | 'nav' | 'code' | 'none';
+
+export interface ApplyTypeFace {
+  base64: string;
+  weight: string;
+  style: string;
+  unicodeRange: string | null;
+}
+
+/** One style to set on the page. Values left out are not changed. */
+export interface ApplyTypeStyle {
+  selectorRole: TypeRole | string;
+  /** The exact elements of a System tab style (more precise than the role); falls back to the role. */
+  styleId?: string;
+  /** Shown in the reply, e.g. "Display". */
+  name?: string;
+  family?: string;
+  weight?: number | string;
+  /** px */
+  size?: number;
+  /** px */
+  lineHeight?: number;
+  /** em */
+  letterSpacing?: number;
+  textTransform?: string;
+  /** A stylesheet that loads the family (Google Fonts css2 address). */
+  fontUrlCss?: string;
+  /** Font files, when the panel already has them (works whatever the page's security rules). */
+  faces?: ApplyTypeFace[];
+  /** Generic family to fall back to (serif, sans-serif, monospace). */
+  generic?: string;
+}
+
+export interface ApplyTypeReply {
+  ok: boolean;
+  /** Each style, with how many elements it landed on. */
+  applied: { name?: string; role: string; count: number; fontLoaded: boolean }[];
+  error?: string;
+}
 
 export interface PingReply {
   ok: true;

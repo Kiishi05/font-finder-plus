@@ -128,6 +128,32 @@ try {
         await tab(panel, 'System');
         await panel.waitForSelector('#sys-health, #sys-styles', { timeout: 20000 }).catch(() => {});
         await shoot(panel, `${state}-system-${envName}`);
+        // System with the folded cards open
+        await panel.locator('#sys-dev button.fold').click().catch(() => {});
+        await panel.locator('#sys-compare button.fold').click().catch(() => {});
+        await shoot(panel, `${state}-system-open-${envName}`);
+        // Use with my fonts: the three steps
+        if (envName === 'light' || envName === 'dark' || envName === 'narrow') {
+          await panel.locator('button.mfentry', { hasText: 'Use with my fonts' }).click().catch(() => {});
+          await panel.waitForSelector('#mf-pick', { timeout: 10000 }).catch(() => {});
+          await shoot(panel, `${state}-myfonts-1-${envName}`);
+          await panel.locator('.slot', { hasText: 'Heading font' }).click().catch(() => {});
+          await panel.waitForTimeout(1500);
+          await shoot(panel, `${state}-myfonts-1-search-${envName}`);
+          await panel.locator('.picker .search input').fill('Instrument Serif').catch(() => {});
+          await panel.locator('.fitem', { hasText: 'Instrument Serif' }).first().click().catch(() => {});
+          await panel.locator('.picker .search input').fill('Work Sans').catch(() => {});
+          await panel.waitForTimeout(800);
+          await panel.locator('.fitem', { hasText: /^Work Sans/ }).first().click().catch(() => {});
+          await panel.locator('button', { hasText: 'See your styles' }).click().catch(() => {});
+          await panel.waitForSelector('#mf-styles .mfrow', { timeout: 15000 }).catch(() => {});
+          await panel.waitForTimeout(2500);
+          await panel.locator('#mf-styles .mfrow button', { hasText: 'Edit' }).first().click().catch(() => {});
+          await shoot(panel, `${state}-myfonts-2-${envName}`);
+          await panel.locator('button', { hasText: 'Export these styles' }).click().catch(() => {});
+          await shoot(panel, `${state}-myfonts-3-${envName}`);
+          for (let i = 0; i < 3; i++) await panel.locator('.mftop .backbtn').click().catch(() => {});
+        }
         await tab(panel, 'Page');
       }
       await panel.close();
